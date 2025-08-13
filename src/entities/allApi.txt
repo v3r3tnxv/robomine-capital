@@ -1,0 +1,278 @@
+// entities/action/api/action.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { Action } from '../model/types';
+
+export const createAction = async (data: {
+    matchId: number;
+    playerId: number;
+    actionData?: object;
+    joinedAt?: number;
+}): Promise<Action> => {
+    const res = await api.post<ApiResponse<Action>>('/actions', data);
+    return res.data.data;
+};
+
+export const getActionsByMatch = async (matchId: number): Promise<Action[]> => {
+    const res = await api.get<ApiResponse<Action[]>>('/actions', {
+        params: { matchId },
+    });
+    return res.data.data;
+};
+
+export const getActionById = async (id: number): Promise<Action> => {
+    const res = await api.get<ApiResponse<Action>>(`/actions/${id}`);
+    return res.data.data;
+};
+
+export const updateAction = async (
+    id: number,
+    data: Partial<Pick<Action, 'actionData'>>
+): Promise<Action> => {
+    const res = await api.put<ApiResponse<Action>>(`/actions/${id}`, data);
+    return res.data.data;
+};
+
+export const deleteAction = async (id: number): Promise<void> => {
+    await api.delete(`/actions/${id}`);
+};
+
+// entities/game/api/game.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { Game } from '../model/types';
+
+export const createGame = async (data: {
+    name: string;
+    description: string;
+    image: string;
+}): Promise<Game> => {
+    const res = await api.post<ApiResponse<Game>>('/games', data);
+    return res.data.data;
+};
+
+export const getGameById = async (id: number): Promise<Game> => {
+    const res = await api.get<ApiResponse<Game>>(`/games/${id}`);
+    return res.data.data;
+};
+
+export const getAllGames = async (): Promise<Game[]> => {
+    const res = await api.get<ApiResponse<Game[]>>('/games');
+    return res.data.data;
+};
+
+export const updateGame = async (
+    id: number,
+    data: Partial<{ name: string; description: string; image: string }>
+): Promise<Game> => {
+    const res = await api.put<ApiResponse<Game>>(`/games/${id}`, data);
+    return res.data.data;
+};
+
+export const deleteGame = async (id: number): Promise<void> => {
+    await api.delete(`/games/${id}`);
+};
+
+// entities/match/api/matches.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { Match } from '../model/types';
+
+export const getMatchesByType = async (type: number): Promise<Match[]> => {
+    const res = await api.get<ApiResponse<Match[]>>(`/matches/type/${type}`);
+    return res.data.data;
+};
+
+export const createMatch = async (data: {
+    gameId: number;
+    matchType: number;
+    maxPlayer: number;
+    startTime: number;
+    createdBy: number;
+    price?: number;
+    type?: number;
+    status?: number;
+    lifetime?: number;
+}): Promise<Match> => {
+    const res = await api.post<ApiResponse<Match>>('/matches', data);
+    return res.data.data;
+};
+
+export const getMatchById = async (id: number): Promise<Match> => {
+    const res = await api.get<ApiResponse<Match>>(`/matches/${id}`);
+    return res.data.data;
+};
+
+export const getAllMatches = async (): Promise<Match[]> => {
+    const res = await api.get<ApiResponse<Match[]>>('/matches');
+    return res.data.data;
+};
+
+export const updateMatch = async (
+    id: number,
+    data: Partial<{
+        gameId: number;
+        matchType: number;
+        maxPlayer: number;
+        startTime: number;
+        createdBy: number;
+        price: number;
+        type: number;
+        status: number;
+        lifetime: number;
+        winnerId: number | null;
+    }>
+): Promise<Match> => {
+    const res = await api.put<ApiResponse<Match>>(`/matches/${id}`, data);
+    return res.data.data;
+};
+
+export const deleteMatch = async (id: number): Promise<void> => {
+    await api.delete(`/matches/${id}`);
+};
+
+export const getMatchResult = async (
+    id: number
+): Promise<{ matchId: number; status: number; winnerId: number | null }> => {
+    const res = await api.get<
+        ApiResponse<{ matchId: number; status: number; winnerId: number | null }>
+    >(`/matches/result/${id}`);
+    return res.data.data;
+};
+
+// entities/match-player/api/matchPlayer.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { MatchPlayer } from '../model/types';
+
+export const getPlayersByMatchId = async (matchId: number): Promise<MatchPlayer[]> => {
+    const res = await api.get<ApiResponse<MatchPlayer[]>>(`/match-players/match/${matchId}`);
+    return res.data.data;
+};
+
+export const addPlayerToMatch = async (data: {
+    match_id: number;
+    player_id: number;
+    joined_at?: Date;
+}): Promise<MatchPlayer> => {
+    const res = await api.post<ApiResponse<MatchPlayer>>('/match-players', data);
+    return res.data.data;
+};
+
+export const getPlayerById = async (id: number): Promise<MatchPlayer> => {
+    const res = await api.get<ApiResponse<MatchPlayer>>(`/match-players/${id}`);
+    return res.data.data;
+};
+
+export const getAllPlayers = async (): Promise<MatchPlayer[]> => {
+    const res = await api.get<ApiResponse<MatchPlayer[]>>('/match-players');
+    return res.data.data;
+};
+
+export const updatePlayer = async (
+    id: number,
+    data: Partial<{
+        match_id: number;
+        player_id: number;
+        joined_at?: Date;
+    }>
+): Promise<MatchPlayer> => {
+    const res = await api.put<ApiResponse<MatchPlayer>>(`/match-players/${id}`, data);
+    return res.data.data;
+};
+
+export const deletePlayer = async (id: number): Promise<void> => {
+    await api.delete(`/match-players/${id}`);
+};
+
+// entities/match-status/api/matchStatus.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { MatchStatus } from '../model/types';
+
+export const getAllMatchStatuses = async (): Promise<MatchStatus[]> => {
+    const res = await api.get<ApiResponse<MatchStatus[]>>('/match-statuses');
+    return res.data.data;
+};
+
+export const getMatchStatusById = async (id: number): Promise<MatchStatus> => {
+    const res = await api.get<ApiResponse<MatchStatus>>(`/match-statuses/${id}`);
+    return res.data.data;
+};
+
+export const createMatchStatus = async (name: string): Promise<MatchStatus> => {
+    const res = await api.post<ApiResponse<MatchStatus>>('/match-statuses', { name });
+    return res.data.data;
+};
+
+export const updateMatchStatus = async (id: number, name: string): Promise<MatchStatus> => {
+    const res = await api.put<ApiResponse<MatchStatus>>(`/match-statuses/${id}`, { name });
+    return res.data.data;
+};
+
+export const deleteMatchStatus = async (id: number): Promise<void> => {
+    await api.delete(`/match-statuses/${id}`);
+};
+
+// entities/match-type/api/matchType.api.ts
+import { ApiResponse, api } from '@/shared/api';
+import type { MatchType } from '../model/types';
+
+export const getAllMatchTypes = async (): Promise<MatchType[]> => {
+    const res = await api.get<ApiResponse<MatchType[]>>('/match-types');
+    return res.data.data;
+};
+
+export const getMatchTypeById = async (id: number): Promise<MatchType> => {
+    const res = await api.get<ApiResponse<MatchType>>(`/match-types/${id}`);
+    return res.data.data;
+};
+
+export const createMatchType = async (name: string): Promise<MatchType> => {
+    const res = await api.post<ApiResponse<MatchType>>('/match-types', { name });
+    return res.data.data;
+};
+
+export const updateMatchType = async (id: number, name: string): Promise<MatchType> => {
+    const res = await api.put<ApiResponse<MatchType>>(`/match-types/${id}`, { name });
+    return res.data.data;
+};
+
+export const deleteMatchType = async (id: number): Promise<void> => {
+    await api.delete(`/match-types/${id}`);
+};
+
+import { ApiResponse, api } from '@/shared/api';
+import type { Transaction } from '../model/types';
+
+export const getTransactions = async (telegramId: number): Promise<Transaction[]> => {
+    const res = await api.post<ApiResponse<{ transactions: Transaction[] }>>('/transactions/all', {
+        telegramId,
+    });
+    return res.data.data.transactions;
+};
+
+export const createTransaction = async (data: {
+    telegramId: number;
+    type: string;
+    amount: number;
+    status: string;
+}): Promise<Transaction> => {
+    const res = await api.post<ApiResponse<{ transaction: Transaction }>>('/transactions', data);
+    return res.data.data.transaction;
+};
+
+export const updateTransaction = async (data: {
+    transactionId: number;
+    telegramId: number;
+    updates: Partial<Pick<Transaction, 'type' | 'amount' | 'status'>>;
+}): Promise<Transaction> => {
+    const res = await api.put<ApiResponse<{ transaction: Transaction }>>('/transactions', data);
+    return res.data.data.transaction;
+};
+
+export const deleteTransaction = async (data: {
+    transactionId: number;
+    telegramId: number;
+}): Promise<void> => {
+    await api.request({
+        method: 'DELETE',
+        url: '/transactions',
+        data,
+    });
+};

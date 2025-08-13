@@ -1,0 +1,58 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    justify-self: center;
+    gap: 16px;
+    width: max-content;
+
+    // Общие стили для всех кнопок
+    .deposit,
+    .withdraw,
+    .referral {
+        display: grid;
+        grid-template-rows: auto auto;
+        justify-items: center;
+        gap: 8px;
+    }
+
+    // Общие стили для обертки иконки
+    .iconWrapper {
+        display: grid;
+        align-items: center;
+        justify-items: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 100%;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    // Общие стили для иконки
+    .icon {
+        color: $color-accent;
+        width: 24px;
+        height: 24px;
+    }
+
+    // Общие стили для текста
+    .label {
+        color: $color-accent;
+        font-size: 14px;
+    }
+
+    // Специфичные стили
+    .deposit {
+        .icon {
+            rotate: -45deg;
+        }
+    }
+
+    .withdraw {
+        .icon {
+            rotate: 135deg;
+        }
+    }
+}

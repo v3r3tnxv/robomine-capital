@@ -1,0 +1,15 @@
+.depositPage {
+    position: relative;
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    height: calc(100vh - 64px);
+
+    .title {
+        justify-self: center;
+        margin-bottom: 16px;
+    }
+
+    .formContainer {
+        align-self: end;
+    }
+}

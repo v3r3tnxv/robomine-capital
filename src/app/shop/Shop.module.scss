@@ -1,0 +1,9 @@
+.shopPage {
+    display: grid;
+    gap: 16px;
+
+    .title {
+        justify-self: center;
+        margin-bottom: 16px;
+    }
+}

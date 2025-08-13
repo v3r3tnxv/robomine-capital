@@ -1,0 +1,26 @@
+.referralPage {
+    display: grid;
+    gap: 16px;
+
+    .title {
+        justify-self: center;
+        margin-bottom: 16px;
+    }
+
+    .earningsAmount {
+        justify-self: center;
+        font-size: 32px;
+        font-weight: 700;
+    }
+
+    .referralText {
+        margin-top: 16px;
+        justify-self: center;
+    }
+
+    .button {
+        margin-bottom: 16px;
+        width: 100%;
+        border-radius: 12px;
+    }
+}

@@ -1,0 +1,10 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.header {
+    width: 100%;
+    height: max-content;
+    display: grid;
+    gap: 16px;
+}

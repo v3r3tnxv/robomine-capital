@@ -1,0 +1,36 @@
+// app/layout.tsx
+import type { Metadata } from 'next';
+import { Lato } from 'next/font/google';
+import '@/shared/styles/global.scss';
+import styles from './layout.module.scss';
+
+// Подключаем шрифт Lato
+const latoSans = Lato({
+    weight: ['100', '300', '400', '700', '900'],
+    variable: '--font-lato',
+    subsets: ['latin', 'latin-ext'], // Добавил cyrillic для русского языка
+    display: 'swap',
+});
+
+export const metadata: Metadata = {
+    title: {
+        default: '121 Games',
+        template: '%s | 121 Games', // Для дочерних страниц
+    },
+    description: 'Play and win',
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+};
+
+export default function RootLayout({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+        <html lang="ru" suppressHydrationWarning>
+            <body className={`${styles.layout} ${latoSans.variable} `}>
+                <main className={styles.content}>{children}</main>
+            </body>
+        </html>
+    );
+}

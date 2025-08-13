@@ -1,0 +1,43 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.button {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 4px;
+    place-content: center;
+    place-items: center;
+    padding: 8px 16px;
+    height: 36px;
+    width: max-content;
+    border: none;
+    border-radius: 64px;
+    color: $color-white;
+    font-weight: 700;
+    font-size: 16px;
+    z-index: 10;
+    background: transparent;
+    @include interactive-behavior(0.96, 1.2, 0.3s);
+
+    // white-space: nowrap;
+    // overflow: hidden;
+    // text-overflow: ellipsis;
+}
+
+.buttonPrimary {
+    background: radial-gradient(108.41% 134.4% at 0% 0%, #ca44ff 0%, #b554dc 57.21%, #6a0094 100%);
+}
+
+.buttonSwitch {
+    border: 2px solid $color-gray2;
+    color: $color-gray2;
+    @include interactive-behavior(0.96, 1, 0.3s);
+}
+
+.buttonOutline {
+    border: 2px solid $color-accent;
+    color: $color-accent;
+}

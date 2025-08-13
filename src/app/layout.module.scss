@@ -1,0 +1,58 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.layout {
+    position: relative;
+    justify-items: center;
+    z-index: 0;
+    padding-top: 32px;
+    background: rgba(8, 0, 22, 1);
+
+    &::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100%;
+        background: radial-gradient(circle at center, rgba(134, 19, 234, 0.6));
+        background-size: 80vw 80vw;
+        background-position: top -20vw center;
+        background-repeat: no-repeat;
+        filter: blur(200px);
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    // Второй круглый градиент (маленький) - с blur
+    &::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100%;
+        background: radial-gradient(circle at center, rgba(238, 43, 0, 0.6));
+        background-size: 50vw 50vw;
+        background-position: top -12.5vw center;
+        background-repeat: no-repeat;
+        filter: blur(200px);
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .content {
+        position: relative;
+        width: 100%;
+        max-width: 432px;
+        height: auto;
+        padding: 0 8px;
+        border-radius: 48px;
+        z-index: 2;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+}

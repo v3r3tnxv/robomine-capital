@@ -1,0 +1,48 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.homePage {
+    display: grid;
+    gap: 32px;
+
+    .shopLink {
+        display: grid;
+        grid-template-rows: 1fr max-content;
+        justify-self: center;
+        justify-items: center;
+        gap: 16px;
+        width: 80%;
+
+        .imageWrapper {
+            position: relative;
+            display: grid;
+            justify-items: center;
+            width: 80%;
+            aspect-ratio: 1 / 1;
+            z-index: 4;
+
+            &::before {
+                bottom: 0;
+                content: '';
+                position: absolute;
+                aspect-ratio: 1 / 1;
+                width: 85%;
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.08);
+                z-index: 2;
+            }
+
+            .robotImage {
+                position: relative;
+                width: 100%;
+                z-index: 3;
+            }
+        }
+
+        .label {
+            align-self: self-end;
+            text-decoration: underline;
+        }
+    }
+}

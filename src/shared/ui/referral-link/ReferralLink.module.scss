@@ -1,0 +1,50 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+// @/shared/ui/referral-link/ReferralLink.module.scss
+.referralLinkWrapper {
+    position: relative;
+    width: 100%;
+
+    @include interactive-behavior(0.96, 1.2, 0.3s);
+}
+
+.referralLink {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    // Наследуем стили инпута
+    input {
+        text-align: left;
+        cursor: pointer;
+    }
+}
+
+.input {
+    width: 100%;
+
+    input {
+        padding-right: 50px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        font-size: 20px;
+        cursor: pointer;
+    }
+}
+
+.copyIcon {
+    position: absolute;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    color: $color-accent;
+    pointer-events: none;
+}

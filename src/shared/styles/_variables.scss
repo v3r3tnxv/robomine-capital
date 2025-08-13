@@ -1,0 +1,137 @@
+@use 'sass:color';
+
+// apple colors
+// Red
+$color-red: rgb(255, 59, 48);
+$color-red-dark: rgb(255, 69, 58);
+$color-red-accessible: rgb(215, 0, 21);
+$color-red-accessible-dark: rgb(255, 105, 97);
+
+// Orange
+$color-orange: rgb(255, 149, 0);
+$color-orange-dark: rgb(255, 159, 10);
+$color-orange-accessible: rgb(201, 52, 0);
+$color-orange-accessible-dark: rgb(255, 179, 64);
+
+// Yellow
+$color-yellow: rgb(255, 204, 0);
+$color-yellow-dark: rgb(255, 214, 10);
+$color-yellow-accessible: rgb(178, 80, 0);
+$color-yellow-accessible-dark: rgb(255, 212, 38);
+
+// Green
+$color-green: rgb(52, 199, 89);
+$color-green-dark: rgb(48, 209, 88);
+$color-green-accessible: rgb(36, 138, 61);
+$color-green-accessible-dark: rgb(48, 219, 91);
+
+// Mint
+$color-mint: rgb(0, 199, 190);
+$color-mint-dark: rgb(102, 212, 207);
+$color-mint-accessible: rgb(12, 129, 123);
+$color-mint-accessible-dark: rgb(102, 212, 207);
+
+// Teal
+$color-teal: rgb(48, 176, 199);
+$color-teal-dark: rgb(64, 200, 224);
+$color-teal-accessible: rgb(0, 130, 153);
+$color-teal-accessible-dark: rgb(93, 230, 255);
+
+// Cyan
+$color-cyan: rgb(50, 173, 230);
+$color-cyan-dark: rgb(100, 210, 255);
+$color-cyan-accessible: rgb(0, 113, 164);
+$color-cyan-accessible-dark: rgb(112, 215, 255);
+
+// Blue
+$color-blue: rgb(0, 122, 255);
+$color-blue-dark: rgb(10, 132, 255);
+$color-blue-accessible: rgb(0, 64, 221);
+$color-blue-accessible-dark: rgb(64, 156, 255);
+
+// Indigo
+$color-indigo: rgb(88, 86, 214);
+$color-indigo-dark: rgb(94, 92, 230);
+$color-indigo-accessible: rgb(54, 52, 163);
+$color-indigo-accessible-dark: rgb(125, 122, 255);
+
+// Purple
+$color-purple: rgb(175, 82, 222);
+$color-purple-dark: rgb(191, 90, 242);
+$color-purple-accessible: rgb(137, 68, 171);
+$color-purple-accessible-dark: rgb(218, 143, 255);
+
+// Pink
+$color-pink: rgb(255, 45, 85);
+$color-pink-dark: rgb(255, 55, 95);
+$color-pink-accessible: rgb(211, 15, 69);
+$color-pink-accessible-dark: rgb(255, 100, 130);
+
+// Brown
+$color-brown: rgb(165, 132, 94);
+$color-brown-dark: rgb(172, 142, 104);
+$color-brown-accessible: rgb(127, 101, 69);
+$color-brown-accessible-dark: rgb(181, 148, 105);
+
+// Gray
+$color-gray: rgb(142, 142, 147);
+$color-gray-dark: rgb(142, 142, 147);
+$color-gray-accessible-light: rgb(108, 108, 112);
+$color-gray-accessible-dark: rgb(174, 174, 178);
+
+$color-gray2: rgb(174, 174, 178);
+$color-gray2-dark: rgb(99, 99, 102);
+$color-gray2-accessible-light: rgb(142, 142, 147);
+$color-gray2-accessible-dark: rgb(124, 124, 128);
+
+$color-gray3: rgb(199, 199, 204);
+$color-gray3-dark: rgb(72, 72, 74);
+$color-gray3-accessible-light: rgb(174, 174, 178);
+$color-gray3-accessible-dark: rgb(84, 84, 86);
+
+$color-gray4: rgb(209, 209, 214);
+$color-gray4-dark: rgb(58, 58, 60);
+$color-gray4-accessible-light: rgb(188, 188, 192);
+$color-gray4-accessible-dark: rgb(68, 68, 70);
+
+$color-gray5: rgb(229, 229, 234);
+$color-gray5-dark: rgb(44, 44, 46);
+$color-gray5-accessible-light: rgb(216, 216, 220);
+$color-gray5-accessible-dark: rgb(54, 54, 56);
+
+$color-gray6: rgb(242, 242, 247);
+$color-gray6-dark: rgb(28, 28, 30);
+$color-gray6-accessible-light: rgb(235, 235, 240);
+$color-gray6-accessible-dark: rgb(36, 36, 38);
+
+$color-white: rgb(245, 245, 247);
+$color-black: #0b090d;
+$color-accent: rgba(202, 68, 255, 1);
+
+$font-white: #f5f5f7;
+$font-black: #1d1d1f;
+$font-black-secondary: $color-gray3-dark;
+$font-gray: #86868b;
+$font-purple: #ac39ff;
+$font-blue: #007aff;
+$font-green: #008009;
+$font-pastel-blue: #708dfa;
+$font-pastel-pink: #d464ae;
+$font-pastel-pink-light: #eda4ff;
+$font-pastel-green: #4e949f;
+$background: rgb(22, 7, 0);
+$background-accent: radial-gradient(
+    ellipse 150% 60% at 100% 0%,
+    $color-accent,
+    $color-black
+);
+
+// app fills
+$fill-red: rgba($color-red, 0.2);
+$fill-yellow: rgba($color-yellow, 0.2);
+$fill-orange: rgba($color-orange, 0.2);
+$fill-green: rgba($color-green, 0.2);
+$fill-gray: rgba($color-gray, 0.2);
+$fill-brown: color.mix($color-brown, $background, 20%);
+
+// app gradients

@@ -1,0 +1,40 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.wrapper {
+    display: grid;
+    align-items: center;
+    grid-template-columns: 1fr max-content;
+    gap: 8px;
+
+    .link {
+        height: 36px;
+        display: grid;
+        align-items: center;
+        grid-template-columns: 1fr 36px;
+        gap: 4px;
+        border: 2px solid $color-blue;
+        border-radius: 16px;
+        @include interactive-behavior(0.98, 1.2, 0.3s);
+
+        .input {
+            width: 100%;
+            padding: 4px 16px;
+            color: $color-blue;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .copy {
+            display: grid;
+            place-self: center;
+        }
+    }
+
+    .infoButtonBlue {
+        background-color: $color-blue;
+    }
+}

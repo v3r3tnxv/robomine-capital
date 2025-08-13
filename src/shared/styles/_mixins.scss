@@ -1,0 +1,10 @@
+@mixin interactive-behavior($scale: 1.1, $brightness: 1.2, $duration: 0.3s) {
+    transition: all $duration cubic-bezier(0, 0, 0.5, 1) !important;
+
+    &:active,
+    &:hover {
+        // box-shadow: 2px 4px 12px #0001;
+        transform: scale($scale) !important;
+        filter: brightness($brightness);
+    }
+}
