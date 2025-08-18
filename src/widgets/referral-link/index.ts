@@ -1,1 +1,1 @@
-export { ReferralLink } from "./ui/ReferralLink";
+export { ReferralLink } from './ReferralLink';

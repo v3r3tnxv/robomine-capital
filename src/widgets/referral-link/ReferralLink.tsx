@@ -2,7 +2,7 @@
 
 // @/shared/ui/referral-link/ReferralLink.tsx
 import { Copy } from '@/shared/assets/icons';
-import { Input } from '../input';
+import { Input } from '@/shared/ui';
 import styles from './ReferralLink.module.scss';
 
 export const ReferralLink = () => {
