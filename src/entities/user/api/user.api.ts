@@ -1,62 +1,78 @@
 // entities/user/api/user.api.ts
-import { ApiResponse, api } from '@/shared/api';
-import type { User } from '../model';
+import { api } from '@/shared/api';
+import {
+    BanUserDto,
+    CreateUserDto,
+    ReplenishDto,
+    UserAttributes,
+    UserProfile,
+    UserReferralData,
+} from '../model/types';
 
-export const collectReward = async (
-    userId: number
-): Promise<{
-    message: string;
-    lastRewardCollectedAt: number | null;
-    nextRewardAvailableAt: number | null;
-    balanceMain?: number;
-}> => {
-    const res = await api.post<
-        ApiResponse<{
-            message: string;
-            lastRewardCollectedAt: number | null;
-            nextRewardAvailableAt: number | null;
-            balanceMain?: number;
-        }>
-    >('/user/collect-reward', { userId });
-    return res.data.data;
+/**
+ * Проверить, существует ли пользователь по telegram_id
+ */
+export const checkUserExists = async (telegram_id: number): Promise<boolean> => {
+    const response = await api.get<boolean>(`/users/check/${telegram_id}`);
+    return response.data;
 };
 
-export const getUserByTelegramId = async (telegramId: number): Promise<User> => {
-    const res = await api.post<ApiResponse<{ user: User }>>('/user', {
-        telegramId,
-    });
-    return res.data.data.user;
+/**
+ * Создать нового пользователя
+ */
+export const createUser = async (userData: CreateUserDto): Promise<UserAttributes> => {
+    const response = await api.post<UserAttributes>('/users/create', userData);
+    return response.data;
 };
 
-export const createUser = async (data: {
-    telegramId?: number;
-    username: string;
-    refId?: number | null;
-    balanceMain?: number;
-    balanceCoin?: number;
-}): Promise<User> => {
-    const res = await api.post<ApiResponse<User>>('/users/register', data);
-    return res.data.data;
+/**
+ * Получить данные текущего пользователя
+ */
+export const getMe = async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/users/getMe');
+    return response.data;
 };
 
-export const updateUser = async (
-    id: number,
-    data: Partial<{
-        username: string;
-        balanceMain: number;
-        balanceCoin: number;
-        refId: number;
-    }>
-): Promise<User> => {
-    const res = await api.put<ApiResponse<User>>(`/users/${id}`, data);
-    return res.data.data;
+/**
+ * Получить рефералов текущего пользователя
+ */
+export const getUserReferrals = async (): Promise<UserReferralData> => {
+    const response = await api.get<UserReferralData>('/users/get-referrals');
+    return response.data;
 };
 
-export const getAllUsers = async (): Promise<User[]> => {
-    const res = await api.get<ApiResponse<User[]>>('/users');
-    return res.data.data;
+/**
+ * Пополнить баланс пользователя (админская функция или для тестов)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const replenishUserBalance = async (data: ReplenishDto): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>('/users/replenish', data);
+    return response.data;
 };
 
-export const deleteUser = async (id: number): Promise<void> => {
-    await api.delete(`/users/${id}`);
+/**
+ * Забанить пользователя (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const banUser = async (user_id: number, data: BanUserDto): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>(`/users/ban/${user_id}`, data);
+    return response.data;
+};
+
+/**
+ * Разбанить пользователя (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const unbanUser = async (user_id: number): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>(`/users/unban/${user_id}`);
+    return response.data;
+};
+
+/**
+ * Получить список всех пользователей (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const getAllUsers = async (): Promise<UserAttributes[]> => {
+    const response = await api.get<UserAttributes[]>('/users/admin/get-all-users');
+    return response.data;
 };

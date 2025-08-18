@@ -1,9 +1,10 @@
-export { getProfile } from './getProfile';
 export {
-    collectReward,
+    banUser,
+    checkUserExists,
     createUser,
-    deleteUser,
     getAllUsers,
-    getUserByTelegramId,
-    updateUser,
+    getMe,
+    getUserReferrals,
+    replenishUserBalance,
+    unbanUser,
 } from './user.api';
