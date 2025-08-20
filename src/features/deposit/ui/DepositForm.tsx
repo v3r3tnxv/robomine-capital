@@ -47,16 +47,41 @@ export const DepositForm = () => {
         }
     }, [rubAmount, usdtAmount, lastChanged, rates]);
 
+    const isValidNumericInput = (value: string): boolean => {
+        // Разрешает пустую строку, положительные числа и десятичные дроби
+        // ^\d*\.?\d*$ - регулярное выражение:
+        // ^ - начало строки
+        // \d* - ноль или более цифр
+        // \.? - опциональная точка
+        // \d* - ноль или более цифр после точки
+        // $ - конец строки
+        return /^(\d+\.?\d*|\.\d+)?$/.test(value);
+    };
+
     const handleRubChange = (value: string) => {
-        setRubAmount(value);
-        setLastChanged('RUB');
-        setError('');
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setRubAmount(sanitizedValue);
+            setLastChanged('RUB');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
     const handleUsdtChange = (value: string) => {
-        setUsdtAmount(value);
-        setLastChanged('USDT');
-        setError('');
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setUsdtAmount(sanitizedValue);
+            setLastChanged('USDT');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
     const handleSubmit = () => {
@@ -80,6 +105,8 @@ export const DepositForm = () => {
         <div className={styles.depositForm}>
             <Input
                 type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
                 variant="balance"
                 placeholder="Введите сумму"
                 value={rubAmount}
@@ -90,6 +117,8 @@ export const DepositForm = () => {
 
             <Input
                 type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
                 variant="balance"
                 placeholder="Введите сумму"
                 value={usdtAmount}

@@ -31,18 +31,22 @@
 
         filter: blur(4px);
         transition: filter 0.9s ease;
+
+        &.purchased {
+            filter: none; // Убираем blur для купленных
+        }
     }
 
-    .plate1 {
+    .not_purchased {
     }
 
-    .plate2 {
+    .awaiting {
         background:
             linear-gradient(0deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04)),
             radial-gradient(80% 80% at 50% -20%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
     }
 
-    .plate3 {
+    .in_progress {
         background:
             linear-gradient(
                 180deg,
@@ -54,7 +58,7 @@
             radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
     }
 
-    .plate4 {
+    .waiting_for_reward {
         background: radial-gradient(80% 80% at 50% -20%, #ca44ff 0%, rgba(0, 0, 0, 0) 100%);
     }
 
@@ -68,16 +72,146 @@
     //     right: 0;
     // }
 
-    .button {
+    .label {
         padding: 0 16px;
         width: max-content;
         height: 36px;
         align-self: self-end;
         z-index: 13;
+        color: $color-accent !important;
+        font-weight: 700;
+    }
 
-        .label {
-            color: $color-accent !important;
-            font-weight: 700;
-        }
+    // ✅ Статичные классы для каждого уровня прогресса
+    &.progress0 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 0%,
+                rgba(0, 0, 0, 0.16) 0%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress10 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 10%,
+                rgba(0, 0, 0, 0.16) 10%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress20 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 20%,
+                rgba(0, 0, 0, 0.16) 20%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress30 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 30%,
+                rgba(0, 0, 0, 0.16) 30%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress40 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 40%,
+                rgba(0, 0, 0, 0.16) 40%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress50 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 50%,
+                rgba(0, 0, 0, 0.16) 50%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress60 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 60%,
+                rgba(0, 0, 0, 0.16) 60%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress70 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 70%,
+                rgba(0, 0, 0, 0.16) 70%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress80 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 80%,
+                rgba(0, 0, 0, 0.16) 80%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress90 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 90%,
+                rgba(0, 0, 0, 0.16) 90%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    &.progress100 .in_progress {
+        background:
+            linear-gradient(
+                to top,
+                rgba(202, 68, 255, 0.66) 0%,
+                #ca44ff 100%,
+                rgba(0, 0, 0, 0.16) 100%,
+                rgba(0, 0, 0, 0.16) 100%
+            ),
+            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
     }
 }

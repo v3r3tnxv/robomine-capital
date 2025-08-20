@@ -4,4 +4,4 @@ export {
     getMachineById,
     purchaseMachine,
     transitionMachine,
-} from './user.api';
+} from './machine.api';

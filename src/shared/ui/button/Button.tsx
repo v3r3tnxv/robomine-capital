@@ -5,7 +5,7 @@ import { ButtonProps } from './types';
 export const Button = ({
     label,
     onClick,
-    disabled,
+    disabled = false,
     variant = 'primary',
     children,
     className,
@@ -15,7 +15,9 @@ export const Button = ({
 
     return (
         <button
-            className={clsx(styles.button, variantClass, className)}
+            className={clsx(styles.button, variantClass, className, {
+                [styles.disabled]: disabled,
+            })}
             onClick={onClick}
             disabled={disabled}
             {...props}

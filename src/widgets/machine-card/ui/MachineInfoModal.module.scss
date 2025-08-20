@@ -37,19 +37,3 @@
     .value {
     }
 }
-
-.buyButton {
-    width: 100%;
-    padding: 12px;
-    background: rgba(202, 68, 255, 0.33);
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s ease;
-
-    &:hover {
-        background: rgba(202, 68, 255, 0.5);
-    }
-}

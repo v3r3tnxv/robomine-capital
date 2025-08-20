@@ -53,24 +53,24 @@ export interface MachineToUserAttributes {
 }
 
 export interface PurchaseMachineDto {
-    machine_id: number;
+    car_id: number;
 }
 
 export interface ActivateMachineDto {
-    machine_id: number;
+    car_id: number;
 }
 
 export interface TransitionMachineDto {
-    machine_to_user_id: number;
+    car_to_user_id: number;
 }
 
 // --- Тип для ответа getAllMachines ---
 export interface MachineWithState {
-    machine: MachineAttributes;
-    state_machine: {
+    car: MachineAttributes;
+    state_car: {
         id: number | null;
         telegram_id: number;
-        machine_id: number | null;
+        car_id: number | null;
         remaining_uses: number;
         status: MachineToUserAttributes['status'];
         last_updated: number;

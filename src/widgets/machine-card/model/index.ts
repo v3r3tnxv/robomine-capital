@@ -1,1 +1,1 @@
-export type { MachineCardProps } from './types';
+export type { MachineCardProps, MachineInfoModalProps } from './types';

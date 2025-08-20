@@ -5,14 +5,4 @@
 .depositForm {
     display: grid;
     gap: 16px;
-
-    .button {
-        width: 100%;
-        border-radius: 12px;
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    }
 }

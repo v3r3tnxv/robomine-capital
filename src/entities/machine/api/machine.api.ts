@@ -12,7 +12,7 @@ import {
  * Получить список всех машин с состоянием для текущего пользователя
  */
 export const getAllMachines = async (): Promise<MachineWithState[]> => {
-    const response = await api.get<MachineWithState[]>('/machines/');
+    const response = await api.get<MachineWithState[]>('/cars/');
     return response.data;
 };
 
@@ -20,7 +20,7 @@ export const getAllMachines = async (): Promise<MachineWithState[]> => {
  * Получить конкретную машину по ID
  */
 export const getMachineById = async (id: number): Promise<MachineAttributes> => {
-    const response = await api.get<MachineAttributes>(`/machines/${id}`);
+    const response = await api.get<MachineAttributes>(`/cars/${id}`);
     return response.data;
 };
 
@@ -28,7 +28,7 @@ export const getMachineById = async (id: number): Promise<MachineAttributes> => 
  * Купить машину
  */
 export const purchaseMachine = async (data: PurchaseMachineDto): Promise<boolean> => {
-    const response = await api.post<boolean>('/machines/purchase', data);
+    const response = await api.post<boolean>('/cars/purchase', data);
     return response.data;
 };
 
@@ -36,7 +36,7 @@ export const purchaseMachine = async (data: PurchaseMachineDto): Promise<boolean
  * Активировать купленную машину
  */
 export const activateMachine = async (data: ActivateMachineDto): Promise<{ message: string }> => {
-    const response = await api.put<{ message: string }>('/machines/activate', data);
+    const response = await api.put<{ message: string }>('/cars/activate', data);
     return response.data;
 };
 
@@ -46,6 +46,6 @@ export const activateMachine = async (data: ActivateMachineDto): Promise<{ messa
 export const transitionMachine = async (
     data: TransitionMachineDto
 ): Promise<{ message: string }> => {
-    const response = await api.put<{ message: string }>('/machines/take', data);
+    const response = await api.put<{ message: string }>('/cars/take', data);
     return response.data;
 };
