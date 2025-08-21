@@ -1,4 +1,3 @@
-// src/shared/lib/hooks/auth/useTelegram.ts
 import { useEffect, useState } from 'react';
 
 interface WebAppUser {
@@ -18,51 +17,76 @@ export const useTelegram = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            // Безопасно получаем Telegram WebApp
-            const telegramWebApp = (
-                window as unknown as {
-                    Telegram?: {
-                        WebApp?: {
-                            initData: string;
-                            initDataUnsafe: {
-                                user?: WebAppUser;
-                                [key: string]: unknown;
-                            };
-                            ready: () => void;
-                            expand: () => void;
-                            [key: string]: unknown;
-                        };
-                    };
-                }
-            ).Telegram?.WebApp;
+        // Проверяем, что мы на клиенте
+        if (typeof window === 'undefined') {
+            setIsLoading(false);
+            return;
+        }
 
-            if (telegramWebApp) {
-                // Настройки Telegram Web App
-                if (typeof telegramWebApp.ready === 'function') {
-                    telegramWebApp.ready();
-                }
-                if (typeof telegramWebApp.expand === 'function') {
-                    telegramWebApp.expand();
-                }
+        let checkInterval: NodeJS.Timeout; // Объявляем переменную заранее
 
-                // Получаем данные
-                const currentInitData = telegramWebApp.initData || '';
-                const currentUser = telegramWebApp.initDataUnsafe?.user || null;
-                const currentTelegramId = currentUser?.id || null;
+        const initTelegram = () => {
+            try {
+                const telegramWebApp = window.Telegram?.WebApp;
 
-                setInitData(currentInitData);
-                setUser(currentUser);
-                setTelegramId(currentTelegramId);
-                setIsAuthenticated(!!currentTelegramId);
-                setIsLoading(false);
-            } else {
-                // Не в Telegram Web App
+                if (telegramWebApp) {
+                    // Инициализация Telegram WebApp
+                    if (typeof telegramWebApp.ready === 'function') {
+                        telegramWebApp.ready();
+                    }
+
+                    if (typeof telegramWebApp.expand === 'function') {
+                        telegramWebApp.expand();
+                    }
+
+                    // Получаем данные
+                    const currentInitData = telegramWebApp.initData || '';
+                    const currentUser = telegramWebApp.initDataUnsafe?.user || null;
+                    const currentTelegramId = currentUser?.id || null;
+
+                    console.log('Telegram initData:', currentInitData);
+                    console.log('Telegram user:', currentUser);
+
+                    setInitData(currentInitData);
+                    setUser(currentUser);
+                    setTelegramId(currentTelegramId);
+                    setIsAuthenticated(!!currentTelegramId);
+                    setIsLoading(false);
+                } else {
+                    console.warn('Telegram WebApp not available');
+                    setIsLoading(false);
+                }
+            } catch (error) {
+                console.error('Error initializing Telegram WebApp:', error);
                 setIsLoading(false);
             }
+        };
+
+        // Проверяем сразу, есть ли Telegram WebApp
+        if (window.Telegram?.WebApp) {
+            initTelegram();
         } else {
-            setIsLoading(false);
+            // Если нет, ждем загрузки скрипта
+            checkInterval = setInterval(() => {
+                if (window.Telegram?.WebApp) {
+                    clearInterval(checkInterval);
+                    initTelegram();
+                }
+            }, 100);
+
+            // Таймаут на случай, если скрипт не загрузился
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                setIsLoading(false);
+            }, 2000);
         }
+
+        // Очистка
+        return () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        };
     }, []);
 
     return {

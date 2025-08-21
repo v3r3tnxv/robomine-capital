@@ -1,4 +1,3 @@
-// src/shared/api/telegram-web-app.d.ts
 export {};
 
 interface TelegramWebAppUser {
