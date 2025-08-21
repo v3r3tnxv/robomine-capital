@@ -8,7 +8,7 @@ import styles from './layout.module.scss';
 const latoSans = Lato({
     weight: ['100', '300', '400', '700', '900'],
     variable: '--font-lato',
-    subsets: ['latin', 'latin-ext'], // Добавил cyrillic для русского языка
+    subsets: ['latin', 'latin-ext'],
     display: 'swap',
 });
 
@@ -28,6 +28,9 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="ru" suppressHydrationWarning>
+            <head>
+                <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+            </head>
             <body className={`${styles.layout} ${latoSans.variable} `}>
                 <main className={styles.content}>{children}</main>
             </body>
