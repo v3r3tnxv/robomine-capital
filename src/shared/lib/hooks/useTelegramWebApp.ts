@@ -1,4 +1,4 @@
-// shared/lib/hooks/auth/useTelegram.ts
+// shared/lib/hooks/useTelegramWebApp.ts
 import { useEffect, useState } from 'react';
 
 interface TelegramUser {
@@ -22,7 +22,7 @@ declare global {
     }
 }
 
-export const useTelegram = () => {
+export const useTelegramWebApp = () => {
     const [tgUser, setTgUser] = useState<TelegramUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -37,5 +37,5 @@ export const useTelegram = () => {
         }
     }, []);
 
-    return { tgUser, isLoading: isLoading };
+    return { tgUser, isLoading };
 };

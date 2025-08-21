@@ -1,10 +1,22 @@
-// entities/user/model/useUserInit.ts
-import { useEffect, useState } from 'react';
-import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
-import { checkUserExists, createUser, getMe } from '../api/user.api';
-import { CreateUserDto, UserProfile } from './types';
+'use client';
 
-export const useUserInit = () => {
+// widgets/user-initializer/ui/UserInitializer.tsx
+import { useEffect, useState } from 'react';
+import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
+import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
+import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+export interface UserInitializationState {
+    user: UserProfile | null;
+    isLoading: boolean;
+    error: string | null;
+}
+
+interface UserInitializerProps {
+    children: (state: UserInitializationState) => React.ReactNode;
+}
+
+export const UserInitializer = ({ children }: UserInitializerProps) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -29,25 +41,24 @@ export const useUserInit = () => {
 
                 if (!exists) {
                     // Создаем нового пользователя
-                    console.log('Создаем нового пользователя');
                     const userData: CreateUserDto = {
                         telegram_id: tgUser.id,
-                        username: tgUser.username || 'Unknown',
+                        username: tgUser.username || `user_${tgUser.id}`,
                     };
 
                     const newUser = await createUser(userData);
-                    console.log('Пользователь создан:', newUser);
                     setUser(newUser);
                 } else {
                     // Получаем данные существующего пользователя
-                    console.log('Пользователь существует, получаем данные');
                     const userData = await getMe();
-                    console.log('Данные пользователя:', userData);
                     setUser(userData);
                 }
-            } catch (err) {
-                console.error('Ошибка инициализации пользователя:', err);
-                setError('Ошибка при инициализации пользователя');
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(`Ошибка инициализации: ${err.message}`);
+                } else {
+                    setError('Неизвестная ошибка инициализации');
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -56,5 +67,5 @@ export const useUserInit = () => {
         initializeUser();
     }, [tgUser, isTgLoading]);
 
-    return { user, isLoading, error };
+    return <>{children({ user, isLoading, error })}</>;
 };

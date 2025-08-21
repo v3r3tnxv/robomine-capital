@@ -4,6 +4,7 @@ import { MachineList } from '@/features/mining/ui/MachineList';
 import { ActionButtons } from '@/widgets/action-buttons';
 import { Header } from '@/widgets/header/ui/Header';
 import { BuyMachineLink } from '@/widgets/machine-card';
+import { UserInitializer } from '@/widgets/user-initializer/ui/UserInitializer';
 import styles from './Home.module.scss';
 
 export default async function HomePage() {
@@ -23,27 +24,35 @@ export default async function HomePage() {
     }
 
     return (
-        <div className={styles.homePage}>
-            <Header />
-            <ActionButtons />
+        <UserInitializer>
+            {({ isLoading, error: userError }) => (
+                <div className={styles.homePage}>
+                    <Header />
+                    <ActionButtons />
 
-            <Link href={'/t'}>перейти на тест</Link>
+                    {/* Показываем состояние инициализации пользователя */}
+                    {isLoading && <div>Инициализация пользователя...</div>}
+                    {userError && <div>Ошибка: {userError}</div>}
 
-            {error ? (
-                <div className={styles.errorMessage}>{error}</div>
-            ) : userMachines.length > 0 ? (
-                // Если есть купленные машины — показываем их список
-                <div className={styles.machinesContainer}>
-                    <MachineList
-                        machines={userMachines}
-                        filterType="purchased"
-                        showBuyMoreCard={true}
-                    />
+                    <Link href={'/t'}>перейти на тест</Link>
+
+                    {error ? (
+                        <div className={styles.errorMessage}>{error}</div>
+                    ) : userMachines.length > 0 ? (
+                        // Если есть купленные машины — показываем их список
+                        <div className={styles.machinesContainer}>
+                            <MachineList
+                                machines={userMachines}
+                                filterType="purchased"
+                                showBuyMoreCard={true}
+                            />
+                        </div>
+                    ) : (
+                        // Если купленных машин нет — показываем ссылку на магазин
+                        <BuyMachineLink />
+                    )}
                 </div>
-            ) : (
-                // Если купленных машин нет — показываем ссылку на магазин
-                <BuyMachineLink />
             )}
-        </div>
+        </UserInitializer>
     );
 }

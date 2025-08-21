@@ -1,1 +1,1 @@
-export { API_URL, telegramId } from './env';
+export { API_URL } from './env';
