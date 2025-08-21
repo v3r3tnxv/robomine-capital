@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMe } from '@/entities/user/api/user.api';
+import { createUser } from '@/entities/user/api/user.api';
 import { UserProfile } from '@/entities/user/model/types';
 import { useTelegram } from '@/shared/lib/hooks/auth/useTelegram';
 import styles from './User.module.scss';
@@ -12,24 +12,30 @@ export const User = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            if (!isAuthenticated || !telegramId) {
+        const createAndFetchUserData = async () => {
+            if (!isAuthenticated || !telegramUser) {
                 return;
             }
 
             try {
-                const userData = await getMe();
+                console.log('Creating user:', telegramUser);
+                const userData = await createUser({
+                    telegram_id: telegramUser.id,
+                    username: telegramUser.username || '',
+                    ref_id: 0, // по умолчанию
+                    tokens: 0, // по умолчанию
+                });
                 setUser(userData);
             } catch (err) {
-                console.error('Ошибка при загрузке данных пользователя:', err);
-                setError('Не удалось загрузить данные пользователя');
+                console.error('Ошибка при создании пользователя:', err);
+                setError('Не удалось создать пользователя');
             }
         };
 
-        if (isAuthenticated && telegramId) {
-            fetchUserData();
+        if (isAuthenticated && telegramUser) {
+            createAndFetchUserData();
         }
-    }, [isAuthenticated, telegramId]);
+    }, [isAuthenticated, telegramUser]);
 
     if (isLoading) {
         return <div className={styles.user}>Загрузка...</div>;
@@ -49,7 +55,9 @@ export const User = () => {
 
     return (
         <div className={styles.user}>
-            <span className={styles.userStatus}>{user.blago_status}</span>
+            <span className={styles.userStatus}>
+                {user.blago_status ? 'Активный' : 'Неактивный'}
+            </span>
             <span className={styles.userName}>{user.username}</span>
         </div>
     );
