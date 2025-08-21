@@ -70,7 +70,7 @@ export interface UserReferralData {
 export interface UserProfile {
     id: number;
     telegram_id: number;
-    username: string;
+    username: string | null;
     balance: number;
     tokens: number;
     ref_balance: number;
