@@ -1,3 +1,4 @@
+// shared/api/axios.ts
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -11,13 +12,19 @@ api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {
             try {
+                // Проверяем наличие Telegram WebApp
                 const telegramWebApp = window.Telegram?.WebApp;
 
-                if (telegramWebApp && telegramWebApp.initData) {
-                    config.headers['X-Telegram-Init-Data'] = telegramWebApp.initData;
+                if (telegramWebApp) {
+                    // Можем добавить любые нужные заголовки
+                    // Например, Telegram user ID если нужно
+                    if (telegramWebApp.initDataUnsafe?.user?.id) {
+                        config.headers['X-Telegram-User-ID'] =
+                            telegramWebApp.initDataUnsafe.user.id.toString();
+                    }
                 }
             } catch (error) {
-                console.error('Error getting Telegram initData:', error);
+                console.error('Error in Telegram WebApp interceptor:', error);
             }
         }
 

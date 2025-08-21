@@ -6,17 +6,12 @@ import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api
 import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
-export interface UserInitializationState {
-    user: UserProfile | null;
-    isLoading: boolean;
-    error: string | null;
-}
-
 interface UserInitializerProps {
-    children: (state: UserInitializationState) => React.ReactNode;
+    children: React.ReactNode;
+    onUserLoaded?: (user: UserProfile | null) => void;
 }
 
-export const UserInitializer = ({ children }: UserInitializerProps) => {
+export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,10 +43,12 @@ export const UserInitializer = ({ children }: UserInitializerProps) => {
 
                     const newUser = await createUser(userData);
                     setUser(newUser);
+                    onUserLoaded?.(newUser);
                 } else {
                     // Получаем данные существующего пользователя
                     const userData = await getMe();
                     setUser(userData);
+                    onUserLoaded?.(userData);
                 }
             } catch (err: unknown) {
                 if (err instanceof Error) {
@@ -59,13 +56,37 @@ export const UserInitializer = ({ children }: UserInitializerProps) => {
                 } else {
                     setError('Неизвестная ошибка инициализации');
                 }
+                onUserLoaded?.(null);
             } finally {
                 setIsLoading(false);
             }
         };
 
         initializeUser();
-    }, [tgUser, isTgLoading]);
+    }, [tgUser, isTgLoading, onUserLoaded]);
 
-    return <>{children({ user, isLoading, error })}</>;
+    // Сохраняем данные пользователя в глобальную переменную
+    useEffect(() => {
+        if (user && typeof window !== 'undefined') {
+            const globalWindow = window as typeof window & {
+                telegramUser?: UserProfile;
+            };
+            globalWindow.telegramUser = user;
+        }
+    }, [user]);
+
+    if (isLoading) {
+        return <div>Загрузка пользователя...</div>;
+    }
+
+    if (error) {
+        return (
+            <div>
+                Ошибка инициализации пользователя: {error}
+                {children}
+            </div>
+        );
+    }
+
+    return <>{children}</>;
 };
