@@ -1,23 +1,46 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { getMe } from '@/entities/user/api/user.api';
 import { UserProfile } from '@/entities/user/model/types';
+import { useTelegram } from '@/shared/lib/hooks/auth/useTelegram';
 import styles from './User.module.scss';
 
-// Асинхронный Server Component
-export const User = async () => {
-    let user: UserProfile | null = null;
-    let error: string | null = null;
+export const User = () => {
+    const { user: telegramUser, initData, telegramId, isAuthenticated, isLoading } = useTelegram();
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    try {
-        // Вызов API происходит на сервере во время рендеринга
-        user = await getMe();
-    } catch (err) {
-        console.error('Ошибка при загрузке данных пользователя:', err);
-        // В production лучше логировать в Sentry или аналогичную систему
-        error = 'Не удалось загрузить данные пользователя';
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (!isAuthenticated || !telegramId) {
+                return;
+            }
+
+            try {
+                const userData = await getMe();
+                setUser(userData);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных пользователя:', err);
+                setError('Не удалось загрузить данные пользователя');
+            }
+        };
+
+        if (isAuthenticated && telegramId) {
+            fetchUserData();
+        }
+    }, [isAuthenticated, telegramId]);
+
+    if (isLoading) {
+        return <div className={styles.user}>Загрузка...</div>;
     }
 
     if (error) {
         return <div className={styles.user}>{error}</div>;
+    }
+
+    if (!isAuthenticated) {
+        return <div className={styles.user}>Пожалуйста, откройте это приложение в Telegram</div>;
     }
 
     if (!user) {

@@ -1,4 +1,9 @@
-import { UserProfile, getMe } from '@/entities/user';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getMe } from '@/entities/user/api/user.api';
+import { UserProfile } from '@/entities/user/model/types';
+import { useTelegram } from '@/shared/lib/hooks/auth/useTelegram';
 import styles from './Balance.module.scss';
 
 // Простая функция для конвертации (замените на реальную логику)
@@ -8,19 +13,41 @@ const convertToRub = (usdtAmount: number): number => {
     return usdtAmount * rate;
 };
 
-export const Balance = async () => {
-    let user: UserProfile | null = null;
-    let error: string | null = null;
+export const Balance = () => {
+    const { user: telegramUser, initData, telegramId, isAuthenticated, isLoading } = useTelegram();
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    try {
-        user = await getMe();
-    } catch (err) {
-        console.error('Ошибка при загрузке данных пользователя для баланса:', err);
-        error = 'Не удалось загрузить баланс';
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (!isAuthenticated || !telegramId) {
+                return;
+            }
+
+            try {
+                const userData = await getMe();
+                setUser(userData);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных пользователя для баланса:', err);
+                setError('Не удалось загрузить баланс');
+            }
+        };
+
+        if (isAuthenticated && telegramId) {
+            fetchUserData();
+        }
+    }, [isAuthenticated, telegramId]);
+
+    if (isLoading) {
+        return <div className={styles.balance}>Загрузка...</div>;
     }
 
     if (error) {
         return <div className={styles.balance}>{error}</div>;
+    }
+
+    if (!isAuthenticated) {
+        return <div className={styles.balance}>Пожалуйста, откройте это приложение в Telegram</div>;
     }
 
     if (!user) {

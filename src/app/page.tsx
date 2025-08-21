@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MachineWithState, getAllMachines } from '@/entities/machine';
 import { MachineList } from '@/features/mining/ui/MachineList';
 import { ActionButtons } from '@/widgets/action-buttons';
@@ -25,6 +26,8 @@ export default async function HomePage() {
         <div className={styles.homePage}>
             <Header />
             <ActionButtons />
+
+            <Link href={'/t'}>перейти на тест</Link>
 
             {error ? (
                 <div className={styles.errorMessage}>{error}</div>

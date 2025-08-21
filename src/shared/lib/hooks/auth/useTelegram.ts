@@ -44,8 +44,9 @@ export const useTelegram = () => {
                     const currentUser = telegramWebApp.initDataUnsafe?.user || null;
                     const currentTelegramId = currentUser?.id || null;
 
-                    console.log('Telegram initData:', currentInitData);
-                    console.log('Telegram user:', currentUser);
+                    console.log('Telegram ID:', currentTelegramId);
+                    console.log('User name:', currentUser?.first_name);
+                    console.log('Username:', currentUser?.username);
 
                     setInitData(currentInitData);
                     setUser(currentUser);
