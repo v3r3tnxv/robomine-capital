@@ -12,9 +12,26 @@ import {
 /**
  * Проверить, существует ли пользователь по telegram_id
  */
+// entities/user/api/user.api.ts
+/**
+ * Проверить, существует ли пользователь по telegram_id
+ */
 export const checkUserExists = async (telegram_id: number): Promise<boolean> => {
-    const response = await api.get<boolean>(`/users/check/${telegram_id}`);
-    return response.data;
+    try {
+        const response = await api.get<boolean>(`/users/check/${telegram_id}`);
+        return response.data;
+    } catch (error) {
+        // Проверяем, является ли ошибка Axios ошибкой с response
+        if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as { response?: { status: number } };
+            if (axiosError.response?.status === 404) {
+                return false; // Пользователь не найден
+            }
+        }
+        // Для других ошибок логируем и пробрасываем
+        console.error('Error checking user existence:', error);
+        throw error;
+    }
 };
 
 /**

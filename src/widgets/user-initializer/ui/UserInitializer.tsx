@@ -2,7 +2,7 @@
 
 // widgets/user-initializer/ui/UserInitializer.tsx
 import { useEffect, useState } from 'react';
-import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
+import { checkUserExists, createUser, getMe } from '@/entities/user';
 import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
@@ -20,37 +20,52 @@ export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps
     useEffect(() => {
         const initializeUser = async () => {
             try {
-                if (isTgLoading) return;
+                console.log('Начинаем инициализацию пользователя...');
+
+                if (isTgLoading) {
+                    console.log('Данные Telegram еще загружаются...');
+                    return;
+                }
 
                 if (!tgUser?.id) {
+                    console.log('ID пользователя Telegram не найден');
                     setError('Не удалось получить данные пользователя из Telegram');
                     setIsLoading(false);
                     return;
                 }
 
+                console.log('ID пользователя Telegram:', tgUser.id);
                 setIsLoading(true);
                 setError(null);
 
                 // Проверяем существование пользователя
+                console.log('Проверяем существование пользователя...');
                 const exists = await checkUserExists(tgUser.id);
+                console.log('Пользователь существует:', exists);
 
                 if (!exists) {
+                    console.log('Пользователь не найден, создаем нового...');
                     // Создаем нового пользователя
                     const userData: CreateUserDto = {
                         telegram_id: tgUser.id,
                         username: tgUser.username || `user_${tgUser.id}`,
                     };
 
+                    console.log('Данные для создания пользователя:', userData);
                     const newUser = await createUser(userData);
+                    console.log('Пользователь создан:', newUser);
                     setUser(newUser);
                     onUserLoaded?.(newUser);
                 } else {
+                    console.log('Пользователь найден, получаем данные...');
                     // Получаем данные существующего пользователя
                     const userData = await getMe();
+                    console.log('Данные пользователя получены:', userData);
                     setUser(userData);
                     onUserLoaded?.(userData);
                 }
             } catch (err: unknown) {
+                console.error('Ошибка инициализации пользователя:', err);
                 if (err instanceof Error) {
                     setError(`Ошибка инициализации: ${err.message}`);
                 } else {
@@ -83,6 +98,7 @@ export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps
         return (
             <div>
                 Ошибка инициализации пользователя: {error}
+                <button onClick={() => window.location.reload()}>Повторить</button>
                 {children}
             </div>
         );

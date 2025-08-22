@@ -1,6 +1,6 @@
 // shared/api/axios.ts
 import axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL } from '../config/env';
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -12,36 +12,28 @@ api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {
             try {
-                // Проверяем наличие Telegram WebApp
                 const telegramWebApp = window.Telegram?.WebApp;
 
                 if (telegramWebApp) {
-                    // Можем добавить любые нужные заголовки
-                    // Например, Telegram user ID если нужно
+                    // Проверяем, есть ли данные пользователя
                     if (telegramWebApp.initDataUnsafe?.user?.id) {
+                        // Можем добавить ID пользователя в заголовки
                         config.headers['X-Telegram-User-ID'] =
                             telegramWebApp.initDataUnsafe.user.id.toString();
                     }
+
+                    // Если бэкенд ожидает специфический заголовок,
+                    // замените на правильное имя заголовка и значение
+                    // config.headers['X-Telegram-Init-Data'] = 'значение';
                 }
             } catch (error) {
-                console.error('Error in Telegram WebApp interceptor:', error);
+                console.error('Error accessing Telegram WebApp data:', error);
             }
         }
 
         return config;
     },
     (error) => {
-        return Promise.reject(error);
-    }
-);
-
-// Перехватчик ответов для обработки ошибок аутентификации
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            console.log('Authentication failed');
-        }
         return Promise.reject(error);
     }
 );
