@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { checkUserExists, createUser, getMe } from '@/entities/user';
 import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+import { AxiosError } from 'axios'; // Добавляем импорт AxiosError
 
 interface UserInitializerProps {
     children: React.ReactNode;
@@ -52,10 +53,25 @@ export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps
                     };
 
                     console.log('Данные для создания пользователя:', userData);
-                    const newUser = await createUser(userData);
-                    console.log('Пользователь создан:', newUser);
-                    setUser(newUser);
-                    onUserLoaded?.(newUser);
+                    try {
+                        const newUser = await createUser(userData);
+                        console.log('Пользователь создан:', newUser);
+                        setUser(newUser);
+                        onUserLoaded?.(newUser);
+                    } catch (createError: unknown) {
+                        // Обрабатываем 409 Conflict - пользователь уже существует
+                        if (createError instanceof AxiosError && createError.response?.status === 409) {
+                            console.log('Пользователь уже существует, получаем данные...');
+                            // Получаем данные существующего пользователя
+                            const userData = await getMe();
+                            console.log('Данные пользователя получены:', userData);
+                            setUser(userData);
+                            onUserLoaded?.(userData);
+                        } else {
+                            // Другая ошибка - пробрасываем её дальше
+                            throw createError;
+                        }
+                    }
                 } else {
                     console.log('Пользователь найден, получаем данные...');
                     // Получаем данные существующего пользователя

@@ -1,5 +1,4 @@
 // @/widgets/machine-card/ui/BuyMoreCard.tsx
-import Image from 'next/image';
 import Link from 'next/link';
 import styles from './BuyMoreCard.module.scss';
 

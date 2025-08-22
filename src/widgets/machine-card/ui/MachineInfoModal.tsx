@@ -1,12 +1,13 @@
+// @/widgets/machine-card/ui/MachineInfoModal.tsx
 'use client';
 
-// @/widgets/machine-card/ui/MachineInfoModal.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { Button, Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 
 export const MachineInfoModal = ({
     isOpen,
@@ -16,10 +17,15 @@ export const MachineInfoModal = ({
     isPurchased,
     status,
 }: MachineInfoModalProps) => {
-    // --- Состояния ---
+    const { updateMachineStatusLocally } = useMachines();
     const [isProcessing, setIsProcessing] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
-    const [currentStatus, setCurrentStatus] = useState(status); // ← Локальное состояние статуса
+    const [currentStatus, setCurrentStatus] = useState(status);
+
+    // Синхронизируем статус с пропсами
+    useEffect(() => {
+        setCurrentStatus(status);
+    }, [status]);
 
     // --- Рассчитываем доход за активацию ---
     const earnings = Number(machine.car.daily_replenishment || 0);
@@ -36,9 +42,10 @@ export const MachineInfoModal = ({
 
             if (success) {
                 console.log(`Машина ${machine.car.id} успешно куплена.`);
-
-                // Обновляем статус
+                
+                // Локальное обновление без перезагрузки
                 setCurrentStatus('awaiting');
+                updateMachineStatusLocally(machine.car.id, 'awaiting');
 
                 window.dispatchEvent(
                     new CustomEvent('machinePurchased', {
@@ -80,15 +87,18 @@ export const MachineInfoModal = ({
 
             if (result) {
                 console.log(`Машина ${machine.car.id} активирована.`);
-                setCurrentStatus('in_progress');
+                
+                // Локальное обновление без перезагрузки
+                const newStatus = 'in_progress';
+                setCurrentStatus(newStatus);
+                updateMachineStatusLocally(machine.car.id, newStatus);
 
-                // ✅ Отправляем событие с обновлёнными данными
+                const lastUpdated = Math.floor(Date.now() / 1000);
                 window.dispatchEvent(
                     new CustomEvent('machineActivated', {
                         detail: {
                             machineId: machine.car.id,
-                            // Можно передать актуальное время, если API возвращает его
-                            lastUpdated: Math.floor(Date.now() / 1000),
+                            lastUpdated,
                         },
                     })
                 );
@@ -104,6 +114,7 @@ export const MachineInfoModal = ({
             setIsProcessing(false);
         }
     };
+
     // --- Обработчик получения награды ---
     const handleCollectReward = async () => {
         if (isProcessing || !machine.state_car?.id) return;
@@ -117,12 +128,10 @@ export const MachineInfoModal = ({
             if (result) {
                 console.log(`Награда получена для машины ${machine.car.id}.`);
 
-                // Обновляем статус (может стать 'awaiting' или 'completed')
-                if (machine.state_car.remaining_uses > 1) {
-                    setCurrentStatus('awaiting');
-                } else {
-                    setCurrentStatus('completed');
-                }
+                // Определяем следующий статус
+                const nextState = machine.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                setCurrentStatus(nextState);
+                updateMachineStatusLocally(machine.car.id, nextState);
 
                 if (onAction) {
                     onAction('transitioned', machine.car.id);

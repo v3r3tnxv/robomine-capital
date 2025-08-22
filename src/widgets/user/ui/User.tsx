@@ -1,19 +1,35 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { getMe } from '@/entities/user/api/user.api';
 import { UserProfile } from '@/entities/user/model/types';
 import styles from './User.module.scss';
 
-// Асинхронный Server Component
-export const User = async () => {
-    let user: UserProfile | null = null;
-    let error: string | null = null;
+// Клиентский компонент
+export const User = () => {
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    try {
-        // Вызов API происходит на сервере во время рендеринга
-        user = await getMe();
-    } catch (err) {
-        console.error('Ошибка при загрузке данных пользователя:', err);
-        // В production лучше логировать в Sentry или аналогичную систему
-        error = 'Не удалось загрузить данные пользователя';
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                // Вызов API происходит на клиенте
+                const userData = await getMe();
+                setUser(userData);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных пользователя (клиент):', err);
+                setError('Не удалось загрузить данные пользователя');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    if (loading) {
+        return <div className={styles.user}>Загрузка...</div>;
     }
 
     if (error) {
@@ -26,7 +42,7 @@ export const User = async () => {
 
     return (
         <div className={styles.user}>
-            <span className={styles.userStatus}>{user.blago_status}</span>
+            <span className={styles.userStatus}>{String(user.blago_status)}</span>
             <span className={styles.userName}>{user.username}</span>
         </div>
     );

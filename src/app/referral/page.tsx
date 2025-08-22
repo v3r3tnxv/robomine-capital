@@ -1,25 +1,56 @@
-// @/app/referral/page.tsx (или как у вас называется страница рефералов)
+
+'use client'; 
+// @/app/referral/page.tsx
+import { useEffect, useState } from 'react'; // <-- Импортируйте хуки
 import { UserProfile, UserReferralData, getMe, getUserReferrals } from '@/entities/user';
 import { ReferralList } from '@/features/referral';
 import { BackButton, Button } from '@/shared/ui';
 import { ReferralLink } from '@/widgets/referral-link';
 import styles from './Referral.module.scss';
 
-export default async function ReferralPage() {
-    let user: UserProfile | null = null;
-    let referralsData: UserReferralData | null = null;
-    let error: string | null = null;
+export default function ReferralPage() { // <-- Уберите async
+    // Состояния для управления данными и состоянием загрузки
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    try {
-        // Получаем данные текущего пользователя
-        user = await getMe();
-        // Получаем данные рефералов
-        referralsData = await getUserReferrals();
-    } catch (err) {
-        console.error('Ошибка при загрузке данных рефералов:', err);
-        error = 'Не удалось загрузить данные рефералов';
+    // Эффект для загрузки данных
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                // Получаем данные текущего пользователя
+                const userData = await getMe();
+                // Получаем данные рефералов
+                const referralsDataResult = await getUserReferrals();
+
+                setUser(userData);
+                setReferralsData(referralsDataResult);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                setError('Не удалось загрузить данные рефералов');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
+
+    // Отображение состояния загрузки
+    if (loading) {
+        return (
+            <div className={styles.referralPage}>
+                <BackButton />
+                <h1 className={styles.title}>Рефераллы</h1>
+                <p className={styles.loading}>Загрузка...</p>
+            </div>
+        );
     }
 
+    // Отображение ошибки
     if (error) {
         return (
             <div className={styles.referralPage}>
@@ -30,6 +61,7 @@ export default async function ReferralPage() {
         );
     }
 
+    // Проверка наличия данных
     if (!user || !referralsData) {
         return (
             <div className={styles.referralPage}>

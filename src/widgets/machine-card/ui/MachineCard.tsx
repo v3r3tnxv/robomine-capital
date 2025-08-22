@@ -1,31 +1,29 @@
+// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-// @/widgets/machine-card/ui/MachineCard.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
+import { memo } from 'react';
 import { MachineInfoModal } from './MachineInfoModal';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 
-export const MachineCard = ({ status, price, image, machineData }: MachineCardProps) => {
+export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
+    const { updateMachineStatusLocally } = useMachines();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [cardStatus, setCardStatus] = useState(status);
+    const [localStatus, setLocalStatus] = useState(status);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [progress, setProgress] = useState<number>(0);
     const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
-    // --- Синхронизируем cardStatus с пропсом status ---
-    useEffect(() => {
-        setCardStatus(status);
-        // ✅ Также обновляем lastUpdated при изменении machineData
-        if (machineData?.state_car?.last_updated) {
-            setLastUpdated(machineData.state_car.last_updated);
-        }
-    }, [status, machineData?.state_car?.last_updated]);
+    const isPurchased = localStatus !== 'not_purchased';
 
-    // --- Определяем, куплена ли машина ---
-    const isPurchased = cardStatus !== 'not_purchased';
+    // Синхронизируем локальный статус с пропсами
+    useEffect(() => {
+        setLocalStatus(status);
+    }, [status]);
 
     // --- Рассчитываем доход за активацию ---
     const earnings = Number(machineData?.car?.daily_replenishment || 0);
@@ -36,12 +34,19 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
         return isNaN(workTime) ? 30 : workTime;
     };
 
+    // --- Обновляем lastUpdated при изменении machineData ---
+    useEffect(() => {
+        if (machineData?.state_car?.last_updated) {
+            setLastUpdated(machineData.state_car.last_updated);
+        }
+    }, [machineData?.state_car?.last_updated]);
+
     // --- Таймер для состояния "в работе" ---
     useEffect(() => {
         setTimeLeft(null);
         setProgress(0);
 
-        if (cardStatus === 'in_progress' && lastUpdated) {
+        if (localStatus === 'in_progress' && lastUpdated) {
             const startTime = lastUpdated;
 
             if (startTime <= 0) {
@@ -57,7 +62,8 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
                 setTimeLeft(0);
                 setProgress(100);
                 const timer = setTimeout(() => {
-                    setCardStatus('waiting_for_reward');
+                    setLocalStatus('waiting_for_reward');
+                    updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
                 }, 1000);
                 return () => clearTimeout(timer);
             }
@@ -76,7 +82,8 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
                     setTimeLeft(0);
                     setProgress(100);
                     setTimeout(() => {
-                        setCardStatus('waiting_for_reward');
+                        setLocalStatus('waiting_for_reward');
+                        updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
                     }, 1000);
                 }
             };
@@ -91,58 +98,42 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
                 clearInterval(interval);
             };
         }
-    }, [cardStatus, lastUpdated]);
+    }, [localStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
 
-    // --- Обработчик события покупки ---
+    // --- Обработчики событий ---
     useEffect(() => {
-        const handlePurchase = (event: CustomEvent) => {
+        const handleMachinePurchased = (event: CustomEvent) => {
             if (event.detail.machineId === machineData?.car?.id) {
-                setCardStatus('awaiting');
+                setLocalStatus('awaiting');
             }
         };
 
-        window.addEventListener('machinePurchased', handlePurchase as EventListener);
+        const handleMachineActivated = (event: CustomEvent) => {
+            if (event.detail.machineId === machineData?.car?.id) {
+                setLocalStatus('in_progress');
+                setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
+            }
+        };
+
+        const handleMachineTransitioned = (event: CustomEvent) => {
+            if (event.detail.machineId === machineData?.car?.id) {
+                // Определяем следующий статус
+                const nextState = machineData?.state_car?.remaining_uses && 
+                                 machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                setLocalStatus(nextState);
+            }
+        };
+
+        window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
+        window.addEventListener('machineActivated', handleMachineActivated as EventListener);
+        window.addEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
 
         return () => {
-            window.removeEventListener('machinePurchased', handlePurchase as EventListener);
+            window.removeEventListener('machinePurchased', handleMachinePurchased as EventListener);
+            window.removeEventListener('machineActivated', handleMachineActivated as EventListener);
+            window.removeEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
         };
-    }, [machineData?.car?.id]);
-
-    // ✅ Обработчик события активации
-    useEffect(() => {
-        const handleActivate = (event: CustomEvent) => {
-            if (event.detail.machineId === machineData?.car?.id) {
-                setCardStatus('in_progress');
-                // ✅ Устанавливаем lastUpdated сразу
-                if (event.detail.lastUpdated) {
-                    setLastUpdated(event.detail.lastUpdated);
-                } else {
-                    // Если не передано - используем текущее время
-                    setLastUpdated(Math.floor(Date.now() / 1000));
-                }
-            }
-        };
-
-        window.addEventListener('machineActivated', handleActivate as EventListener);
-
-        return () => {
-            window.removeEventListener('machineActivated', handleActivate as EventListener);
-        };
-    }, [machineData?.car?.id]);
-
-    // --- Автоматическое обновление статуса из БД ---
-    useEffect(() => {
-        if (machineData?.state_car?.status && machineData.state_car.status !== cardStatus) {
-            // Не обновляем, если таймер работает
-            if (cardStatus !== 'in_progress') {
-                setCardStatus(machineData.state_car.status);
-                // ✅ Также обновляем lastUpdated
-                if (machineData.state_car.last_updated) {
-                    setLastUpdated(machineData.state_car.last_updated);
-                }
-            }
-        }
-    }, [machineData?.state_car?.status, cardStatus, machineData?.state_car?.last_updated]);
+    }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
 
     // --- Форматирование времени ---
     const formatTime = (seconds: number): string => {
@@ -154,12 +145,12 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
     };
 
     // --- Получить текст для отображения вместо цены ---
-    const getDisplayText = () => {
+    const getDisplayText = useCallback(() => {
         if (!isPurchased) {
             return `${price} USDT`;
         }
 
-        switch (cardStatus) {
+        switch (localStatus) {
             case 'awaiting':
                 return `+${earnings.toFixed(2)} USDT за 23 ч.`;
             case 'in_progress':
@@ -174,13 +165,13 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
             default:
                 return `${price} USDT`;
         }
-    };
+    }, [isPurchased, localStatus, price, earnings, timeLeft]);
 
     // --- Получить текст для статуса ---
-    const getStatusText = () => {
+    const getStatusText = useCallback(() => {
         if (!isPurchased) return 'Подробнее';
 
-        switch (cardStatus) {
+        switch (localStatus) {
             case 'awaiting':
                 return 'Ожидает активации';
             case 'in_progress':
@@ -192,10 +183,10 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
             default:
                 return 'Куплена';
         }
-    };
+    }, [isPurchased, localStatus]);
 
     // Функция для получения класса прогресса
-    const getProgressClass = () => {
+    const getProgressClass = useCallback(() => {
         if (progress < 10) return styles.progress0;
         if (progress < 20) return styles.progress10;
         if (progress < 30) return styles.progress20;
@@ -207,21 +198,20 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
         if (progress < 90) return styles.progress80;
         if (progress < 100) return styles.progress90;
         return styles.progress100;
-    };
+    }, [progress]);
 
     return (
         <>
             <button
                 className={clsx(
                     styles.card,
-                    cardStatus === 'in_progress' && getProgressClass()
-                    // Убрали пульсацию
+                    localStatus === 'in_progress' && getProgressClass()
                 )}
                 onClick={() => setIsModalOpen(true)}
                 type="button"
                 aria-label={`Майнинг-машина за ${price} USDT`}
             >
-                <div className={clsx(styles.plate, styles[`${cardStatus}`])} />
+                <div className={clsx(styles.plate, styles[`${localStatus}`])} />
 
                 <Image
                     className={clsx(styles.image, { [styles.purchased]: isPurchased })}
@@ -241,26 +231,41 @@ export const MachineCard = ({ status, price, image, machineData }: MachineCardPr
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onAction={(action, machineId) => {
-                        if (action === 'purchased') {
-                            setCardStatus('awaiting');
-                        } else if (action === 'activated') {
-                            setCardStatus('in_progress');
-                        } else if (action === 'transitioned') {
-                            if (
-                                machineData.state_car?.remaining_uses &&
-                                machineData.state_car.remaining_uses > 1
-                            ) {
-                                setCardStatus('awaiting');
-                            } else {
-                                setCardStatus('completed');
-                            }
+                        // Отправляем глобальные события
+                        switch (action) {
+                            case 'purchased':
+                                window.dispatchEvent(
+                                    new CustomEvent('machinePurchased', {
+                                        detail: { machineId }
+                                    })
+                                );
+                                break;
+                            case 'activated':
+                                window.dispatchEvent(
+                                    new CustomEvent('machineActivated', {
+                                        detail: { 
+                                            machineId,
+                                            lastUpdated: Math.floor(Date.now() / 1000)
+                                        }
+                                    })
+                                );
+                                break;
+                            case 'transitioned':
+                                window.dispatchEvent(
+                                    new CustomEvent('machineTransitioned', {
+                                        detail: { machineId }
+                                    })
+                                );
+                                break;
                         }
                     }}
                     machine={machineData}
                     isPurchased={isPurchased}
-                    status={cardStatus}
+                    status={localStatus}
                 />
             )}
         </>
     );
-};
+});
+
+MachineCard.displayName = 'MachineCard';
