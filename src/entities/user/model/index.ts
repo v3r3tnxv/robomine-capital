@@ -4,7 +4,6 @@ export type {
     ReplenishDto,
     UserAttributes,
     UserCreationAttributes,
-    UserProfile,
     UserReferralData,
 } from './types';
 

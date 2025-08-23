@@ -2,10 +2,10 @@
 
 // src/shared/lib/contexts/UserContext.tsx
 import React, { ReactNode, createContext, useContext } from 'react';
-import { UserProfile, useUserInit } from '@/entities/user';
+import { UserAttributes, useUserInit } from '@/entities/user';
 
 interface UserContextType {
-    user: UserProfile | null;
+    user: UserAttributes | null;
     isLoading: boolean;
     error: string | null;
 }

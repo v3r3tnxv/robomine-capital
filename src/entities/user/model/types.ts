@@ -64,20 +64,3 @@ export interface UserReferralData {
     referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
     referralCount: number;
 }
-
-// --- Тип для ответа getMe (предполагаем, что это расширенные данные пользователя) ---
-// Вам, возможно, нужно будет адаптировать это под реальный ответ от UserService.getMe
-export interface UserProfile {
-    id: number;
-    telegram_id: number;
-    username: string | null;
-    balance: number;
-    tokens: number;
-    ref_balance: number;
-    referrer_profit: number;
-    blago_status: boolean;
-    level: number;
-    subscription: boolean;
-    is_banned: boolean;
-    // Добавьте другие поля, которые возвращает LevelToUserService.updateUserLevel
-}

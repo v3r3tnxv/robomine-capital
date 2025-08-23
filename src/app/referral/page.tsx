@@ -28,9 +28,13 @@ export default function ReferralPage() {
         }
     }, [user, referralsData]);
 
-    if (!user) {
-        return <div className={styles.referralPage}>Пользователь не найден</div>;
-    }
+    const handleInvite = () => {
+        const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user!.telegram_id}`;
+        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать! 👉 ${referralLink}`;
+
+        const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
+        window.open(telegramShareUrl, '_blank');
+    };
 
     return (
         <div className={styles.referralPage}>
@@ -38,11 +42,13 @@ export default function ReferralPage() {
             <h1 className={styles.title}>Рефераллы</h1>
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
-            <span className={styles.earningsAmount}>{user.referrer_profit} USDT</span>
+            <span className={styles.earningsAmount}>{user!.referrer_profit} USDT</span>
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
-            <ReferralLink telegramId={user.telegram_id} />
-            <Button className={styles.button}>Пригласить</Button>
+            <ReferralLink telegramId={user!.telegram_id} />
+            <Button className={styles.button} onClick={handleInvite}>
+                Пригласить
+            </Button>
             {referralsData && <ReferralList referrals={referralsData.referrals} />}
         </div>
     );

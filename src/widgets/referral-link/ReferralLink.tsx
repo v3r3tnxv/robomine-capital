@@ -1,5 +1,3 @@
-'use client';
-
 // @/shared/ui/referral-link/ReferralLink.tsx
 import { Copy } from '@/shared/assets/icons';
 import { Input } from '@/shared/ui';
@@ -22,7 +20,7 @@ export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
                 className={styles.referralLink}
                 onClick={handleCopy}
                 type="button"
-                aria-label={'Скопировать'}
+                aria-label={''}
             >
                 <Input
                     className={styles.input}
