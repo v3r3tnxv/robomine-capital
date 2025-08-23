@@ -1,16 +1,16 @@
-// @/features/mining/ui/MachineList.tsx
 'use client';
 
+// @/features/mining/ui/MachineList.tsx
 import React from 'react';
+import { MachineWithState } from '@/entities/machine';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
 import styles from './MachineList.module.scss';
-import { MachineWithState } from '@/entities/machine';
 
 interface MachineListProps {
-    machines?: MachineWithState[]; 
-    filterType?: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard?: boolean;
+    machines: MachineWithState[];
+    filterType: 'purchased' | 'not_purchased' | 'all';
+    showBuyMoreCard: boolean;
 }
 
 export const MachineList: React.FC<MachineListProps> = ({
@@ -19,18 +19,10 @@ export const MachineList: React.FC<MachineListProps> = ({
     showBuyMoreCard = false,
 }) => {
     // Используем контекст если machines не переданы
-    const { machines: contextMachines, loading, error } = useMachines();
-    
+    const { machines: contextMachines } = useMachines();
+
     // Используем переданные машины или машины из контекста
     const machinesToUse = propMachines || contextMachines;
-
-    if (loading && !propMachines) {
-        return <div className={styles.machineList}>Загрузка майнинг-машин...</div>;
-    }
-
-    if (error && !propMachines) {
-        return <div className={styles.machineListError}>{error}</div>;
-    }
 
     // Фильтрация по типу
     const filteredMachines = machinesToUse.filter(({ state_car }) => {

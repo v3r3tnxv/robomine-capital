@@ -212,87 +212,67 @@ export default function HomePage() { // <-- Уберите async
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\referral\page.tsx =====
 
+'use client';
 
-'use client'; 
-// @/app/referral/page.tsx
-import { useEffect, useState } from 'react'; // <-- Импортируйте хуки
-import { UserProfile, UserReferralData, getMe, getUserReferrals } from '@/entities/user';
-import { ReferralList } from '@/features/referral';
+// src/app/referral/page.tsx
+import { useEffect, useState } from 'react';
+import { UserReferralData, getUserReferrals } from '@/entities/user';
+import { useUser } from '@/entities/user/model/UserContext';
 import { BackButton, Button } from '@/shared/ui';
 import { ReferralLink } from '@/widgets/referral-link';
+import { ReferralList } from '@/widgets/referral-list';
 import styles from './Referral.module.scss';
 
-export default function ReferralPage() { // <-- Уберите async
-    // Состояния для управления данными и состоянием загрузки
-    const [user, setUser] = useState<UserProfile | null>(null);
+export default function ReferralPage() {
+    const { user, isLoading: isUserLoading, error: userError } = useUser();
     const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Эффект для загрузки данных
+    // Загружаем данные рефералов только один раз, когда пользователь доступен
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                // Получаем данные текущего пользователя
-                const userData = await getMe();
-                // Получаем данные рефералов
-                const referralsDataResult = await getUserReferrals();
+        // Если пользователь загружен и данные рефералов еще не загружены
+        if (user && !referralsData && loading) {
+            const fetchData = async () => {
+                try {
+                    setError(null);
+                    const referralsDataResult = await getUserReferrals();
+                    setReferralsData(referralsDataResult);
+                } catch (err) {
+                    console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                    setError('Не удалось загрузить данные рефералов');
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-                setUser(userData);
-                setReferralsData(referralsDataResult);
-            } catch (err) {
-                console.error('Ошибка при загрузке данных рефералов (клиент):', err);
-                setError('Не удалось загрузить данные рефералов');
-            } finally {
-                setLoading(false);
-            }
-        };
+            fetchData();
+        } else if (!user && !isUserLoading) {
+            // Если пользователь не найден и загрузка завершена, останавливаем загрузку
+            setLoading(false);
+        }
+    }, [user, isUserLoading, referralsData, loading]);
 
-        fetchData();
-    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
-
-    // Отображение состояния загрузки
-    if (loading) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.loading}>Загрузка...</p>
-            </div>
-        );
+    // Обработка состояний загрузки
+    if (isUserLoading || loading) {
+        return <div className={styles.referralPage}>Загрузка данных...</div>;
     }
 
-    // Отображение ошибки
+    // Обработка ошибок
+    if (userError) {
+        return <div className={styles.referralPage}>Ошибка пользователя: {userError}</div>;
+    }
+
     if (error) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.error}>{error}</p>
-            </div>
-        );
+        return <div className={styles.referralPage}>Ошибка: {error}</div>;
     }
 
-    // Проверка наличия данных
-    if (!user || !referralsData) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.error}>Данные не найдены</p>
-            </div>
-        );
+    if (!user) {
+        return <div className={styles.referralPage}>Пользователь не найден</div>;
     }
 
     // Преобразуем referrer_profit в число
     const referrerProfit = Number(user.referrer_profit);
-
-    // Проверяем, что это корректное число
-    if (isNaN(referrerProfit)) {
-        console.warn('referrer_profit не является числом:', user.referrer_profit);
-    }
 
     return (
         <div className={styles.referralPage}>
@@ -301,16 +281,17 @@ export default function ReferralPage() { // <-- Уберите async
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
             <span className={styles.earningsAmount}>
-                {isNaN(referrerProfit) ? '0.00' : referrerProfit.toFixed(2)} USDT
+                {isNaN(referrerProfit) ? '0.00' : referrerProfit} USDT
             </span>
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
             <ReferralLink telegramId={user.telegram_id} />
             <Button className={styles.button}>Пригласить</Button>
-            <ReferralList referrals={referralsData.referrals} />
+            {referralsData && <ReferralList referrals={referralsData.referrals} />}
         </div>
     );
 }
+
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\shop\page.tsx =====
 
@@ -1469,37 +1450,6 @@ export {} from './';
 export {} from './';
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\features\referral\index.ts =====
-
-export { ReferralList } from './ui/ReferralList';
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\referral\ui\ReferralList.tsx =====
-
-// @/features/referral/ui/ReferralList.tsx
-import { UserAttributes } from '@/entities/user';
-import { ReferralCard } from '@/widgets/referral-card';
-import styles from './ReferralList.module.scss';
-
-interface ReferralListProps {
-    referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
-}
-
-export const ReferralList = ({ referrals }: ReferralListProps) => {
-    if (referrals.length === 0) {
-        return <p className={styles.emptyList}>У вас пока нет рефералов.</p>;
-    }
-
-    return (
-        <div className={styles.referralList}>
-            {referrals.map((referral) => (
-                <ReferralCard key={referral.telegram_id} referral={referral} />
-            ))}
-        </div>
-    );
-};
-
-
 ===== C:\Users\USER\Projects\robomine-capital\src\features\timer\model\useTimer.ts =====
 
 // 'use client';
@@ -2449,13 +2399,12 @@ export const Balance = () => {
         return <div className={styles.balance}>Пользователь не найден</div>;
     }
 
-    const balanceUsdt = Number(user.balance);
-    const balanceRub = convertToRub(balanceUsdt);
+    const balanceRub = convertToRub(Number(user.balance));
 
     return (
         <div className={styles.balance}>
-            <span className={styles.balanceConvert}>{balanceRub.toFixed(2)} RUB</span>
-            <span className={styles.balanceMain}>{balanceUsdt.toFixed(2)} USDT</span>
+            <span className={styles.balanceConvert}>{balanceRub} RUB</span>
+            <span className={styles.balanceMain}>{Number(user.balance)} USDT</span>
         </div>
     );
 };
@@ -2608,17 +2557,17 @@ export const BuyMoreCard = () => {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineCard.tsx =====
 
-// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+// @/widgets/machine-card/ui/MachineCard.tsx
+import { useCallback, useEffect, useState } from 'react';
+import { memo } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
-import { memo } from 'react';
 import { MachineInfoModal } from './MachineInfoModal';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
 
 export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
     const { updateMachineStatusLocally } = useMachines();
@@ -2728,8 +2677,11 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
         const handleMachineTransitioned = (event: CustomEvent) => {
             if (event.detail.machineId === machineData?.car?.id) {
                 // Определяем следующий статус
-                const nextState = machineData?.state_car?.remaining_uses && 
-                                 machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                const nextState =
+                    machineData?.state_car?.remaining_uses &&
+                    machineData.state_car.remaining_uses > 1
+                        ? 'awaiting'
+                        : 'completed';
                 setLocalStatus(nextState);
             }
         };
@@ -2741,7 +2693,10 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
         return () => {
             window.removeEventListener('machinePurchased', handleMachinePurchased as EventListener);
             window.removeEventListener('machineActivated', handleMachineActivated as EventListener);
-            window.removeEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
+            window.removeEventListener(
+                'machineTransitioned',
+                handleMachineTransitioned as EventListener
+            );
         };
     }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
 
@@ -2762,14 +2717,14 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
 
         switch (localStatus) {
             case 'awaiting':
-                return `+${earnings.toFixed(2)} USDT за 23 ч.`;
+                return `+${earnings} USDT за 23 ч.`;
             case 'in_progress':
                 if (timeLeft !== null) {
                     return formatTime(timeLeft);
                 }
                 return 'В работе...';
             case 'waiting_for_reward':
-                return `+${earnings.toFixed(2)} USDT`;
+                return `+${earnings} USDT`;
             case 'completed':
                 return 'Завершена';
             default:
@@ -2813,10 +2768,7 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
     return (
         <>
             <button
-                className={clsx(
-                    styles.card,
-                    localStatus === 'in_progress' && getProgressClass()
-                )}
+                className={clsx(styles.card, localStatus === 'in_progress' && getProgressClass())}
                 onClick={() => setIsModalOpen(true)}
                 type="button"
                 aria-label={`Майнинг-машина за ${price} USDT`}
@@ -2831,9 +2783,9 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
                     alt="Майнинг-машина"
                 />
 
-                <span className={styles.activationInfo}>{getDisplayText()}</span>
+                <span className={styles.displayText}>{getDisplayText()}</span>
 
-                <span className={styles.label}>{getStatusText()}</span>
+                <span className={styles.statusText}>{getStatusText()}</span>
             </button>
 
             {machineData && (
@@ -2846,24 +2798,24 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
                             case 'purchased':
                                 window.dispatchEvent(
                                     new CustomEvent('machinePurchased', {
-                                        detail: { machineId }
+                                        detail: { machineId },
                                     })
                                 );
                                 break;
                             case 'activated':
                                 window.dispatchEvent(
                                     new CustomEvent('machineActivated', {
-                                        detail: { 
+                                        detail: {
                                             machineId,
-                                            lastUpdated: Math.floor(Date.now() / 1000)
-                                        }
+                                            lastUpdated: Math.floor(Date.now() / 1000),
+                                        },
                                     })
                                 );
                                 break;
                             case 'transitioned':
                                 window.dispatchEvent(
                                     new CustomEvent('machineTransitioned', {
-                                        detail: { machineId }
+                                        detail: { machineId },
                                     })
                                 );
                                 break;
@@ -2880,18 +2832,19 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
 
 MachineCard.displayName = 'MachineCard';
 
+
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineInfoModal.tsx =====
 
-// @/widgets/machine-card/ui/MachineInfoModal.tsx
 'use client';
 
+// @/widgets/machine-card/ui/MachineInfoModal.tsx
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { Button, Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
 
 export const MachineInfoModal = ({
     isOpen,
@@ -2926,7 +2879,7 @@ export const MachineInfoModal = ({
 
             if (success) {
                 console.log(`Машина ${machine.car.id} успешно куплена.`);
-                
+
                 // Локальное обновление без перезагрузки
                 setCurrentStatus('awaiting');
                 updateMachineStatusLocally(machine.car.id, 'awaiting');
@@ -2971,7 +2924,7 @@ export const MachineInfoModal = ({
 
             if (result) {
                 console.log(`Машина ${machine.car.id} активирована.`);
-                
+
                 // Локальное обновление без перезагрузки
                 const newStatus = 'in_progress';
                 setCurrentStatus(newStatus);
@@ -3099,7 +3052,7 @@ export const MachineInfoModal = ({
 
                     <div className={styles.infoItem}>
                         <span className={styles.label}>Доход за 1 активацию:</span>
-                        <span className={styles.value}>+{earnings.toFixed(2)} USDT</span>
+                        <span className={styles.value}>+{earnings} USDT</span>
                     </div>
 
                     {/* --- Отображаем статус машины --- */}
@@ -3130,6 +3083,7 @@ export const MachineInfoModal = ({
         </Modal>
     );
 };
+
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\index.ts =====
 
@@ -3237,7 +3191,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
             <span className={styles.username}>
                 {referral.username || `Пользователь ${referral.telegram_id}`}
             </span>
-            <span className={styles.profit}>+{profit.toFixed(2)} USDT</span>
+            <span className={styles.profit}>+{profit} USDT</span>
         </div>
     );
 };
@@ -3307,153 +3261,35 @@ export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
 export { ReferralLink } from './ReferralLink';
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\index.ts =====
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-list\index.ts =====
 
-export * from './ui';
-export * from './model';
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\model\index.ts =====
-
-export * from './';
+export { ReferralList } from './ui/ReferralList';
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\ui\UserInitializer.tsx =====
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-list\ui\ReferralList.tsx =====
 
-'use client';
+// @/features/referral/ui/ReferralList.tsx
+import { UserAttributes } from '@/entities/user';
+import { ReferralCard } from '@/widgets/referral-card';
+import styles from './ReferralList.module.scss';
 
-// widgets/user-initializer/ui/UserInitializer.tsx
-import { useEffect, useState } from 'react';
-import { AxiosError } from 'axios';
-import { checkUserExists, createUser, getMe } from '@/entities/user';
-import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
-import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
-
-// Добавляем импорт AxiosError
-
-interface UserInitializerProps {
-    children: React.ReactNode;
-    onUserLoaded?: (user: UserProfile | null) => void;
+interface ReferralListProps {
+    referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
 }
 
-export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps) => {
-    const [user, setUser] = useState<UserProfile | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
-
-    useEffect(() => {
-        const initializeUser = async () => {
-            try {
-                console.log('Начинаем инициализацию пользователя...');
-
-                if (isTgLoading) {
-                    console.log('Данные Telegram еще загружаются...');
-                    return;
-                }
-
-                if (!tgUser?.id) {
-                    console.log('ID пользователя Telegram не найден');
-                    setError('Не удалось получить данные пользователя из Telegram');
-                    setIsLoading(false);
-                    return;
-                }
-
-                console.log('ID пользователя Telegram:', tgUser.id);
-                setIsLoading(true);
-                setError(null);
-
-                // Проверяем существование пользователя
-                console.log('Проверяем существование пользователя...');
-                const exists = await checkUserExists(tgUser.id);
-                console.log('Пользователь существует:', exists);
-
-                if (!exists) {
-                    console.log('Пользователь не найден, создаем нового...');
-                    // Создаем нового пользователя
-                    const userData: CreateUserDto = {
-                        telegram_id: tgUser.id,
-                        username: tgUser.username || `user_${tgUser.id}`,
-                    };
-
-                    console.log('Данные для создания пользователя:', userData);
-                    try {
-                        const newUser = await createUser(userData);
-                        console.log('Пользователь создан:', newUser);
-                        setUser(newUser);
-                        onUserLoaded?.(newUser);
-                    } catch (createError: unknown) {
-                        // Обрабатываем 409 Conflict - пользователь уже существует
-                        if (
-                            createError instanceof AxiosError &&
-                            createError.response?.status === 409
-                        ) {
-                            console.log('Пользователь уже существует, получаем данные...');
-                            // Получаем данные существующего пользователя
-                            const userData = await getMe();
-                            console.log('Данные пользователя получены:', userData);
-                            setUser(userData);
-                            onUserLoaded?.(userData);
-                        } else {
-                            // Другая ошибка - пробрасываем её дальше
-                            throw createError;
-                        }
-                    }
-                } else {
-                    console.log('Пользователь найден, получаем данные...');
-                    // Получаем данные существующего пользователя
-                    const userData = await getMe();
-                    console.log('Данные пользователя получены:', userData);
-                    setUser(userData);
-                    onUserLoaded?.(userData);
-                }
-            } catch (err: unknown) {
-                console.error('Ошибка инициализации пользователя:', err);
-                if (err instanceof Error) {
-                    setError(`Ошибка инициализации: ${err.message}`);
-                } else {
-                    setError('Неизвестная ошибка инициализации');
-                }
-                onUserLoaded?.(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        initializeUser();
-    }, [tgUser, isTgLoading, onUserLoaded]);
-
-    // Сохраняем данные пользователя в глобальную переменную
-    useEffect(() => {
-        if (user && typeof window !== 'undefined') {
-            const globalWindow = window as typeof window & {
-                telegramUser?: UserProfile;
-            };
-            globalWindow.telegramUser = user;
-        }
-    }, [user]);
-
-    if (isLoading) {
-        return <div>Загрузка пользователя...</div>;
+export const ReferralList = ({ referrals }: ReferralListProps) => {
+    if (referrals.length === 0) {
+        return <p className={styles.emptyList}>У вас пока нет рефералов.</p>;
     }
 
-    if (error) {
-        return (
-            <div>
-                Ошибка инициализации пользователя: {error}
-                <button onClick={() => window.location.reload()}>Повторить</button>
-                {children}
-            </div>
-        );
-    }
-
-    return <>{children}</>;
+    return (
+        <div className={styles.referralList}>
+            {referrals.map((referral) => (
+                <ReferralCard key={referral.telegram_id} referral={referral} />
+            ))}
+        </div>
+    );
 };
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\ui\index.ts =====
-
-export * from './';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\user\index.ts =====
@@ -3465,40 +3301,18 @@ export { User } from './ui/User';
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getMe } from '@/entities/user/api/user.api';
-import { UserProfile } from '@/entities/user/model/types';
+import { useUser } from '@/entities/user';
 import styles from './User.module.scss';
 
-// Клиентский компонент
 export const User = () => {
-    const [user, setUser] = useState<UserProfile | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isLoading, error } = useUser();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                // Вызов API происходит на клиенте
-                const userData = await getMe();
-                setUser(userData);
-            } catch (err) {
-                console.error('Ошибка при загрузке данных пользователя (клиент):', err);
-                setError('Не удалось загрузить данные пользователя');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUser();
-    }, []);
-
-    if (loading) {
-        return <div className={styles.user}>Загрузка...</div>;
+    if (isLoading) {
+        return <div className={styles.user}>Загрузка имени пользователя...</div>;
     }
 
     if (error) {
-        return <div className={styles.user}>{error}</div>;
+        return <div className={styles.user}>Ошибка: {error}</div>;
     }
 
     if (!user) {
@@ -3508,7 +3322,9 @@ export const User = () => {
     return (
         <div className={styles.user}>
             <span className={styles.userStatus}>{String(user.blago_status)}</span>
-            <span className={styles.userName}>{user.username}</span>
+            <span className={styles.userName}>
+                {user.username || `Пользователь ${user.telegram_id}`}
+            </span>
         </div>
     );
 };
@@ -3629,12 +3445,6 @@ export const User = () => {
     │   │   │   ├── index.ts
     │   │   │   ├── MachineList.module.scss
     │   │   │   └── MachineList.tsx
-    │   ├── referral
-    │   │   ├── index.ts
-    │   │   ├── model
-    │   │   └── ui
-    │   │   │   ├── ReferralList.module.scss
-    │   │   │   └── ReferralList.tsx
     │   ├── timer
     │   │   ├── model
     │   │   │   └── useTimer.ts
@@ -3754,17 +3564,16 @@ export const User = () => {
     │       ├── index.ts
     │       ├── ReferralLink.module.scss
     │       └── ReferralLink.tsx
-    │   ├── user
+    │   ├── referral-list
     │       ├── index.ts
     │       ├── model
     │       └── ui
-    │       │   ├── User.module.scss
-    │       │   └── User.tsx
-    │   └── user-initializer
+    │       │   ├── ReferralList.module.scss
+    │       │   └── ReferralList.tsx
+    │   └── user
     │       ├── index.ts
     │       ├── model
-    │           └── index.ts
     │       └── ui
-    │           ├── index.ts
-    │           └── UserInitializer.tsx
+    │           ├── User.module.scss
+    │           └── User.tsx
 └── tsconfig.json

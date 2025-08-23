@@ -1,6 +1,6 @@
-// @/widgets/machine-card/ui/MachineInfoModal.tsx
 'use client';
 
+// @/widgets/machine-card/ui/MachineInfoModal.tsx
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
@@ -8,8 +8,6 @@ import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { Button, Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
-
-// @/widgets/machine-card/ui/MachineInfoModal.tsx
 
 export const MachineInfoModal = ({
     isOpen,

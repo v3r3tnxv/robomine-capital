@@ -12,6 +12,7 @@
     border-bottom: 2px solid rgba(202, 68, 255, 0.33);
     border-radius: 16px;
     z-index: 10;
+    @include interactive-behavior(0.96, 1.2, 0.3s);
 
     .plate {
         position: absolute;
@@ -36,6 +37,29 @@
             filter: none; // Убираем blur для купленных
         }
     }
+
+    .displayText {
+        position: relative;
+        height: 36px;
+        align-self: self-end;
+        z-index: 13;
+    }
+
+    .statusText {
+        position: relative;
+        padding: 0 16px;
+        width: max-content;
+        height: 36px;
+        align-self: self-end;
+        z-index: 13;
+        color: $color-accent !important;
+        font-weight: 700;
+    }
+
+    // .info {
+    //     position: absolute;
+    //     right: 0;
+    // }
 
     .not_purchased {
     }
@@ -62,27 +86,7 @@
         background: radial-gradient(80% 80% at 50% -20%, #ca44ff 0%, rgba(0, 0, 0, 0) 100%);
     }
 
-    .activationInfo {
-        height: 36px;
-        align-self: self-end;
-    }
-
-    // .info {
-    //     position: absolute;
-    //     right: 0;
-    // }
-
-    .label {
-        padding: 0 16px;
-        width: max-content;
-        height: 36px;
-        align-self: self-end;
-        z-index: 13;
-        color: $color-accent !important;
-        font-weight: 700;
-    }
-
-    // ✅ Статичные классы для каждого уровня прогресса
+    // Статичные классы для каждого уровня прогресса
     &.progress0 .in_progress {
         background:
             linear-gradient(

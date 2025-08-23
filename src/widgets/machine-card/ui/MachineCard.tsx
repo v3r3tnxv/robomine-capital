@@ -1,6 +1,6 @@
-// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
+// @/widgets/machine-card/ui/MachineCard.tsx
 import { useCallback, useEffect, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
@@ -9,8 +9,6 @@ import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
-
-// @/widgets/machine-card/ui/MachineCard.tsx
 
 export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
     const { updateMachineStatusLocally } = useMachines();
@@ -226,9 +224,9 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
                     alt="Майнинг-машина"
                 />
 
-                <span className={styles.activationInfo}>{getDisplayText()}</span>
+                <span className={styles.displayText}>{getDisplayText()}</span>
 
-                <span className={styles.label}>{getStatusText()}</span>
+                <span className={styles.statusText}>{getStatusText()}</span>
             </button>
 
             {machineData && (

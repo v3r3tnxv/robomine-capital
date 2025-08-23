@@ -1,6 +1,6 @@
 'use client';
 
-// src/widgets/balance/ui/Balance.tsx (обновлённый пример)
+// src/widgets/balance/ui/Balance.tsx
 import { useUser } from '@/entities/user/model/UserContext';
 import styles from './Balance.module.scss';
 
@@ -12,18 +12,15 @@ const convertToRub = (usdtAmount: number): number => {
 };
 
 export const Balance = () => {
-    const { user, isLoading, error } = useUser();
-
-    if (isLoading) {
-        return <div className={styles.balance}>Загрузка баланса...</div>;
-    }
-
-    if (error) {
-        return <div className={styles.balance}>Ошибка загрузки баланса: {error}</div>;
-    }
+    const { user } = useUser();
 
     if (!user) {
-        return <div className={styles.balance}>Пользователь не найден</div>;
+        return (
+            <div className={styles.balance}>
+                <span className={styles.balanceConvert}>0 RUB</span>
+                <span className={styles.balanceMain}>Не удалось загрузить баланс</span>
+            </div>
+        );
     }
 
     const balanceRub = convertToRub(Number(user.balance));

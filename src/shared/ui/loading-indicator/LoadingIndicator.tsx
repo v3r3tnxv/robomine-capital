@@ -1,8 +1,12 @@
 'use client';
 
-import { useLinkStatus } from 'next/link';
+// src/shared/ui/loading-indicator/LoadingIndicator.tsx
+import styles from './LoadingIndicator.module.scss';
 
-export default function LoadingIndicator() {
-    const { pending } = useLinkStatus();
-    return pending ? <div role="status" aria-label="Loading" className="spinner" /> : null;
-}
+export const LoadingIndicator = ({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) => {
+    return (
+        <div className={`${styles.loader} ${styles[size]}`}>
+            <div className={styles.spinner}></div>
+        </div>
+    );
+};
