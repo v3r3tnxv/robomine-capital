@@ -14,12 +14,12 @@ const convertToRub = (usdtAmount: number): number => {
 export const Balance = () => {
     const { user } = useUser();
 
-    const balanceRub = convertToRub(Number(user!.balance));
+    const balanceRub = convertToRub(Number(user?.balance));
 
     return (
         <div className={styles.balance}>
             <span className={styles.balanceConvert}>{balanceRub} RUB</span>
-            <span className={styles.balanceMain}>{Number(user!.balance)} USDT</span>
+            <span className={styles.balanceMain}>{Number(user?.balance)} USDT</span>
         </div>
     );
 };

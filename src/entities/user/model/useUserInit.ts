@@ -4,18 +4,18 @@
 import { useEffect, useState } from 'react';
 import { AxiosError } from 'axios';
 import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
-import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
+import { CreateUserDto, UserAttributes } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
 // Расширяем интерфейс Window для глобальной переменной
 declare global {
     interface Window {
-        telegramUser?: UserProfile;
+        telegramUser?: UserAttributes;
     }
 }
 
 export const useUserInit = () => {
-    const [user, setUser] = useState<UserProfile | null>(null);
+    const [user, setUser] = useState<UserAttributes | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();

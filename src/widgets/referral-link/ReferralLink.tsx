@@ -4,7 +4,7 @@ import { Input } from '@/shared/ui';
 import styles from './ReferralLink.module.scss';
 
 interface ReferralLinkProps {
-    telegramId: number;
+    telegramId?: number;
 }
 
 export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {

@@ -5,7 +5,6 @@ import {
     CreateUserDto,
     ReplenishDto,
     UserAttributes,
-    UserProfile,
     UserReferralData,
 } from '../model/types';
 
@@ -45,8 +44,8 @@ export const createUser = async (userData: CreateUserDto): Promise<UserAttribute
 /**
  * Получить данные текущего пользователя
  */
-export const getMe = async (): Promise<UserProfile> => {
-    const response = await api.get<UserProfile>('/users/getMe');
+export const getMe = async (): Promise<UserAttributes> => {
+    const response = await api.get<UserAttributes>('/users/getMe');
     return response.data;
 };
 
