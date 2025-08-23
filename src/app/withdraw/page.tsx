@@ -1,3 +1,4 @@
+// @/app/withdraw/page.tsx
 import { WithdrawForm } from '@/features/withdraw';
 import { BackButton } from '@/shared/ui';
 import { Header } from '@/widgets/header';

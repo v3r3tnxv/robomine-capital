@@ -1,3 +1,4 @@
+// @/app/deposit/page.tsx
 import { DepositForm } from '@/features/deposit';
 import { BackButton } from '@/shared/ui';
 import { Header } from '@/widgets/header';

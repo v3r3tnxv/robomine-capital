@@ -1,3 +1,4 @@
+// @/app/shop/page.tsx
 import { MachineList } from '@/features/mining';
 import { BackButton } from '@/shared/ui';
 import styles from './Shop.module.scss';

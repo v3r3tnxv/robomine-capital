@@ -1,4 +1,4 @@
-// Кастомный 404 UI
+// @/app/not-found.tsx
 
 export default function NotFound() {
     return (

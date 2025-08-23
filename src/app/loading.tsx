@@ -1,9 +1,10 @@
-// Спиннер загрузки
+// @/app/loading.tsx
+
 
 export default function Loading() {
     return (
         <div>
-            <p>Загрузка...</p>
+            <p>Главная Загрузка...</p>
         </div>
     );
 }
