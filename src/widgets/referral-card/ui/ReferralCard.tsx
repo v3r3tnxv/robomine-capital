@@ -26,7 +26,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
             <span className={styles.username}>
                 {referral.username || `Пользователь ${referral.telegram_id}`}
             </span>
-            <span className={styles.profit}>+{profit.toFixed(2)} USDT</span>
+            <span className={styles.profit}>+{profit} USDT</span>
         </div>
     );
 };

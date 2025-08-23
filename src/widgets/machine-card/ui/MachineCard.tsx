@@ -1,14 +1,16 @@
 // @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { memo } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
-import { memo } from 'react';
 import { MachineInfoModal } from './MachineInfoModal';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
+
+// @/widgets/machine-card/ui/MachineCard.tsx
 
 export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
     const { updateMachineStatusLocally } = useMachines();
@@ -118,8 +120,11 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
         const handleMachineTransitioned = (event: CustomEvent) => {
             if (event.detail.machineId === machineData?.car?.id) {
                 // Определяем следующий статус
-                const nextState = machineData?.state_car?.remaining_uses && 
-                                 machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                const nextState =
+                    machineData?.state_car?.remaining_uses &&
+                    machineData.state_car.remaining_uses > 1
+                        ? 'awaiting'
+                        : 'completed';
                 setLocalStatus(nextState);
             }
         };
@@ -131,7 +136,10 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
         return () => {
             window.removeEventListener('machinePurchased', handleMachinePurchased as EventListener);
             window.removeEventListener('machineActivated', handleMachineActivated as EventListener);
-            window.removeEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
+            window.removeEventListener(
+                'machineTransitioned',
+                handleMachineTransitioned as EventListener
+            );
         };
     }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
 
@@ -152,14 +160,14 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
 
         switch (localStatus) {
             case 'awaiting':
-                return `+${earnings.toFixed(2)} USDT за 23 ч.`;
+                return `+${earnings} USDT за 23 ч.`;
             case 'in_progress':
                 if (timeLeft !== null) {
                     return formatTime(timeLeft);
                 }
                 return 'В работе...';
             case 'waiting_for_reward':
-                return `+${earnings.toFixed(2)} USDT`;
+                return `+${earnings} USDT`;
             case 'completed':
                 return 'Завершена';
             default:
@@ -203,10 +211,7 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
     return (
         <>
             <button
-                className={clsx(
-                    styles.card,
-                    localStatus === 'in_progress' && getProgressClass()
-                )}
+                className={clsx(styles.card, localStatus === 'in_progress' && getProgressClass())}
                 onClick={() => setIsModalOpen(true)}
                 type="button"
                 aria-label={`Майнинг-машина за ${price} USDT`}
@@ -236,24 +241,24 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
                             case 'purchased':
                                 window.dispatchEvent(
                                     new CustomEvent('machinePurchased', {
-                                        detail: { machineId }
+                                        detail: { machineId },
                                     })
                                 );
                                 break;
                             case 'activated':
                                 window.dispatchEvent(
                                     new CustomEvent('machineActivated', {
-                                        detail: { 
+                                        detail: {
                                             machineId,
-                                            lastUpdated: Math.floor(Date.now() / 1000)
-                                        }
+                                            lastUpdated: Math.floor(Date.now() / 1000),
+                                        },
                                     })
                                 );
                                 break;
                             case 'transitioned':
                                 window.dispatchEvent(
                                     new CustomEvent('machineTransitioned', {
-                                        detail: { machineId }
+                                        detail: { machineId },
                                     })
                                 );
                                 break;

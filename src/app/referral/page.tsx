@@ -1,84 +1,64 @@
+'use client';
 
-'use client'; 
-// @/app/referral/page.tsx
-import { useEffect, useState } from 'react'; // <-- Импортируйте хуки
-import { UserProfile, UserReferralData, getMe, getUserReferrals } from '@/entities/user';
-import { ReferralList } from '@/features/referral';
+// src/app/referral/page.tsx
+import { useEffect, useState } from 'react';
+import { UserReferralData, getUserReferrals } from '@/entities/user';
+import { useUser } from '@/entities/user/model/UserContext';
 import { BackButton, Button } from '@/shared/ui';
 import { ReferralLink } from '@/widgets/referral-link';
+import { ReferralList } from '@/widgets/referral-list';
 import styles from './Referral.module.scss';
 
-export default function ReferralPage() { // <-- Уберите async
-    // Состояния для управления данными и состоянием загрузки
-    const [user, setUser] = useState<UserProfile | null>(null);
+export default function ReferralPage() {
+    const { user, isLoading: isUserLoading, error: userError } = useUser();
     const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Эффект для загрузки данных
+    // Загружаем данные рефералов только один раз, когда пользователь доступен
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                // Получаем данные текущего пользователя
-                const userData = await getMe();
-                // Получаем данные рефералов
-                const referralsDataResult = await getUserReferrals();
+        // Если пользователь загружен и данные рефералов еще не загружены
+        if (user && !referralsData && loading) {
+            const fetchData = async () => {
+                try {
+                    setError(null);
+                    const referralsDataResult = await getUserReferrals();
+                    setReferralsData(referralsDataResult);
+                } catch (err) {
+                    console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                    setError('Не удалось загрузить данные рефералов');
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-                setUser(userData);
-                setReferralsData(referralsDataResult);
-            } catch (err) {
-                console.error('Ошибка при загрузке данных рефералов (клиент):', err);
-                setError('Не удалось загрузить данные рефералов');
-            } finally {
-                setLoading(false);
-            }
-        };
+            fetchData();
+        } else if (!user && !isUserLoading) {
+            // Если пользователь не найден и загрузка завершена, останавливаем загрузку
+            setLoading(false);
+        }
+    }, [user, isUserLoading, referralsData, loading]);
 
-        fetchData();
-    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
-
-    // Отображение состояния загрузки
-    if (loading) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.loading}>Загрузка...</p>
-            </div>
-        );
+    // Обработка состояний загрузки
+    if (isUserLoading || loading) {
+        return <div className={styles.referralPage}>Загрузка данных...</div>;
     }
 
-    // Отображение ошибки
+    // Обработка ошибок
+    if (userError) {
+        return <div className={styles.referralPage}>Ошибка пользователя: {userError}</div>;
+    }
+
     if (error) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.error}>{error}</p>
-            </div>
-        );
+        return <div className={styles.referralPage}>Ошибка: {error}</div>;
     }
 
-    // Проверка наличия данных
-    if (!user || !referralsData) {
-        return (
-            <div className={styles.referralPage}>
-                <BackButton />
-                <h1 className={styles.title}>Рефераллы</h1>
-                <p className={styles.error}>Данные не найдены</p>
-            </div>
-        );
+    if (!user) {
+        return <div className={styles.referralPage}>Пользователь не найден</div>;
     }
 
     // Преобразуем referrer_profit в число
     const referrerProfit = Number(user.referrer_profit);
-
-    // Проверяем, что это корректное число
-    if (isNaN(referrerProfit)) {
-        console.warn('referrer_profit не является числом:', user.referrer_profit);
-    }
 
     return (
         <div className={styles.referralPage}>
@@ -87,13 +67,13 @@ export default function ReferralPage() { // <-- Уберите async
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
             <span className={styles.earningsAmount}>
-                {isNaN(referrerProfit) ? '0.00' : referrerProfit.toFixed(2)} USDT
+                {isNaN(referrerProfit) ? '0.00' : referrerProfit} USDT
             </span>
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
             <ReferralLink telegramId={user.telegram_id} />
             <Button className={styles.button}>Пригласить</Button>
-            <ReferralList referrals={referralsData.referrals} />
+            {referralsData && <ReferralList referrals={referralsData.referrals} />}
         </div>
     );
 }

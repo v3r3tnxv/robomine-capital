@@ -1,39 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getMe } from '@/entities/user/api/user.api';
-import { UserProfile } from '@/entities/user/model/types';
+import { useUser } from '@/entities/user';
 import styles from './User.module.scss';
 
-// Клиентский компонент
 export const User = () => {
-    const [user, setUser] = useState<UserProfile | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isLoading, error } = useUser();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                // Вызов API происходит на клиенте
-                const userData = await getMe();
-                setUser(userData);
-            } catch (err) {
-                console.error('Ошибка при загрузке данных пользователя (клиент):', err);
-                setError('Не удалось загрузить данные пользователя');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUser();
-    }, []);
-
-    if (loading) {
-        return <div className={styles.user}>Загрузка...</div>;
+    if (isLoading) {
+        return <div className={styles.user}>Загрузка имени пользователя...</div>;
     }
 
     if (error) {
-        return <div className={styles.user}>{error}</div>;
+        return <div className={styles.user}>Ошибка: {error}</div>;
     }
 
     if (!user) {
@@ -43,7 +21,9 @@ export const User = () => {
     return (
         <div className={styles.user}>
             <span className={styles.userStatus}>{String(user.blago_status)}</span>
-            <span className={styles.userName}>{user.username}</span>
+            <span className={styles.userName}>
+                {user.username || `Пользователь ${user.telegram_id}`}
+            </span>
         </div>
     );
 };

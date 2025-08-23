@@ -4,10 +4,12 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { Button, Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
+
+// @/widgets/machine-card/ui/MachineInfoModal.tsx
 
 export const MachineInfoModal = ({
     isOpen,
@@ -42,7 +44,7 @@ export const MachineInfoModal = ({
 
             if (success) {
                 console.log(`Машина ${machine.car.id} успешно куплена.`);
-                
+
                 // Локальное обновление без перезагрузки
                 setCurrentStatus('awaiting');
                 updateMachineStatusLocally(machine.car.id, 'awaiting');
@@ -87,7 +89,7 @@ export const MachineInfoModal = ({
 
             if (result) {
                 console.log(`Машина ${machine.car.id} активирована.`);
-                
+
                 // Локальное обновление без перезагрузки
                 const newStatus = 'in_progress';
                 setCurrentStatus(newStatus);
@@ -215,7 +217,7 @@ export const MachineInfoModal = ({
 
                     <div className={styles.infoItem}>
                         <span className={styles.label}>Доход за 1 активацию:</span>
-                        <span className={styles.value}>+{earnings.toFixed(2)} USDT</span>
+                        <span className={styles.value}>+{earnings} USDT</span>
                     </div>
 
                     {/* --- Отображаем статус машины --- */}

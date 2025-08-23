@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+full_code.txt
 
 # next.js
 /.next/
