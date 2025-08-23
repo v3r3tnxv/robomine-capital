@@ -8,11 +8,11 @@ export const BuyMachineLink = () => {
         <Link className={styles.shopLink} href="/shop">
             <div className={styles.imageWrapper}>
                 <Image
-                    src="/images/robot.png"
+                    src="/images/mascot.png"
                     width={100}
                     height={100}
                     alt="Робот"
-                    className={styles.robotImage}
+                    className={styles.mascotImage}
                 />
             </div>
             <span className={styles.label}>Купить майнинг-машину</span>

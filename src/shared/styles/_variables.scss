@@ -119,12 +119,10 @@ $font-pastel-blue: #708dfa;
 $font-pastel-pink: #d464ae;
 $font-pastel-pink-light: #eda4ff;
 $font-pastel-green: #4e949f;
+$font-neon-orange: rgb(255, 164, 32);
+$font-neon-blue: rgb(4, 217, 255);
 $background: rgb(22, 7, 0);
-$background-accent: radial-gradient(
-    ellipse 150% 60% at 100% 0%,
-    $color-accent,
-    $color-black
-);
+$background-accent: radial-gradient(ellipse 150% 60% at 100% 0%, $color-accent, $color-black);
 
 // app fills
 $fill-red: rgba($color-red, 0.2);

@@ -179,13 +179,13 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
 
         switch (localStatus) {
             case 'awaiting':
-                return 'Ожидает активации';
+                return 'Активировать';
             case 'in_progress':
                 return 'В работе';
             case 'waiting_for_reward':
-                return 'Майнинг завершен';
+                return 'Забрать';
             case 'completed':
-                return 'Завершена';
+                return 'Купить';
             default:
                 return 'Куплена';
         }
