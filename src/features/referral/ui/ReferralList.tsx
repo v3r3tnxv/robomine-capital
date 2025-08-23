@@ -3,13 +3,11 @@ import { UserAttributes } from '@/entities/user';
 import { ReferralCard } from '@/widgets/referral-card';
 import styles from './ReferralList.module.scss';
 
-// Пропсы для списка рефералов
 interface ReferralListProps {
     referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
 }
 
-export const ReferralList = async ({ referrals }: ReferralListProps) => {
-    // Если список пуст, можно отобразить сообщение
+export const ReferralList = ({ referrals }: ReferralListProps) => {
     if (referrals.length === 0) {
         return <p className={styles.emptyList}>У вас пока нет рефералов.</p>;
     }
@@ -17,11 +15,7 @@ export const ReferralList = async ({ referrals }: ReferralListProps) => {
     return (
         <div className={styles.referralList}>
             {referrals.map((referral) => (
-                // Передаем данные конкретного реферала в карточку
-                <ReferralCard
-                    key={referral.telegram_id} // Используем уникальный ID
-                    referral={referral}
-                />
+                <ReferralCard key={referral.telegram_id} referral={referral} />
             ))}
         </div>
     );

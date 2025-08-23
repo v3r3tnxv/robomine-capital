@@ -1,0 +1,3790 @@
+
+
+===== C:\Users\USER\Projects\robomine-capital\next.config.ts =====
+
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: 'http://localhost:5000/api/:path*',
+            },
+        ];
+    },
+};
+
+export default nextConfig;
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\deposit\page.tsx =====
+
+// @/app/deposit/page.tsx
+import { DepositForm } from '@/features/deposit';
+import { BackButton } from '@/shared/ui';
+import { Header } from '@/widgets/header';
+import styles from './Deposit.module.scss';
+
+export default function DepositPage() {
+    return (
+        <div className={styles.depositPage}>
+            <BackButton />
+            <h1 className={styles.title}>Пополнение баланса</h1>
+            <Header />
+            <div className={styles.formContainer}>
+                <span>Сумма для пополнения</span>
+                <DepositForm />
+            </div>
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\error.tsx =====
+
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/shared/ui/button';
+
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+    useEffect(() => {
+        console.error(error);
+    }, [error]);
+
+    return (
+        <div>
+            <h1>Ошибка</h1>
+            <p>Произошла ошибка при загрузке страницы.</p>
+            <Button onClick={() => reset()} className="" label="Попробовать снова" />
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\layout.tsx =====
+
+// app/layout.tsx
+import type { Metadata } from 'next';
+import { Lato } from 'next/font/google';
+import '@/shared/styles/global.scss';
+import { AppProviders } from '../shared/lib/providers';
+import styles from './layout.module.scss';
+
+// Подключаем шрифт Lato
+const latoSans = Lato({
+    weight: ['100', '300', '400', '700', '900'],
+    variable: '--font-lato',
+    subsets: ['latin', 'latin-ext'],
+    display: 'swap',
+});
+
+export const metadata: Metadata = {
+    title: {
+        default: '121 Games',
+        template: '%s | 121 Games', // Для дочерних страниц
+    },
+    description: 'Play and win',
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+};
+
+export default function RootLayout({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+        <html lang="ru" suppressHydrationWarning>
+            <head>
+                <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+            </head>
+            <body className={`${styles.layout} ${latoSans.variable} `}>
+                <main className={styles.content}>
+                    <AppProviders>{children}</AppProviders>
+                </main>
+            </body>
+        </html>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\loading.tsx =====
+
+// @/app/loading.tsx
+
+
+export default function Loading() {
+    return (
+        <div>
+            <p>Главная Загрузка...</p>
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\not-found.tsx =====
+
+// @/app/not-found.tsx
+
+export default function NotFound() {
+    return (
+        <div>
+            <h1 className="not-found__title">404</h1>
+            <p className="not-found__description">Страница не найдена</p>
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\page.tsx =====
+
+'use client'; 
+// app/page.tsx
+import { useEffect, useState } from 'react'; // <-- Импортируйте хуки
+import { MachineWithState, getAllMachines } from '@/entities/machine';
+import { MachineList } from '@/features/mining/ui/MachineList';
+import { ActionButtons } from '@/widgets/action-buttons';
+import { Header } from '@/widgets/header/ui/Header';
+import { BuyMachineLink } from '@/widgets/machine-card';
+import styles from './Home.module.scss';
+
+export default function HomePage() { // <-- Уберите async
+    const [userMachines, setUserMachines] = useState<MachineWithState[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMachines = async () => {
+            try {
+                const allMachines = await getAllMachines();
+                // Фильтруем: только купленные/активные машины
+                const purchasedMachines = allMachines.filter(({ state_car }) => {
+                    const status = state_car?.status ?? 'not_purchased';
+                    return status !== 'not_purchased';
+                });
+                setUserMachines(purchasedMachines);
+            } catch (err) {
+                console.error('Ошибка при загрузке машин пользователя для главной страницы (клиент):', err);
+                setError('Не удалось загрузить список ваших машин.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMachines();
+    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
+
+    // Рендеринг в зависимости от состояния
+    if (loading) {
+        return (
+            <div className={styles.homePage}>
+                <Header />
+                <ActionButtons />
+                <div className={styles.loadingMessage}>Загрузка...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.homePage}>
+            <Header />
+            <ActionButtons />
+
+            {error ? (
+                <div className={styles.errorMessage}>{error}</div>
+            ) : userMachines.length > 0 ? (
+                // Если есть купленные машины — показываем их список
+                <div className={styles.machinesContainer}>
+                    <MachineList
+                        machines={userMachines}
+                        filterType="purchased"
+                        showBuyMoreCard={true}
+                    />
+                </div>
+            ) : (
+                // Если купленных машин нет — показываем ссылку на магазин
+                <BuyMachineLink />
+            )}
+        </div>
+    );
+}
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\referral\page.tsx =====
+
+
+'use client'; 
+// @/app/referral/page.tsx
+import { useEffect, useState } from 'react'; // <-- Импортируйте хуки
+import { UserProfile, UserReferralData, getMe, getUserReferrals } from '@/entities/user';
+import { ReferralList } from '@/features/referral';
+import { BackButton, Button } from '@/shared/ui';
+import { ReferralLink } from '@/widgets/referral-link';
+import styles from './Referral.module.scss';
+
+export default function ReferralPage() { // <-- Уберите async
+    // Состояния для управления данными и состоянием загрузки
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Эффект для загрузки данных
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                // Получаем данные текущего пользователя
+                const userData = await getMe();
+                // Получаем данные рефералов
+                const referralsDataResult = await getUserReferrals();
+
+                setUser(userData);
+                setReferralsData(referralsDataResult);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                setError('Не удалось загрузить данные рефералов');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
+
+    // Отображение состояния загрузки
+    if (loading) {
+        return (
+            <div className={styles.referralPage}>
+                <BackButton />
+                <h1 className={styles.title}>Рефераллы</h1>
+                <p className={styles.loading}>Загрузка...</p>
+            </div>
+        );
+    }
+
+    // Отображение ошибки
+    if (error) {
+        return (
+            <div className={styles.referralPage}>
+                <BackButton />
+                <h1 className={styles.title}>Рефераллы</h1>
+                <p className={styles.error}>{error}</p>
+            </div>
+        );
+    }
+
+    // Проверка наличия данных
+    if (!user || !referralsData) {
+        return (
+            <div className={styles.referralPage}>
+                <BackButton />
+                <h1 className={styles.title}>Рефераллы</h1>
+                <p className={styles.error}>Данные не найдены</p>
+            </div>
+        );
+    }
+
+    // Преобразуем referrer_profit в число
+    const referrerProfit = Number(user.referrer_profit);
+
+    // Проверяем, что это корректное число
+    if (isNaN(referrerProfit)) {
+        console.warn('referrer_profit не является числом:', user.referrer_profit);
+    }
+
+    return (
+        <div className={styles.referralPage}>
+            <BackButton />
+            <h1 className={styles.title}>Рефераллы</h1>
+
+            <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
+            <span className={styles.earningsAmount}>
+                {isNaN(referrerProfit) ? '0.00' : referrerProfit.toFixed(2)} USDT
+            </span>
+
+            <span className={styles.referralText}>Ваша реферальная ссылка:</span>
+            <ReferralLink telegramId={user.telegram_id} />
+            <Button className={styles.button}>Пригласить</Button>
+            <ReferralList referrals={referralsData.referrals} />
+        </div>
+    );
+}
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\shop\page.tsx =====
+
+// @/app/shop/page.tsx
+import { MachineList } from '@/features/mining';
+import { BackButton } from '@/shared/ui';
+import styles from './Shop.module.scss';
+
+export default function ShopPage() {
+    return (
+        <div className={styles.shopPage}>
+            <BackButton />
+            <h1 className={styles.title}>Майнинг машины</h1>
+            <MachineList filterType="all" />
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\withdraw\page.tsx =====
+
+// @/app/withdraw/page.tsx
+import { WithdrawForm } from '@/features/withdraw';
+import { BackButton } from '@/shared/ui';
+import { Header } from '@/widgets/header';
+import styles from './Withdraw.module.scss';
+
+export default function WithdrawPage() {
+    return (
+        <div className={styles.withdrawPage}>
+            <BackButton />
+            <h1 className={styles.title}>Вывод средств</h1>
+
+            <Header />
+
+            <div className={styles.formContainer}>
+                <span>Сумма для вывода</span>
+                <WithdrawForm />
+            </div>
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\api\deposit.api.ts =====
+
+// entities/deposit/api/deposit.api.ts
+import { api } from '@/shared/api';
+import { DepositDto } from '../model/types';
+
+/**
+ * Создать инвойс для пополнения баланса
+ * @param asset - Криптовалюта (например, "TON", "BTC")
+ * @param amount - Сумма пополнения
+ * @returns Данные о созданном депозите
+ */
+export const createDepositInvoice = async (asset: string, amount: string): Promise<DepositDto> => {
+    const response = await api.post<DepositDto>('/deposits/create', {
+        asset,
+        amount,
+    });
+
+    return response.data;
+};
+
+/**
+ * Получить историю депозитов текущего пользователя
+ * @returns Список депозитов
+ */
+export const getDepositHistory = async (): Promise<DepositDto[]> => {
+    const response = await api.get<DepositDto[]>('/deposits/history');
+
+    return response.data;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\api\index.ts =====
+
+export {} from './';
+export { createDepositInvoice, getDepositHistory } from './deposit.api';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\index.ts =====
+
+export * from './api';
+export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\model\index.ts =====
+
+export * from './';
+export type { DepositDto } from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\model\types.ts =====
+
+// entities/deposit/model/types.ts
+export interface DepositDto {
+    id: number;
+    telegram_id: number;
+    invoice_id: number;
+    hash: string;
+    amount: number;
+    status: 'pending' | 'completed' | 'failed';
+    created_at: string; // ISO string
+    updated_at: string; // ISO string
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\deposit\ui\index.ts =====
+
+export {} from '.';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\api\index.ts =====
+
+export {
+    activateMachine,
+    getAllMachines,
+    getMachineById,
+    purchaseMachine,
+    transitionMachine,
+} from './machine.api';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\api\machine.api.ts =====
+
+// entities/machine/api/machine.api.ts
+import { api } from '@/shared/api';
+import {
+    ActivateMachineDto,
+    MachineAttributes,
+    MachineWithState,
+    PurchaseMachineDto,
+    TransitionMachineDto,
+} from '../model/types';
+
+/**
+ * Получить список всех машин с состоянием для текущего пользователя
+ */
+export const getAllMachines = async (): Promise<MachineWithState[]> => {
+    const response = await api.get<MachineWithState[]>('/cars/');
+    return response.data;
+};
+
+/**
+ * Получить конкретную машину по ID
+ */
+export const getMachineById = async (id: number): Promise<MachineAttributes> => {
+    const response = await api.get<MachineAttributes>(`/cars/${id}`);
+    return response.data;
+};
+
+/**
+ * Купить машину
+ */
+export const purchaseMachine = async (data: PurchaseMachineDto): Promise<boolean> => {
+    const response = await api.post<boolean>('/cars/purchase', data);
+    return response.data;
+};
+
+/**
+ * Активировать купленную машину
+ */
+export const activateMachine = async (data: ActivateMachineDto): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/cars/activate', data);
+    return response.data;
+};
+
+/**
+ * Перевести машину в следующее состояние (например, из waiting_for_reward в awaiting)
+ */
+export const transitionMachine = async (
+    data: TransitionMachineDto
+): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/cars/take', data);
+    return response.data;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\index.ts =====
+
+export * from './api';
+export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\model\index.ts =====
+
+export type {
+    ActivateMachineDto,
+    CreateMachineDto,
+    MachineAttributes,
+    MachineCreationAttributes,
+    MachineToUserAttributes,
+    MachineWithState,
+    PurchaseMachineDto,
+    TransitionMachineDto,
+} from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\model\types.ts =====
+
+// entities/machine/model/types.ts
+
+// --- DTO для создания машины ---
+export interface CreateMachineDto {
+    name: string;
+    price: number;
+    status: boolean;
+    lifespan: number; // срок службы в днях
+    daily_replenishment: number; // ежедневное пополнение баланса
+    daily_replenishment_tokens: number; // ежедневные токены
+    profit_percentage: number; // процент прибыли
+    image?: string; // URL изображения
+}
+
+// --- Атрибуты модели машины (из БД) ---
+export interface MachineAttributes {
+    id: number;
+    name: string;
+    price: number;
+    status: boolean;
+    lifespan: number;
+    daily_replenishment: number;
+    daily_replenishment_tokens: number;
+    profit_percentage: number;
+    image: string;
+    created_at: Date;
+    updated_at: Date;
+}
+
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+// --- Атрибуты для создания (без id и timestamps) ---
+export type MachineCreationAttributes = Optional<
+    MachineAttributes,
+    | 'id'
+    | 'daily_replenishment_tokens'
+    | 'profit_percentage'
+    | 'image'
+    | 'created_at'
+    | 'updated_at'
+>;
+
+// --- DTO для связи машина-пользователь ---
+export interface MachineToUserAttributes {
+    id: number;
+    telegram_id: number;
+    machine_id: number;
+    remaining_uses: number;
+    status: 'not_purchased' | 'awaiting' | 'in_progress' | 'waiting_for_reward' | 'completed';
+    last_updated: number;
+    created_at: Date;
+    updated_at: Date;
+}
+
+export interface PurchaseMachineDto {
+    car_id: number;
+}
+
+export interface ActivateMachineDto {
+    car_id: number;
+}
+
+export interface TransitionMachineDto {
+    car_to_user_id: number;
+}
+
+// --- Тип для ответа getAllMachines ---
+export interface MachineWithState {
+    car: MachineAttributes;
+    state_car: {
+        id: number | null;
+        telegram_id: number;
+        car_id: number | null;
+        remaining_uses: number;
+        status: MachineToUserAttributes['status'];
+        last_updated: number;
+    };
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\ui\index.ts =====
+
+export {} from '.';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\api\index.ts =====
+
+export {
+    banUser,
+    checkUserExists,
+    createUser,
+    getAllUsers,
+    getMe,
+    getUserReferrals,
+    replenishUserBalance,
+    unbanUser,
+} from './user.api';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\api\user.api.ts =====
+
+// entities/user/api/user.api.ts
+import { api } from '@/shared/api';
+import {
+    BanUserDto,
+    CreateUserDto,
+    ReplenishDto,
+    UserAttributes,
+    UserProfile,
+    UserReferralData,
+} from '../model/types';
+
+/**
+ * Проверить, существует ли пользователь по telegram_id
+ */
+// entities/user/api/user.api.ts
+/**
+ * Проверить, существует ли пользователь по telegram_id
+ */
+export const checkUserExists = async (telegram_id: number): Promise<boolean> => {
+    try {
+        const response = await api.get<boolean>(`/users/check/${telegram_id}`);
+        return response.data;
+    } catch (error) {
+        // Проверяем, является ли ошибка Axios ошибкой с response
+        if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as { response?: { status: number } };
+            if (axiosError.response?.status === 404) {
+                return false; // Пользователь не найден
+            }
+        }
+        // Для других ошибок логируем и пробрасываем
+        console.error('Error checking user existence:', error);
+        throw error;
+    }
+};
+
+/**
+ * Создать нового пользователя
+ */
+export const createUser = async (userData: CreateUserDto): Promise<UserAttributes> => {
+    const response = await api.post<UserAttributes>('/users/create', userData);
+    return response.data;
+};
+
+/**
+ * Получить данные текущего пользователя
+ */
+export const getMe = async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/users/getMe');
+    return response.data;
+};
+
+/**
+ * Получить рефералов текущего пользователя
+ */
+export const getUserReferrals = async (): Promise<UserReferralData> => {
+    const response = await api.get<UserReferralData>('/users/get-referrals');
+    return response.data;
+};
+
+/**
+ * Пополнить баланс пользователя (админская функция или для тестов)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const replenishUserBalance = async (data: ReplenishDto): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>('/users/replenish', data);
+    return response.data;
+};
+
+/**
+ * Забанить пользователя (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const banUser = async (user_id: number, data: BanUserDto): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>(`/users/ban/${user_id}`, data);
+    return response.data;
+};
+
+/**
+ * Разбанить пользователя (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const unbanUser = async (user_id: number): Promise<UserAttributes> => {
+    const response = await api.put<UserAttributes>(`/users/unban/${user_id}`);
+    return response.data;
+};
+
+/**
+ * Получить список всех пользователей (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const getAllUsers = async (): Promise<UserAttributes[]> => {
+    const response = await api.get<UserAttributes[]>('/users/admin/get-all-users');
+    return response.data;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\index.ts =====
+
+export * from './api';
+export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\UserContext.tsx =====
+
+'use client';
+
+// src/shared/lib/contexts/UserContext.tsx
+import React, { ReactNode, createContext, useContext } from 'react';
+import { UserProfile, useUserInit } from '@/entities/user';
+
+interface UserContextType {
+    user: UserProfile | null;
+    isLoading: boolean;
+    error: string | null;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+interface UserProviderProps {
+    children: ReactNode;
+}
+
+export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+    const { user, isLoading, error } = useUserInit();
+
+    return (
+        <UserContext.Provider value={{ user, isLoading, error }}>{children}</UserContext.Provider>
+    );
+};
+
+export const useUser = (): UserContextType => {
+    const context = useContext(UserContext);
+    if (context === undefined) {
+        throw new Error('useUser must be used within a UserProvider');
+    }
+    return context;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\index.ts =====
+
+export type {
+    BanUserDto,
+    CreateUserDto,
+    ReplenishDto,
+    UserAttributes,
+    UserCreationAttributes,
+    UserProfile,
+    UserReferralData,
+} from './types';
+
+export { UserProvider, useUser } from './UserContext';
+export { useUserInit } from './useUserInit';
+export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\types.ts =====
+
+// entities/user/model/types.ts
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+// --- Атрибуты модели пользователя (из БД) ---
+export interface UserAttributes {
+    id: number;
+    telegram_id: number;
+    ref_id: number;
+    role: string;
+    username: string;
+    balance: number;
+    tokens: number;
+    ref_balance: number;
+    referrer_profit: number;
+    blago_status: boolean;
+    level: number;
+    subscription: boolean;
+    is_banned: boolean;
+    ban_until: Date;
+    created_at: Date;
+    updated_at: Date;
+}
+
+// --- Атрибуты для создания (без id и timestamps) ---
+export type UserCreationAttributes = Optional<
+    UserAttributes,
+    | 'id'
+    | 'role'
+    | 'username'
+    | 'balance'
+    | 'tokens'
+    | 'ref_balance'
+    | 'referrer_profit'
+    | 'blago_status'
+    | 'level'
+    | 'subscription'
+    | 'is_banned'
+    | 'ban_until'
+    | 'created_at'
+    | 'updated_at'
+>;
+
+// --- DTO для создания пользователя ---
+export interface CreateUserDto {
+    telegram_id: number;
+    username: string;
+    ref_id?: number;
+    tokens?: number;
+}
+
+// --- DTO для пополнения баланса ---
+export interface ReplenishDto {
+    telegram_id: number;
+    amount: number;
+}
+
+// --- DTO для бана/разбана ---
+export interface BanUserDto {
+    date?: string; // Формат: "HH:mm DD.MM.YYYY"
+}
+
+// --- Тип для ответа getUserReferrals ---
+export interface UserReferralData {
+    referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
+    referralCount: number;
+}
+
+// --- Тип для ответа getMe (предполагаем, что это расширенные данные пользователя) ---
+// Вам, возможно, нужно будет адаптировать это под реальный ответ от UserService.getMe
+export interface UserProfile {
+    id: number;
+    telegram_id: number;
+    username: string | null;
+    balance: number;
+    tokens: number;
+    ref_balance: number;
+    referrer_profit: number;
+    blago_status: boolean;
+    level: number;
+    subscription: boolean;
+    is_banned: boolean;
+    // Добавьте другие поля, которые возвращает LevelToUserService.updateUserLevel
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\useUserInit.ts =====
+
+'use client';
+
+// entities/user/model/useUserInit.ts
+import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
+import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
+import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
+import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+// Расширяем интерфейс Window для глобальной переменной
+declare global {
+    interface Window {
+        telegramUser?: UserProfile;
+    }
+}
+
+export const useUserInit = () => {
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+
+    useEffect(() => {
+        const initializeUser = async () => {
+            try {
+                if (isTgLoading) {
+                    return;
+                }
+                if (!tgUser?.id) {
+                    setError('Не удалось получить данные пользователя из Telegram');
+                    setIsLoading(false);
+                    return;
+                }
+
+                setIsLoading(true);
+                setError(null);
+
+                // Проверяем существование пользователя
+                const exists = await checkUserExists(tgUser.id);
+
+                if (!exists) {
+                    // Создаем нового пользователя
+                    const userData: CreateUserDto = {
+                        telegram_id: tgUser.id,
+                        username: tgUser.username || `user_${tgUser.id}`,
+                    };
+                    try {
+                        const newUser = await createUser(userData);
+                        setUser(newUser);
+                        // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                        if (typeof window !== 'undefined') {
+                            window.telegramUser = newUser;
+                        }
+                    } catch (createError: unknown) {
+                        // Обрабатываем 409 Conflict - пользователь уже существует
+                        if (
+                            createError instanceof AxiosError &&
+                            createError.response?.status === 409
+                        ) {
+                            const userData = await getMe();
+                            setUser(userData);
+                            // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                            if (typeof window !== 'undefined') {
+                                window.telegramUser = userData;
+                            }
+                        } else {
+                            // Другая ошибка - пробрасываем её дальше
+                            throw createError;
+                        }
+                    }
+                } else {
+                    // Пользователь существует, получаем данные
+                    const userData = await getMe();
+                    setUser(userData);
+                    // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                    if (typeof window !== 'undefined') {
+                        window.telegramUser = userData;
+                    }
+                }
+            } catch (err: unknown) {
+                console.error('Ошибка инициализации пользователя:', err);
+                if (err instanceof Error) {
+                    setError(`Ошибка инициализации: ${err.message}`);
+                } else {
+                    setError('Неизвестная ошибка инициализации');
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializeUser();
+    }, [tgUser, isTgLoading]);
+
+    return { user, isLoading, error };
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\user\ui\index.ts =====
+
+export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\api\index.ts =====
+
+export {
+    confirmWithdrawal,
+    getPendingWithdrawals,
+    getWithdrawalRestriction,
+    rejectWithdrawal,
+    transfer,
+} from './withdrawal.api';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\api\withdrawal.api.ts =====
+
+// entities/withdrawal/api/withdrawal.api.ts
+import { api } from '@/shared/api';
+import {
+    CreateWithdrawalDto,
+    PendingWithdrawal,
+    TransferResult,
+    WithdrawalRestriction,
+} from '../model/types';
+
+/**
+ * Инициировать вывод средств
+ */
+export const transfer = async (data: CreateWithdrawalDto): Promise<TransferResult> => {
+    const response = await api.post<TransferResult>('/withdrawal/transfer', data);
+    return response.data;
+};
+
+/**
+ * Получить ограничения на вывод средств
+ */
+export const getWithdrawalRestriction = async (): Promise<WithdrawalRestriction> => {
+    const response = await api.get<WithdrawalRestriction>('/withdrawal/restriction');
+    return response.data;
+};
+
+/**
+ * Получить список ожидающих подтверждения выводов (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const getPendingWithdrawals = async (): Promise<PendingWithdrawal[]> => {
+    const response = await api.get<PendingWithdrawal[]>('/withdrawal/admin/pending');
+    return response.data;
+};
+
+/**
+ * Подтвердить вывод средств (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const confirmWithdrawal = async (id: number): Promise<TransferResult> => {
+    const response = await api.post<TransferResult>(`/withdrawal/admin/confirm/${id}`);
+    return response.data;
+};
+
+/**
+ * Отклонить вывод средств (админская функция)
+ * ВАЖНО: Этот endpoint требует авторизации админа на бэкенде
+ */
+export const rejectWithdrawal = async (id: number): Promise<TransferResult> => {
+    const response = await api.post<TransferResult>(`/withdrawal/admin/reject/${id}`);
+    return response.data;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\index.ts =====
+
+export * from './api';
+export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\model\index.ts =====
+
+export type {
+    CreateWithdrawalDto,
+    PendingWithdrawal,
+    ProcessWithdrawalDto,
+    TransferResult,
+    WithdrawalAttributes,
+    WithdrawalCreationAttributes,
+    WithdrawalRestriction,
+} from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\model\types.ts =====
+
+// entities/withdrawal/model/types.ts
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+
+// --- Атрибуты модели вывода (из БД) ---
+export interface WithdrawalAttributes {
+    id: number;
+    telegram_id: number;
+    hash: string;
+    amount: number;
+    status: 'pending' | 'pending_confirmation' | 'completed' | 'rejected';
+    created_at: Date;
+    updated_at: Date;
+}
+
+// --- Атрибуты для создания (без id и timestamps) ---
+export type WithdrawalCreationAttributes = Optional<
+    WithdrawalAttributes,
+    'id' | 'created_at' | 'updated_at'
+>;
+
+// --- DTO для создания вывода ---
+export interface CreateWithdrawalDto {
+    amount: string; // Сумма как строка, как в бэкенде
+    spend_id?: string; // Опционально, генерируется бэкендом если не передан
+    comment?: string;
+    disable_send_notification?: boolean;
+}
+
+// --- DTO для подтверждения/отклонения вывода (админ) ---
+export interface ProcessWithdrawalDto {
+    id: number;
+}
+
+// --- Тип для ограничений на вывод ---
+export interface WithdrawalRestriction {
+    message: string;
+    availableDays?: string[]; // Только если есть ограничения по времени
+}
+
+// --- Тип для списка ожидающих выводов (админ) ---
+export type PendingWithdrawal = WithdrawalAttributes;
+
+// --- Тип для ответа transfer (основная операция) ---
+export type TransferResult = WithdrawalAttributes;
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\ui\index.ts =====
+
+export {} from '.';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\index.ts =====
+
+export * from './model';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\model\converter.ts =====
+
+// @/features/currency-converter/model/converter.ts
+import { ConvertCurrencyParams, CurrencyRates } from './types';
+
+// Моковые курсы валют (в реальном приложении будут браться из API)
+export const MOCK_RATES: CurrencyRates = {
+    RUB: 1,
+    USDT: 0.011, // 1 RUB = 0.011 USDT
+};
+
+export const convertCurrency = ({ amount, from, to, rates }: ConvertCurrencyParams): number => {
+    if (from === to) return amount;
+
+    // Конвертируем сначала в базовую валюту (RUB), затем в целевую
+    const amountInBase = amount / rates[from];
+    const result = amountInBase * rates[to];
+
+    return Math.round(result * 100) / 100; // Округляем до 2 знаков после запятой
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\model\hooks.ts =====
+
+// @/features/currency-converter/model/hooks.ts
+import { useEffect, useState } from 'react';
+import { MOCK_RATES } from './converter';
+import { CurrencyRates } from './types';
+
+export const useCurrencyConverter = () => {
+    const [rates] = useState<CurrencyRates>(MOCK_RATES);
+
+    // В реальном приложении здесь будет fetch к API с курсами валют
+    useEffect(() => {
+        // Пример получения курсов из API
+        // const fetchRates = async () => {
+        //     const response = await fetch('/api/rates');
+        //     const data = await response.json();
+        //     setRates(data);
+        // };
+        // fetchRates();
+    }, []);
+
+    return { rates };
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\model\index.ts =====
+
+export { convertCurrency } from './converter';
+export { useCurrencyConverter } from './hooks';
+export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\model\types.ts =====
+
+// @/features/currency-converter/model/types.ts
+export interface CurrencyRates {
+    [key: string]: number;
+}
+
+export interface ConvertCurrencyParams {
+    amount: number;
+    from: string;
+    to: string;
+    rates: CurrencyRates;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\deposit\index.ts =====
+
+export { DepositForm } from './ui/DepositForm';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\deposit\model\types.ts =====
+
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\deposit\ui\DepositForm.tsx =====
+
+'use client';
+
+// @/features/deposit/ui/DepositForm.tsx
+import { useEffect, useState } from 'react';
+import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Button, Input } from '@/shared/ui';
+import styles from './DepositForm.module.scss';
+
+export const DepositForm = () => {
+    const [rubAmount, setRubAmount] = useState('');
+    const [usdtAmount, setUsdtAmount] = useState('');
+    const [error, setError] = useState('');
+    const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('RUB');
+    const { rates } = useCurrencyConverter();
+
+    // Обновляем одно поле в зависимости от другого
+    useEffect(() => {
+        // Если поле очищено, очищаем и второе поле
+        if (lastChanged === 'RUB') {
+            if (!rubAmount) {
+                // Если RUB очищен, очищаем USDT
+                setUsdtAmount('');
+            } else if (!isNaN(Number(rubAmount))) {
+                // Обновляем USDT на основе RUB
+                const converted = convertCurrency({
+                    amount: Number(rubAmount),
+                    from: 'RUB',
+                    to: 'USDT',
+                    rates,
+                });
+                setUsdtAmount(converted.toString());
+            }
+        } else if (lastChanged === 'USDT') {
+            if (!usdtAmount) {
+                // Если USDT очищен, очищаем RUB
+                setRubAmount('');
+            } else if (!isNaN(Number(usdtAmount))) {
+                // Обновляем RUB на основе USDT
+                const converted = convertCurrency({
+                    amount: Number(usdtAmount),
+                    from: 'USDT',
+                    to: 'RUB',
+                    rates,
+                });
+                setRubAmount(converted.toString());
+            }
+        }
+    }, [rubAmount, usdtAmount, lastChanged, rates]);
+
+    const isValidNumericInput = (value: string): boolean => {
+        // Разрешает пустую строку, положительные числа и десятичные дроби
+        // ^\d*\.?\d*$ - регулярное выражение:
+        // ^ - начало строки
+        // \d* - ноль или более цифр
+        // \.? - опциональная точка
+        // \d* - ноль или более цифр после точки
+        // $ - конец строки
+        return /^(\d+\.?\d*|\.\d+)?$/.test(value);
+    };
+
+    const handleRubChange = (value: string) => {
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setRubAmount(sanitizedValue);
+            setLastChanged('RUB');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
+    };
+
+    const handleUsdtChange = (value: string) => {
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setUsdtAmount(sanitizedValue);
+            setLastChanged('USDT');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
+    };
+
+    const handleSubmit = () => {
+        if (!rubAmount || Number(rubAmount) <= 0) {
+            setError('Введите корректную сумму');
+            return;
+        }
+        console.log('Пополнение RUB:', rubAmount);
+        console.log('Эквивалент в USDT:', usdtAmount);
+
+        // Очищаем форму после успешной отправки
+        setRubAmount('');
+        setUsdtAmount('');
+    };
+
+    // Проверяем, можно ли активировать кнопку
+    const isButtonDisabled =
+        !rubAmount || !usdtAmount || Number(rubAmount) <= 0 || Number(usdtAmount) <= 0;
+
+    return (
+        <div className={styles.depositForm}>
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={rubAmount}
+                onChange={(e) => handleRubChange(e.target.value)}
+                currency="RUB"
+                error={error}
+            />
+
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={usdtAmount}
+                onChange={(e) => handleUsdtChange(e.target.value)}
+                currency="USDT"
+                error={error}
+            />
+
+            <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
+                Пополнить
+            </Button>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\index.ts =====
+
+// export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\ClaimAnimation.tsx =====
+
+// import { useEffect, useState } from 'react';
+// import moleCoin from '@/assets/icons/mole-coin.webp';
+// import tonCoin from '@/assets/icons/ton-coin.webp';
+// import './ClaimAnimation.scss';
+
+// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
+
+// export const ClaimAnimation = () => {
+//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
+//     const [coinType, setcoinType] = useState<string[]>([]);
+
+//     useEffect(() => {
+//         setcoinType([
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//         ]);
+//         setShouldAnimateCoins(true);
+//     }, []);
+
+//     return (
+//         <div className="ClaimAnimation">
+//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
+//             <img
+//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[0]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[1]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[2]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[3]}
+//                 alt="coin"
+//             />
+//         </div>
+//     );
+// };
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\MachineList.tsx =====
+
+// @/features/mining/ui/MachineList.tsx
+'use client';
+
+import React from 'react';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
+import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
+import styles from './MachineList.module.scss';
+import { MachineWithState } from '@/entities/machine';
+
+interface MachineListProps {
+    machines?: MachineWithState[]; 
+    filterType?: 'purchased' | 'not_purchased' | 'all';
+    showBuyMoreCard?: boolean;
+}
+
+export const MachineList: React.FC<MachineListProps> = ({
+    machines: propMachines,
+    filterType = 'all',
+    showBuyMoreCard = false,
+}) => {
+    // Используем контекст если machines не переданы
+    const { machines: contextMachines, loading, error } = useMachines();
+    
+    // Используем переданные машины или машины из контекста
+    const machinesToUse = propMachines || contextMachines;
+
+    if (loading && !propMachines) {
+        return <div className={styles.machineList}>Загрузка майнинг-машин...</div>;
+    }
+
+    if (error && !propMachines) {
+        return <div className={styles.machineListError}>{error}</div>;
+    }
+
+    // Фильтрация по типу
+    const filteredMachines = machinesToUse.filter(({ state_car }) => {
+        const status = state_car?.status ?? 'not_purchased';
+        switch (filterType) {
+            case 'purchased':
+                return status !== 'not_purchased';
+            case 'not_purchased':
+                return status === 'not_purchased';
+            case 'all':
+            default:
+                return true;
+        }
+    });
+
+    const shouldShowBuyMore = showBuyMoreCard && filterType === 'purchased';
+
+    return (
+        <div className={styles.machineList}>
+            {shouldShowBuyMore && <BuyMoreCard />}
+            {filteredMachines.map((machineWithState) => {
+                const { car, state_car } = machineWithState;
+                const status = state_car?.status ?? 'not_purchased';
+                const isPurchased = status !== 'not_purchased';
+
+                return (
+                    <MachineCard
+                        key={car.id}
+                        image={car.image}
+                        price={car.price}
+                        status={status}
+                        isPurchased={isPurchased}
+                        machineData={machineWithState}
+                    />
+                );
+            })}
+        </div>
+    );
+};
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\index.ts =====
+
+export { MachineList } from './MachineList';
+export {} from './';
+export {} from './';
+export {} from './';
+export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\referral\index.ts =====
+
+export { ReferralList } from './ui/ReferralList';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\referral\ui\ReferralList.tsx =====
+
+// @/features/referral/ui/ReferralList.tsx
+import { UserAttributes } from '@/entities/user';
+import { ReferralCard } from '@/widgets/referral-card';
+import styles from './ReferralList.module.scss';
+
+interface ReferralListProps {
+    referrals: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>[];
+}
+
+export const ReferralList = ({ referrals }: ReferralListProps) => {
+    if (referrals.length === 0) {
+        return <p className={styles.emptyList}>У вас пока нет рефералов.</p>;
+    }
+
+    return (
+        <div className={styles.referralList}>
+            {referrals.map((referral) => (
+                <ReferralCard key={referral.telegram_id} referral={referral} />
+            ))}
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\timer\model\useTimer.ts =====
+
+// 'use client';
+
+// import { useEffect, useState } from 'react';
+
+// export const useTimer = (targetTimestamp: number | null) => {
+//     const [timeLeft, setTimeLeft] = useState(() => {
+//         if (!targetTimestamp) return 0;
+//         return Math.max(0, targetTimestamp - Math.floor(Date.now() / 1000));
+//     });
+
+//     useEffect(() => {
+//         const interval = setInterval(() => {
+//             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+//         }, 1000);
+//         return () => clearInterval(interval);
+//     }, []);
+
+//     return timeLeft;
+// };
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\withdraw\index.ts =====
+
+export { WithdrawForm } from './ui/WithdrawForm';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\withdraw\model\hooks.ts =====
+
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\withdraw\model\types.ts =====
+
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\withdraw\ui\WithdrawForm.tsx =====
+
+'use client';
+
+// @/features/deposit/ui/WithdrawForm.tsx
+import { useEffect, useState } from 'react';
+import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Button, Input } from '@/shared/ui';
+import styles from './WithdrawForm.module.scss';
+
+export const WithdrawForm = () => {
+    const [rubAmount, setRubAmount] = useState('');
+    const [usdtAmount, setUsdtAmount] = useState('');
+    const [error, setError] = useState('');
+    const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('RUB');
+    const { rates } = useCurrencyConverter();
+
+    // Обновляем одно поле в зависимости от другого
+    useEffect(() => {
+        // Если поле очищено, очищаем и второе поле
+        if (lastChanged === 'RUB') {
+            if (!rubAmount) {
+                // Если RUB очищен, очищаем USDT
+                setUsdtAmount('');
+            } else if (!isNaN(Number(rubAmount))) {
+                // Обновляем USDT на основе RUB
+                const converted = convertCurrency({
+                    amount: Number(rubAmount),
+                    from: 'RUB',
+                    to: 'USDT',
+                    rates,
+                });
+                setUsdtAmount(converted.toString());
+            }
+        } else if (lastChanged === 'USDT') {
+            if (!usdtAmount) {
+                // Если USDT очищен, очищаем RUB
+                setRubAmount('');
+            } else if (!isNaN(Number(usdtAmount))) {
+                // Обновляем RUB на основе USDT
+                const converted = convertCurrency({
+                    amount: Number(usdtAmount),
+                    from: 'USDT',
+                    to: 'RUB',
+                    rates,
+                });
+                setRubAmount(converted.toString());
+            }
+        }
+    }, [rubAmount, usdtAmount, lastChanged, rates]);
+
+    const isValidNumericInput = (value: string): boolean => {
+        // Разрешает пустую строку, положительные числа и десятичные дроби
+        // ^\d*\.?\d*$ - регулярное выражение:
+        // ^ - начало строки
+        // \d* - ноль или более цифр
+        // \.? - опциональная точка
+        // \d* - ноль или более цифр после точки
+        // $ - конец строки
+        return /^(\d+\.?\d*|\.\d+)?$/.test(value);
+    };
+
+    const handleRubChange = (value: string) => {
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setRubAmount(sanitizedValue);
+            setLastChanged('RUB');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
+    };
+
+    const handleUsdtChange = (value: string) => {
+        // Убираем все символы, кроме цифр и точки
+        const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+        // Проверяем, является ли ввод допустимым числом
+        if (isValidNumericInput(sanitizedValue)) {
+            setUsdtAmount(sanitizedValue);
+            setLastChanged('USDT');
+            setError('');
+        }
+        // Если ввод недопустим, мы его игнорируем, не обновляя состояние
+    };
+
+    const handleSubmit = () => {
+        if (!rubAmount || Number(rubAmount) <= 0) {
+            setError('Введите корректную сумму');
+            return;
+        }
+        console.log('Пополнение RUB:', rubAmount);
+        console.log('Эквивалент в USDT:', usdtAmount);
+
+        // Очищаем форму после успешной отправки
+        setRubAmount('');
+        setUsdtAmount('');
+    };
+
+    // Проверяем, можно ли активировать кнопку
+    const isButtonDisabled =
+        !rubAmount || !usdtAmount || Number(rubAmount) <= 0 || Number(usdtAmount) <= 0;
+
+    return (
+        <div className={styles.withdrawForm}>
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={rubAmount}
+                onChange={(e) => handleRubChange(e.target.value)}
+                currency="RUB"
+                error={error}
+            />
+
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={usdtAmount}
+                onChange={(e) => handleUsdtChange(e.target.value)}
+                currency="USDT"
+                error={error}
+            />
+
+            <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
+                Пополнить
+            </Button>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\api\axios.ts =====
+
+// shared/api/axios.ts
+import axios from 'axios';
+import { API_URL } from '@/shared/config/env';
+
+export const api = axios.create({
+    baseURL: API_URL,
+    withCredentials: true,
+});
+
+// Добавляем перехватчик для запросов
+api.interceptors.request.use(
+    (config) => {
+        if (typeof window !== 'undefined') {
+            try {
+                // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
+                const initData = window.Telegram?.WebApp?.initData;
+
+                // Проверяем, что initData не undefined и не null
+                if (initData !== undefined && initData !== null) {
+                    config.headers['X-Telegram-Init-Data'] = initData;
+                } else {
+                    // Альтернативный способ - из URL параметров
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const tgWebAppData = urlParams.get('tgWebAppData');
+                    if (tgWebAppData) {
+                        config.headers['X-Telegram-Init-Data'] = tgWebAppData;
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing Telegram WebApp data:', error);
+            }
+        }
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\api\index.ts =====
+
+export { api } from './axios';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\Arrow.tsx =====
+
+// @/shared/assets/icons/Arrow.tsx
+export const Arrow = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        width="27"
+        height="18"
+        viewBox="0 0 27 18"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <path
+            d="M12.9819 11.982L26.1602 11.982L26.1602 6.01816L12.9819 6.01814L12.9819 0.0387962L9.81912 0.0387946L0.857865 9.00005L9.81913 17.9613L12.9819 17.9613L12.9819 11.982Z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\Copy.tsx =====
+
+// @/shared/assets/icons/Copy.tsx
+export const Copy = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        width="30"
+        height="30"
+        viewBox="0 0 30 30"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M6.40456 27.388C4.30997 27.388 2.61197 25.69 2.61197 23.5954V10.849C2.61197 8.7544 4.30997 7.05642 6.40456 7.05642H19.151C21.2456 7.05642 22.9436 8.7544 22.9436 10.849V23.5954C22.9436 25.69 21.2456 27.388 19.151 27.388H6.40456ZM0 23.5954C0 27.1326 2.86742 30 6.40456 30H19.151C22.6882 30 25.5556 27.1326 25.5556 23.5954V10.849C25.5556 7.31185 22.6882 4.44444 19.151 4.44444H6.40456C2.86742 4.44444 0 7.31184 0 10.849V23.5954Z"
+            fill="currentColor"
+        />
+        <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M28.7232 20C29.4284 20 30 19.4284 30 18.7232V6.26146C30 2.80353 27.1967 0 23.7385 0H11.2768C10.5716 0 10 0.571648 10 1.27681C10 1.98197 10.5716 2.55362 11.2768 2.55362H23.7385C25.7863 2.55362 27.4464 4.2138 27.4464 6.26146V18.7232C27.4464 19.4284 28.018 20 28.7232 20Z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\Info.tsx =====
+
+// @/shared/assets/icons/Arrow.tsx
+export const Info = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        width="5"
+        height="9"
+        viewBox="0 0 5 9"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <path
+            d="M2.9427 0.917038C2.9427 1.42351 2.47047 1.83408 1.88784 1.83408C1.30529 1.83408 0.833008 1.42351 0.833008 0.917038C0.833008 0.41057 1.30529 0 1.88784 0C2.47047 0 2.9427 0.41057 2.9427 0.917038Z"
+            fill="currentColor"
+        />
+        <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M0.703234 2.88623C0.314849 2.88623 0 3.15994 0 3.49759C0 3.83523 0.314849 4.10895 0.703234 4.10895H2.1097V8.38846C2.1097 8.7261 2.42455 8.99981 2.81294 8.99981C2.84901 8.99981 2.88446 8.99745 2.91908 8.9929H4.29676C4.68515 8.9929 5 8.71918 5 8.38154C5 8.04389 4.68515 7.77018 4.29676 7.77018H3.51617V3.49759C3.51617 3.15994 3.20132 2.88623 2.81294 2.88623H0.703234Z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\Invite.tsx =====
+
+// @/shared/assets/icons/Invite.tsx
+
+export const Invite = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <path
+            d="M12.8696 11.8261V10.7826H11.8261V11.8261H10.7826V12.8696H11.8261V13.913H12.8696V12.8696H13.9131V11.8261H12.8696Z"
+            fill="currentColor"
+        />
+        <path d="M16 10.7826H14.9565V13.913H16V10.7826Z" fill="currentColor" />
+        <path
+            d="M13.9131 14.9565H10.7826V16H13.9131V14.9565Z"
+            fill="currentColor"
+        />
+        <path
+            d="M13.9131 8.69556H10.7826V9.73903H13.9131V8.69556Z"
+            fill="currentColor"
+        />
+        <path
+            d="M9.73913 3.13044V2.08697H8.69566V1.04347H7.65219V0H3.13044V1.04347H2.08697V2.08697H1.04347V3.13044H0V7.65219H1.04347V8.69565H2.08697V9.73912H3.13044V10.7826H1.04347V11.8261H0V13.913H9.73913V10.7826H7.65219V9.73912H8.69566V8.69565H9.73913V7.65219H10.7826V3.13044H9.73913Z"
+            fill="currentColor"
+        />
+        <path
+            d="M10.7826 9.73914H9.73911V10.7826H10.7826V9.73914Z"
+            fill="currentColor"
+        />
+        <path
+            d="M14.9565 9.73914H13.913V10.7826H14.9565V9.73914Z"
+            fill="currentColor"
+        />
+        <path
+            d="M14.9565 13.913H13.913V14.9564H14.9565V13.913Z"
+            fill="currentColor"
+        />
+        <path
+            d="M10.7826 13.913H9.73911V14.9564H10.7826V13.913Z"
+            fill="currentColor"
+        />
+    </svg>
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\index.ts =====
+
+export { Arrow } from './Arrow';
+export { Invite } from './Invite';
+export { Info } from './Info';
+export { Copy } from './Copy';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\config\env.ts =====
+
+// shared/config/env.ts
+
+export const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\config\index.ts =====
+
+export { API_URL } from './env';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\contexts\MachineContext.tsx =====
+
+// @/shared/lib/contexts/MachineContext.tsx
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { MachineWithState, getAllMachines } from '@/entities/machine';
+
+// Определяем возможные статусы машины
+// Предполагается, что они совпадают с теми, что в MachineToUserAttributes
+// Если они определены где-то как тип или константы, лучше импортировать оттуда
+type MachineStatus = 'not_purchased' | 'awaiting' | 'in_progress' | 'waiting_for_reward' | 'completed';
+
+interface MachineContextType {
+    machines: MachineWithState[];
+    loading: boolean;
+    error: string | null;
+    refreshMachines: () => Promise<void>;
+    // Обновляет любые поля машины
+    updateMachineLocally: (machineId: number, updates: Partial<MachineWithState>) => void;
+    // Обновляет статус машины (если state_car существует)
+    updateMachineStatusLocally: (machineId: number, newStatus: MachineStatus) => void;
+    // Обновляет конкретные поля state_car (если он существует)
+    updateMachineStateCarLocally: (machineId: number, updates: Partial<NonNullable<MachineWithState['state_car']>>) => void;
+}
+
+const MachineContext = createContext<MachineContextType | undefined>(undefined);
+
+export const MachineProvider = ({ children }: { children: ReactNode }) => {
+    const [machines, setMachines] = useState<MachineWithState[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const refreshMachines = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const fetchedMachines = await getAllMachines();
+            setMachines(fetchedMachines);
+        } catch (err) {
+            console.error('Ошибка при обновлении списка машин:', err);
+            setError('Не удалось обновить список машин');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Точечное обновление машины без перезагрузки всего списка
+    const updateMachineLocally = (machineId: number, updates: Partial<MachineWithState>) => {
+        setMachines(prevMachines => 
+            prevMachines.map(machine => {
+                if (machine.car.id === machineId) {
+                    // Создаем поверхностную копию и применяем обновления
+                    return { ...machine, ...updates };
+                }
+                return machine;
+            })
+        );
+    };
+
+    // Обновление только статуса (только если state_car существует)
+    const updateMachineStatusLocally = (machineId: number, newStatus: MachineStatus) => {
+        setMachines(prevMachines => 
+            prevMachines.map(machine => {
+                // Проверяем, что state_car существует, прежде чем обновлять
+                if (machine.car.id === machineId && machine.state_car) {
+                    return {
+                        ...machine,
+                        state_car: {
+                            ...machine.state_car,
+                            status: newStatus
+                        }
+                    };
+                }
+                return machine;
+            })
+        );
+    };
+
+    // Обновление конкретных полей state_car (только если он существует)
+    const updateMachineStateCarLocally = (
+        machineId: number, 
+        updates: Partial<NonNullable<MachineWithState['state_car']>>
+    ) => {
+        setMachines(prevMachines => 
+            prevMachines.map(machine => {
+                // Проверяем, что state_car существует, прежде чем обновлять
+                if (machine.car.id === machineId && machine.state_car) {
+                    return {
+                        ...machine,
+                        state_car: {
+                            ...machine.state_car,
+                            ...updates
+                        }
+                    };
+                }
+                return machine;
+            })
+        );
+    };
+
+    useEffect(() => {
+        refreshMachines();
+    }, []);
+
+    return (
+        <MachineContext.Provider value={{
+            machines,
+            loading,
+            error,
+            refreshMachines,
+            updateMachineLocally,
+            updateMachineStatusLocally,
+            updateMachineStateCarLocally
+        }}>
+            {children}
+        </MachineContext.Provider>
+    );
+};
+
+export const useMachines = () => {
+    const context = useContext(MachineContext);
+    if (context === undefined) {
+        throw new Error('useMachines must be used within a MachineProvider');
+    }
+    return context;
+};
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\hooks\useTelegramWebApp.ts =====
+
+// shared/lib/hooks/useTelegramWebApp.ts
+import { useEffect, useState } from 'react';
+
+interface TelegramUser {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+}
+
+declare global {
+    interface Window {
+        Telegram?: {
+            WebApp: {
+                initDataUnsafe: {
+                    user?: TelegramUser;
+                };
+                ready: () => void;
+            };
+        };
+    }
+}
+
+export const useTelegramWebApp = () => {
+    const [tgUser, setTgUser] = useState<TelegramUser | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+            const user = window.Telegram.WebApp.initDataUnsafe.user || null;
+            setTgUser(user);
+            setIsLoading(false);
+            window.Telegram.WebApp.ready();
+        } else {
+            setIsLoading(false);
+        }
+    }, []);
+
+    return { tgUser, isLoading };
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\index.ts =====
+
+// export * from './hooks';
+export * from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\providers\AppProviders.tsx =====
+
+'use client';
+
+// app/appProviders.tsx
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { UserProvider } from '@/entities/user';
+import { MachineProvider } from '../contexts/MachineContext';
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
+    const [queryClient] = useState(
+        () =>
+            new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        staleTime: 60 * 1000,
+                    },
+                },
+            })
+    );
+
+    return (
+        <QueryClientProvider client={queryClient}>
+            <UserProvider>
+                <MachineProvider>{children}</MachineProvider>
+            </UserProvider>
+        </QueryClientProvider>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\providers\index.ts =====
+
+export { AppProviders } from './AppProviders';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\back-button\BackButton.tsx =====
+
+'use client';
+
+// @/shared/ui/back-button/BackButton.tsx
+import { useRouter } from 'next/navigation';
+import { Arrow } from '@/shared/assets/icons';
+import styles from './BackButton.module.scss';
+
+export const BackButton = () => {
+    const router = useRouter();
+
+    return (
+        <button
+            className={styles.backButton}
+            onClick={() => router.back()}
+            aria-label="Назад"
+            type="button"
+            title="Назад"
+        >
+            <Arrow className={styles.icon} />
+        </button>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\back-button\index.ts =====
+
+export { BackButton } from './BackButton';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\button\Button.tsx =====
+
+import clsx from 'clsx';
+import styles from './Button.module.scss';
+import { ButtonProps } from './types';
+
+export const Button = ({
+    label,
+    onClick,
+    disabled = false,
+    variant = 'primary',
+    children,
+    className,
+    ...props
+}: ButtonProps) => {
+    const variantClass = styles[`button${variant[0].toUpperCase() + variant.slice(1)}`];
+
+    return (
+        <button
+            className={clsx(styles.button, variantClass, className, {
+                [styles.disabled]: disabled,
+            })}
+            onClick={onClick}
+            disabled={disabled}
+            {...props}
+        >
+            {children}
+            {label}
+        </button>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\button\index.ts =====
+
+export { Button } from "./Button";
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\button\types.ts =====
+
+export type Buttonvariant = 'primary' | 'secondary' | 'switch' | 'info' | 'outline';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    label?: string;
+    children?: React.ReactNode;
+    variant?: Buttonvariant;
+    className?: string;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\index.ts =====
+
+export { Button } from './button';
+export { InfoButton } from './info-button';
+export { BackButton } from './back-button';
+export { Modal } from './modal';
+export { Input } from './input';
+export { ReferralLink } from '../../widgets/referral-link';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\info-button\InfoButton.tsx =====
+
+import clsx from 'clsx';
+import '@/shared/assets/icons';
+import { Info } from '@/shared/assets/icons';
+import styles from './InfoButton.module.scss';
+import { InfoButtonProps } from './types';
+
+export const InfoButton = ({ onClick, className }: InfoButtonProps) => {
+    return (
+        <button
+            type="button"
+            className={clsx(styles.infoButton, className)}
+            onClick={onClick}
+            title="Подробнее"
+            aria-label="Подробнее"
+        >
+            <Info className={styles.icon} />
+        </button>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\info-button\index.ts =====
+
+export { InfoButton } from "./InfoButton";
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\info-button\types.ts =====
+
+export interface InfoButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    className?: string;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\input\Input.tsx =====
+
+// @/shared/ui/input/Input.tsx
+import clsx from 'clsx';
+import styles from './Input.module.scss';
+import { InputProps } from './types';
+
+export const Input = ({
+    type = 'text',
+    placeholder,
+    value,
+    onChange,
+    error,
+    disabled,
+    className,
+    variant = 'default',
+    currency,
+    ...props
+}: InputProps) => {
+    if (variant === 'balance') {
+        return (
+            <div
+                className={clsx(
+                    styles.inputWrapper,
+                    styles.balanceWrapper,
+                    error && styles.error,
+                    disabled && styles.disabled
+                )}
+            >
+                <input
+                    type={type}
+                    className={clsx(styles.input, styles.balanceInput, className)}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    disabled={disabled}
+                    {...props}
+                />
+                {currency && <span className={styles.currency}>{currency}</span>}
+                {error && <span className={styles.errorMessage}>{error}</span>}
+            </div>
+        );
+    }
+
+    // Обычный инпут
+    return (
+        <div
+            className={clsx(
+                styles.inputWrapper,
+                error && styles.error,
+                disabled && styles.disabled,
+                className
+            )}
+        >
+            <input
+                type={type}
+                className={clsx(styles.input, error && styles.errorInput)}
+                placeholder={placeholder}
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
+                {...props}
+            />
+            {error && <span className={styles.errorMessage}>{error}</span>}
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\input\index.ts =====
+
+export { Input } from './Input';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\input\types.ts =====
+
+// @/shared/ui/input/types.ts
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    error?: string;
+    variant?: 'default' | 'balance'; // Добавляем вариант
+    currency?: string; // Валюта для баланса
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\loading-indicator\LoadingIndicator.tsx =====
+
+'use client';
+
+import { useLinkStatus } from 'next/link';
+
+export default function LoadingIndicator() {
+    const { pending } = useLinkStatus();
+    return pending ? <div role="status" aria-label="Loading" className="spinner" /> : null;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\loading-indicator\index.ts =====
+
+export {} from './LoadingIndicator';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\modal\Modal.tsx =====
+
+'use client';
+
+// @/shared/ui/modal/Modal.tsx
+import { useEffect } from 'react';
+import styles from './Modal.module.scss';
+
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+}
+
+export const Modal = ({ isOpen, onClose, children }: ModalProps) => {
+    // Закрываем модалку при нажатии Escape
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('keydown', handleEscape);
+            // Предотвращаем скролл фона при открытом модальном окне
+            document.body.style.overflow = 'hidden';
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
+    return (
+        <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+            <div className={styles.modalContent}>
+                <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
+                    ×
+                </button>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\modal\index.ts =====
+
+export { Modal } from './Modal';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\action-buttons\index.ts =====
+
+export { ActionButtons } from './ui/ActionButtons';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\action-buttons\ui\ActionButtons.tsx =====
+
+import Link from 'next/link';
+import { Arrow, Invite } from '@/shared/assets/icons';
+import styles from './ActionButtons.module.scss';
+
+const actions = [
+    {
+        key: 'deposit',
+        href: '/deposit',
+        icon: <Arrow className={styles.icon} />,
+        label: 'Пополнить',
+    },
+    {
+        key: 'withdraw',
+        href: '/withdraw',
+        icon: <Arrow className={styles.icon} />,
+        label: 'Вывести',
+    },
+    {
+        key: 'referral',
+        href: '/referral',
+        icon: <Invite className={styles.icon} />,
+        label: 'Пригласить',
+    },
+];
+
+export const ActionButtons = () => {
+    return (
+        <div className={styles.actions}>
+            {actions.map(({ key, href, icon, label }) => (
+                <Link key={key} href={href} className={styles[key]}>
+                    <div className={styles.iconWrapper}>{icon}</div>
+                    <span className={styles.label}>{label}</span>
+                </Link>
+            ))}
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\balance\index.ts =====
+
+export { Balance } from './ui/Balance';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\balance\ui\Balance.tsx =====
+
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getMe } from '@/entities/user/api/user.api'; // Убедитесь, что импортируете из правильного места
+import { UserProfile } from '@/entities/user/model/types'; // Убедитесь, что импортируете тип
+import styles from './Balance.module.scss';
+
+// Простая функция для конвертации (замените на реальную логику)
+const convertToRub = (usdtAmount: number): number => {
+    // Пример: 1 USDT = 90 RUB
+    const rate = 90;
+    return usdtAmount * rate;
+};
+
+export const Balance = () => { // Убираем async
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                // Вызов API происходит на клиенте
+                const userData = await getMe();
+                setUser(userData);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных пользователя для баланса (клиент):', err);
+                setError('Не удалось загрузить баланс');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []); // Пустой массив зависимостей означает, что эффект запустится только один раз после монтирования
+
+    if (loading) {
+        return <div className={styles.balance}>Загрузка...</div>;
+    }
+
+    if (error) {
+        return <div className={styles.balance}>{error}</div>;
+    }
+
+    if (!user) {
+        return <div className={styles.balance}>Пользователь не найден</div>;
+    }
+
+    const balanceUsdt = Number(user.balance);
+    const balanceRub = convertToRub(balanceUsdt);
+
+    return (
+        <div className={styles.balance}>
+            <span className={styles.balanceConvert}>{balanceRub.toFixed(2)} RUB</span>
+            <span className={styles.balanceMain}>{balanceUsdt.toFixed(2)} USDT</span>
+        </div>
+    );
+};
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\header\index.ts =====
+
+export { Header } from './ui/Header';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\header\ui\Header.tsx =====
+
+import { Balance } from '@/widgets/balance';
+import { User } from '@/widgets/user';
+import styles from './Header.module.scss';
+
+export const Header = () => {
+    return (
+        <header className={styles.header}>
+            <User />
+            <Balance />
+        </header>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\index.ts =====
+
+export * from './model/';
+export * from './ui/';
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\model\index.ts =====
+
+export type { MachineCardProps, MachineInfoModalProps } from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\model\machines.ts =====
+
+// @/widgets/machine-card/model/machines.ts
+export const MACHINES = [
+    {
+        id: 1,
+        imageType: 1,
+        price: 15,
+    },
+    {
+        id: 2,
+        imageType: 3,
+        price: 150,
+    },
+    {
+        id: 3,
+        imageType: 3,
+        price: 500,
+    },
+    {
+        id: 4,
+        imageType: 4,
+        price: 1000,
+    },
+    {
+        id: 5,
+        imageType: 5,
+        price: 2500,
+    },
+    {
+        id: 6,
+        imageType: 6,
+        price: 5000,
+    },
+    {
+        id: 7,
+        imageType: 7,
+        price: 7500,
+    },
+    {
+        id: 8,
+        imageType: 8,
+        price: 10000,
+    },
+];
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\model\types.ts =====
+
+// @/widgets/machine-card/model/types.ts
+import { MachineWithState } from '@/entities/machine';
+
+export interface MachineCardProps {
+    image: string;
+    price: number;
+    status: 'not_purchased' | 'awaiting' | 'in_progress' | 'waiting_for_reward' | 'completed';
+    isPurchased: boolean;
+    machineData?: MachineWithState;
+}
+
+type ModalAction = 'purchased' | 'activated' | 'transitioned';
+
+export interface MachineInfoModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onAction?: (action: ModalAction, machineId: number) => void;
+    machine: MachineWithState;
+    isPurchased: boolean;
+    status: string;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\BuyMachineLink.tsx =====
+
+// @/widgets/machine-card/ui/BuyMoreCard.tsx
+import Image from 'next/image';
+import Link from 'next/link';
+import styles from './BuyMachineLink.module.scss';
+
+export const BuyMachineLink = () => {
+    return (
+        <Link className={styles.shopLink} href="/shop">
+            <div className={styles.imageWrapper}>
+                <Image
+                    src="/images/robot.png"
+                    width={100}
+                    height={100}
+                    alt="Робот"
+                    className={styles.robotImage}
+                />
+            </div>
+            <span className={styles.label}>Купить майнинг-машину</span>
+        </Link>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\BuyMoreCard.tsx =====
+
+// @/widgets/machine-card/ui/BuyMoreCard.tsx
+import Link from 'next/link';
+import styles from './BuyMoreCard.module.scss';
+
+export const BuyMoreCard = () => {
+    return (
+        <Link href="/shop" className={styles.buyMoreCard}>
+            <div className={styles.plate} />
+            <span className={styles.add}>+</span>
+            <span className={styles.label}>Купить ещё</span>
+        </Link>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineCard.tsx =====
+
+// @/widgets/machine-card/ui/MachineCard.tsx
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
+import clsx from 'clsx';
+import { MachineCardProps } from '../model';
+import styles from './MachineCard.module.scss';
+import { memo } from 'react';
+import { MachineInfoModal } from './MachineInfoModal';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
+
+export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
+    const { updateMachineStatusLocally } = useMachines();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [localStatus, setLocalStatus] = useState(status);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [progress, setProgress] = useState<number>(0);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+
+    const isPurchased = localStatus !== 'not_purchased';
+
+    // Синхронизируем локальный статус с пропсами
+    useEffect(() => {
+        setLocalStatus(status);
+    }, [status]);
+
+    // --- Рассчитываем доход за активацию ---
+    const earnings = Number(machineData?.car?.daily_replenishment || 0);
+
+    // --- Получаем время работы ---
+    const getWorkTime = (): number => {
+        const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
+        return isNaN(workTime) ? 30 : workTime;
+    };
+
+    // --- Обновляем lastUpdated при изменении machineData ---
+    useEffect(() => {
+        if (machineData?.state_car?.last_updated) {
+            setLastUpdated(machineData.state_car.last_updated);
+        }
+    }, [machineData?.state_car?.last_updated]);
+
+    // --- Таймер для состояния "в работе" ---
+    useEffect(() => {
+        setTimeLeft(null);
+        setProgress(0);
+
+        if (localStatus === 'in_progress' && lastUpdated) {
+            const startTime = lastUpdated;
+
+            if (startTime <= 0) {
+                return;
+            }
+
+            const workTime = getWorkTime();
+            const endTime = startTime + workTime;
+            const now = Math.floor(Date.now() / 1000);
+
+            // Если время уже вышло
+            if (now >= endTime) {
+                setTimeLeft(0);
+                setProgress(100);
+                const timer = setTimeout(() => {
+                    setLocalStatus('waiting_for_reward');
+                    updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
+                }, 1000);
+                return () => clearTimeout(timer);
+            }
+
+            const updateTimer = () => {
+                const currentNow = Math.floor(Date.now() / 1000);
+                const remaining = endTime - currentNow;
+
+                if (remaining > 0) {
+                    const elapsed = workTime - remaining;
+                    const progressPercent = Math.min(100, Math.max(0, (elapsed / workTime) * 100));
+
+                    setTimeLeft(remaining);
+                    setProgress(progressPercent);
+                } else {
+                    setTimeLeft(0);
+                    setProgress(100);
+                    setTimeout(() => {
+                        setLocalStatus('waiting_for_reward');
+                        updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
+                    }, 1000);
+                }
+            };
+
+            // Первый запуск
+            updateTimer();
+
+            // Запускаем таймер
+            const interval = setInterval(updateTimer, 1000);
+
+            return () => {
+                clearInterval(interval);
+            };
+        }
+    }, [localStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
+
+    // --- Обработчики событий ---
+    useEffect(() => {
+        const handleMachinePurchased = (event: CustomEvent) => {
+            if (event.detail.machineId === machineData?.car?.id) {
+                setLocalStatus('awaiting');
+            }
+        };
+
+        const handleMachineActivated = (event: CustomEvent) => {
+            if (event.detail.machineId === machineData?.car?.id) {
+                setLocalStatus('in_progress');
+                setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
+            }
+        };
+
+        const handleMachineTransitioned = (event: CustomEvent) => {
+            if (event.detail.machineId === machineData?.car?.id) {
+                // Определяем следующий статус
+                const nextState = machineData?.state_car?.remaining_uses && 
+                                 machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                setLocalStatus(nextState);
+            }
+        };
+
+        window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
+        window.addEventListener('machineActivated', handleMachineActivated as EventListener);
+        window.addEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
+
+        return () => {
+            window.removeEventListener('machinePurchased', handleMachinePurchased as EventListener);
+            window.removeEventListener('machineActivated', handleMachineActivated as EventListener);
+            window.removeEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
+        };
+    }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
+
+    // --- Форматирование времени ---
+    const formatTime = (seconds: number): string => {
+        if (seconds === null || seconds < 0) return '00:00:00';
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // --- Получить текст для отображения вместо цены ---
+    const getDisplayText = useCallback(() => {
+        if (!isPurchased) {
+            return `${price} USDT`;
+        }
+
+        switch (localStatus) {
+            case 'awaiting':
+                return `+${earnings.toFixed(2)} USDT за 23 ч.`;
+            case 'in_progress':
+                if (timeLeft !== null) {
+                    return formatTime(timeLeft);
+                }
+                return 'В работе...';
+            case 'waiting_for_reward':
+                return `+${earnings.toFixed(2)} USDT`;
+            case 'completed':
+                return 'Завершена';
+            default:
+                return `${price} USDT`;
+        }
+    }, [isPurchased, localStatus, price, earnings, timeLeft]);
+
+    // --- Получить текст для статуса ---
+    const getStatusText = useCallback(() => {
+        if (!isPurchased) return 'Подробнее';
+
+        switch (localStatus) {
+            case 'awaiting':
+                return 'Ожидает активации';
+            case 'in_progress':
+                return 'В работе';
+            case 'waiting_for_reward':
+                return 'Майнинг завершен';
+            case 'completed':
+                return 'Завершена';
+            default:
+                return 'Куплена';
+        }
+    }, [isPurchased, localStatus]);
+
+    // Функция для получения класса прогресса
+    const getProgressClass = useCallback(() => {
+        if (progress < 10) return styles.progress0;
+        if (progress < 20) return styles.progress10;
+        if (progress < 30) return styles.progress20;
+        if (progress < 40) return styles.progress30;
+        if (progress < 50) return styles.progress40;
+        if (progress < 60) return styles.progress50;
+        if (progress < 70) return styles.progress60;
+        if (progress < 80) return styles.progress70;
+        if (progress < 90) return styles.progress80;
+        if (progress < 100) return styles.progress90;
+        return styles.progress100;
+    }, [progress]);
+
+    return (
+        <>
+            <button
+                className={clsx(
+                    styles.card,
+                    localStatus === 'in_progress' && getProgressClass()
+                )}
+                onClick={() => setIsModalOpen(true)}
+                type="button"
+                aria-label={`Майнинг-машина за ${price} USDT`}
+            >
+                <div className={clsx(styles.plate, styles[`${localStatus}`])} />
+
+                <Image
+                    className={clsx(styles.image, { [styles.purchased]: isPurchased })}
+                    src={`/images/${image}`}
+                    width={100}
+                    height={100}
+                    alt="Майнинг-машина"
+                />
+
+                <span className={styles.activationInfo}>{getDisplayText()}</span>
+
+                <span className={styles.label}>{getStatusText()}</span>
+            </button>
+
+            {machineData && (
+                <MachineInfoModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onAction={(action, machineId) => {
+                        // Отправляем глобальные события
+                        switch (action) {
+                            case 'purchased':
+                                window.dispatchEvent(
+                                    new CustomEvent('machinePurchased', {
+                                        detail: { machineId }
+                                    })
+                                );
+                                break;
+                            case 'activated':
+                                window.dispatchEvent(
+                                    new CustomEvent('machineActivated', {
+                                        detail: { 
+                                            machineId,
+                                            lastUpdated: Math.floor(Date.now() / 1000)
+                                        }
+                                    })
+                                );
+                                break;
+                            case 'transitioned':
+                                window.dispatchEvent(
+                                    new CustomEvent('machineTransitioned', {
+                                        detail: { machineId }
+                                    })
+                                );
+                                break;
+                        }
+                    }}
+                    machine={machineData}
+                    isPurchased={isPurchased}
+                    status={localStatus}
+                />
+            )}
+        </>
+    );
+});
+
+MachineCard.displayName = 'MachineCard';
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineInfoModal.tsx =====
+
+// @/widgets/machine-card/ui/MachineInfoModal.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
+import { Button, Modal } from '@/shared/ui';
+import { MachineInfoModalProps } from '../model';
+import styles from './MachineInfoModal.module.scss';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
+
+export const MachineInfoModal = ({
+    isOpen,
+    onClose,
+    onAction,
+    machine,
+    isPurchased,
+    status,
+}: MachineInfoModalProps) => {
+    const { updateMachineStatusLocally } = useMachines();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
+    const [currentStatus, setCurrentStatus] = useState(status);
+
+    // Синхронизируем статус с пропсами
+    useEffect(() => {
+        setCurrentStatus(status);
+    }, [status]);
+
+    // --- Рассчитываем доход за активацию ---
+    const earnings = Number(machine.car.daily_replenishment || 0);
+
+    // --- Обработчик покупки ---
+    const handleBuy = async () => {
+        if (isProcessing) return;
+
+        setIsProcessing(true);
+        setModalError(null);
+
+        try {
+            const success = await purchaseMachine({ car_id: machine.car.id });
+
+            if (success) {
+                console.log(`Машина ${machine.car.id} успешно куплена.`);
+                
+                // Локальное обновление без перезагрузки
+                setCurrentStatus('awaiting');
+                updateMachineStatusLocally(machine.car.id, 'awaiting');
+
+                window.dispatchEvent(
+                    new CustomEvent('machinePurchased', {
+                        detail: { machineId: machine.car.id },
+                    })
+                );
+
+                if (onAction) {
+                    onAction('purchased', machine.car.id);
+                }
+
+                onClose();
+            } else {
+                throw new Error('Сервер сообщил о неудаче операции.');
+            }
+        } catch (err) {
+            console.error('Ошибка при покупке машины:', err);
+            let errorMessage = 'Произошла ошибка при покупке. Пожалуйста, попробуйте позже.';
+            if (err instanceof Error) {
+                if (err.message.includes('Insufficient funds')) {
+                    errorMessage = 'Недостаточно средств на балансе.';
+                }
+            }
+            setModalError(errorMessage);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // --- Обработчик активации ---
+    const handleActivate = async () => {
+        if (isProcessing) return;
+
+        setIsProcessing(true);
+        setModalError(null);
+
+        try {
+            const result = await activateMachine({ car_id: machine.car.id });
+
+            if (result) {
+                console.log(`Машина ${machine.car.id} активирована.`);
+                
+                // Локальное обновление без перезагрузки
+                const newStatus = 'in_progress';
+                setCurrentStatus(newStatus);
+                updateMachineStatusLocally(machine.car.id, newStatus);
+
+                const lastUpdated = Math.floor(Date.now() / 1000);
+                window.dispatchEvent(
+                    new CustomEvent('machineActivated', {
+                        detail: {
+                            machineId: machine.car.id,
+                            lastUpdated,
+                        },
+                    })
+                );
+
+                if (onAction) {
+                    onAction('activated', machine.car.id);
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка активации:', err);
+            setModalError('Ошибка активации машины');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // --- Обработчик получения награды ---
+    const handleCollectReward = async () => {
+        if (isProcessing || !machine.state_car?.id) return;
+
+        setIsProcessing(true);
+        setModalError(null);
+
+        try {
+            const result = await transitionMachine({ car_to_user_id: machine.state_car.id });
+
+            if (result) {
+                console.log(`Награда получена для машины ${machine.car.id}.`);
+
+                // Определяем следующий статус
+                const nextState = machine.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                setCurrentStatus(nextState);
+                updateMachineStatusLocally(machine.car.id, nextState);
+
+                if (onAction) {
+                    onAction('transitioned', machine.car.id);
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка получения награды:', err);
+            setModalError('Ошибка получения награды');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // --- Получить текст для основной кнопки ---
+    const getPrimaryButtonText = () => {
+        if (!isPurchased) {
+            return isProcessing ? 'Покупка...' : `Купить за ${machine.car.price} USDT`;
+        }
+
+        switch (currentStatus) {
+            case 'awaiting':
+                return isProcessing ? 'Активация...' : 'Активировать';
+            case 'in_progress':
+                return 'В работе...';
+            case 'waiting_for_reward':
+                return isProcessing ? 'Получение...' : 'Забрать награду';
+            case 'completed':
+                return 'Завершена';
+            default:
+                return 'Уже у вас';
+        }
+    };
+
+    // --- Получить обработчик для основной кнопки ---
+    const getPrimaryButtonHandler = () => {
+        if (!isPurchased) {
+            return handleBuy;
+        }
+
+        switch (currentStatus) {
+            case 'awaiting':
+                return handleActivate;
+            case 'waiting_for_reward':
+                return handleCollectReward;
+            default:
+                return undefined;
+        }
+    };
+
+    const primaryButtonHandler = getPrimaryButtonHandler();
+    const primaryButtonText = getPrimaryButtonText();
+    const isPrimaryButtonDisabled =
+        isProcessing || (!isPurchased && isProcessing) || (isPurchased && !primaryButtonHandler);
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose}>
+            <div className={styles.machineInfo}>
+                <h2 className={styles.title}>
+                    {machine.car.name || `Майнинг-машина #${machine.car.id}`}
+                </h2>
+
+                <div className={styles.imageContainer}>
+                    <Image
+                        src={`/images/${machine.car.image}`}
+                        width={200}
+                        height={200}
+                        alt="Майнинг-машина"
+                    />
+                </div>
+
+                <div className={styles.infoGrid}>
+                    <div className={styles.infoItem}>
+                        <span className={styles.label}>Цена:</span>
+                        <span className={styles.value}>{machine.car.price} USDT</span>
+                    </div>
+
+                    <div className={styles.infoItem}>
+                        <span className={styles.label}>Активации (срок службы):</span>
+                        <span className={styles.value}>{machine.car.lifespan} дней</span>
+                    </div>
+
+                    <div className={styles.infoItem}>
+                        <span className={styles.label}>Доход за 1 активацию:</span>
+                        <span className={styles.value}>+{earnings.toFixed(2)} USDT</span>
+                    </div>
+
+                    {/* --- Отображаем статус машины --- */}
+                    {isPurchased && (
+                        <div className={styles.infoItem}>
+                            <span className={styles.label}>Статус:</span>
+                            <span className={styles.value}>
+                                {currentStatus === 'awaiting' && 'Готова к активации'}
+                                {currentStatus === 'in_progress' && 'В работе'}
+                                {currentStatus === 'waiting_for_reward' && 'Готова к получению'}
+                                {currentStatus === 'completed' && 'Завершена'}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* --- Отображаем ошибки --- */}
+                {modalError && <div className={styles.buyError}>{modalError}</div>}
+
+                <Button
+                    className={styles.buyButton}
+                    onClick={primaryButtonHandler}
+                    disabled={isPrimaryButtonDisabled}
+                >
+                    {primaryButtonText}
+                </Button>
+            </div>
+        </Modal>
+    );
+};
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\index.ts =====
+
+export { BuyMachineLink } from './BuyMachineLink';
+export { BuyMoreCard } from './BuyMoreCard';
+export { MachineCard } from './MachineCard';
+export { MachineInfoModal } from './MachineInfoModal';
+export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\index.ts =====
+
+export { ReferralCard } from './ui/ReferralCard';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\model\index.ts =====
+
+export type { MachineCardProps } from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\model\machines.ts =====
+
+// @/widgets/machine-card/model/machines.ts
+export const MACHINES = [
+    {
+        id: 1,
+        imageType: 1,
+        price: 15,
+    },
+    {
+        id: 2,
+        imageType: 3,
+        price: 150,
+    },
+    {
+        id: 3,
+        imageType: 3,
+        price: 500,
+    },
+    {
+        id: 4,
+        imageType: 4,
+        price: 1000,
+    },
+    {
+        id: 5,
+        imageType: 5,
+        price: 2500,
+    },
+    {
+        id: 6,
+        imageType: 6,
+        price: 5000,
+    },
+    {
+        id: 7,
+        imageType: 7,
+        price: 7500,
+    },
+    {
+        id: 8,
+        imageType: 8,
+        price: 10000,
+    },
+];
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\model\types.ts =====
+
+export type MachineCardProps = {
+    className?: string;
+    plateType: number;
+    imageType: number;
+    price: number;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\ui\ReferralCard.tsx =====
+
+// @/widgets/referral-card/ui/ReferralCard.tsx
+import Image from 'next/image';
+import { UserAttributes } from '@/entities/user/model/types';
+import styles from './ReferralCard.module.scss';
+
+// Пропсы для карточки реферала
+interface ReferralCardProps {
+    referral: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>;
+}
+
+export const ReferralCard = async ({ referral }: ReferralCardProps) => {
+    // Простой способ получить "прибыль" реферала - можно адаптировать под вашу логику
+    // Например, использовать referral.ref_balance или другое поле
+    const profit = referral.ref_balance || 0;
+
+    return (
+        <div className={styles.card}>
+            {/* TODO: Заменить на аватар реферала, если он есть */}
+            <Image
+                className={styles.avatar}
+                src={`/images/machine1.png`} // Заглушка
+                width={100}
+                height={100}
+                alt={`Аватар ${referral.username}`}
+            />
+            <span className={styles.username}>
+                {referral.username || `Пользователь ${referral.telegram_id}`}
+            </span>
+            <span className={styles.profit}>+{profit.toFixed(2)} USDT</span>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-link\ReferralLink.tsx =====
+
+'use client';
+
+// @/shared/ui/referral-link/ReferralLink.tsx
+import { useState } from 'react';
+import { Copy } from '@/shared/assets/icons';
+import { Input } from '@/shared/ui';
+import styles from './ReferralLink.module.scss';
+
+// Добавляем пропс для telegramId
+interface ReferralLinkProps {
+    telegramId: number; // Или string, если у вас строка
+}
+
+export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
+    // Создаем состояние для отображения "Скопировано!"
+    const [copied, setCopied] = useState(false);
+
+    // Генерируем реальную реферальную ссылку
+    // Замените 'your_bot_username' на имя вашего бота
+    const referralLink = `https://t.me/RoboMine_CapitalBot?start=${telegramId}`;
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(referralLink).then(() => {
+            setCopied(true);
+            // Через 2 секунды возвращаем надпись "Копировать"
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
+    return (
+        <div className={styles.referralLinkWrapper}>
+            <button
+                className={styles.referralLink}
+                onClick={handleCopy}
+                aria-label={copied ? 'Ссылка скопирована' : 'Копировать реферальную ссылку'}
+                type="button"
+            >
+                <Input
+                    className={styles.input}
+                    type="text"
+                    variant="default"
+                    placeholder="Реферальная ссылка"
+                    value={referralLink}
+                    readOnly
+                />
+                {/* Отображаем разный текст в зависимости от состояния */}
+                {copied ? (
+                    <span className={styles.copyText}>Скопировано!</span>
+                ) : (
+                    <Copy className={styles.copyIcon} />
+                )}
+            </button>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-link\index.ts =====
+
+export { ReferralLink } from './ReferralLink';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\index.ts =====
+
+export * from './ui';
+export * from './model';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\model\index.ts =====
+
+export * from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\ui\UserInitializer.tsx =====
+
+'use client';
+
+// widgets/user-initializer/ui/UserInitializer.tsx
+import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
+import { checkUserExists, createUser, getMe } from '@/entities/user';
+import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
+import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+// Добавляем импорт AxiosError
+
+interface UserInitializerProps {
+    children: React.ReactNode;
+    onUserLoaded?: (user: UserProfile | null) => void;
+}
+
+export const UserInitializer = ({ children, onUserLoaded }: UserInitializerProps) => {
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+
+    useEffect(() => {
+        const initializeUser = async () => {
+            try {
+                console.log('Начинаем инициализацию пользователя...');
+
+                if (isTgLoading) {
+                    console.log('Данные Telegram еще загружаются...');
+                    return;
+                }
+
+                if (!tgUser?.id) {
+                    console.log('ID пользователя Telegram не найден');
+                    setError('Не удалось получить данные пользователя из Telegram');
+                    setIsLoading(false);
+                    return;
+                }
+
+                console.log('ID пользователя Telegram:', tgUser.id);
+                setIsLoading(true);
+                setError(null);
+
+                // Проверяем существование пользователя
+                console.log('Проверяем существование пользователя...');
+                const exists = await checkUserExists(tgUser.id);
+                console.log('Пользователь существует:', exists);
+
+                if (!exists) {
+                    console.log('Пользователь не найден, создаем нового...');
+                    // Создаем нового пользователя
+                    const userData: CreateUserDto = {
+                        telegram_id: tgUser.id,
+                        username: tgUser.username || `user_${tgUser.id}`,
+                    };
+
+                    console.log('Данные для создания пользователя:', userData);
+                    try {
+                        const newUser = await createUser(userData);
+                        console.log('Пользователь создан:', newUser);
+                        setUser(newUser);
+                        onUserLoaded?.(newUser);
+                    } catch (createError: unknown) {
+                        // Обрабатываем 409 Conflict - пользователь уже существует
+                        if (
+                            createError instanceof AxiosError &&
+                            createError.response?.status === 409
+                        ) {
+                            console.log('Пользователь уже существует, получаем данные...');
+                            // Получаем данные существующего пользователя
+                            const userData = await getMe();
+                            console.log('Данные пользователя получены:', userData);
+                            setUser(userData);
+                            onUserLoaded?.(userData);
+                        } else {
+                            // Другая ошибка - пробрасываем её дальше
+                            throw createError;
+                        }
+                    }
+                } else {
+                    console.log('Пользователь найден, получаем данные...');
+                    // Получаем данные существующего пользователя
+                    const userData = await getMe();
+                    console.log('Данные пользователя получены:', userData);
+                    setUser(userData);
+                    onUserLoaded?.(userData);
+                }
+            } catch (err: unknown) {
+                console.error('Ошибка инициализации пользователя:', err);
+                if (err instanceof Error) {
+                    setError(`Ошибка инициализации: ${err.message}`);
+                } else {
+                    setError('Неизвестная ошибка инициализации');
+                }
+                onUserLoaded?.(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializeUser();
+    }, [tgUser, isTgLoading, onUserLoaded]);
+
+    // Сохраняем данные пользователя в глобальную переменную
+    useEffect(() => {
+        if (user && typeof window !== 'undefined') {
+            const globalWindow = window as typeof window & {
+                telegramUser?: UserProfile;
+            };
+            globalWindow.telegramUser = user;
+        }
+    }, [user]);
+
+    if (isLoading) {
+        return <div>Загрузка пользователя...</div>;
+    }
+
+    if (error) {
+        return (
+            <div>
+                Ошибка инициализации пользователя: {error}
+                <button onClick={() => window.location.reload()}>Повторить</button>
+                {children}
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user-initializer\ui\index.ts =====
+
+export * from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user\index.ts =====
+
+export { User } from './ui/User';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\user\ui\User.tsx =====
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getMe } from '@/entities/user/api/user.api';
+import { UserProfile } from '@/entities/user/model/types';
+import styles from './User.module.scss';
+
+// Клиентский компонент
+export const User = () => {
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                // Вызов API происходит на клиенте
+                const userData = await getMe();
+                setUser(userData);
+            } catch (err) {
+                console.error('Ошибка при загрузке данных пользователя (клиент):', err);
+                setError('Не удалось загрузить данные пользователя');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    if (loading) {
+        return <div className={styles.user}>Загрузка...</div>;
+    }
+
+    if (error) {
+        return <div className={styles.user}>{error}</div>;
+    }
+
+    if (!user) {
+        return <div className={styles.user}>Пользователь не найден</div>;
+    }
+
+    return (
+        <div className={styles.user}>
+            <span className={styles.userStatus}>{String(user.blago_status)}</span>
+            <span className={styles.userName}>{user.username}</span>
+        </div>
+    );
+};
+
+
+===== СТРУКТУРА ПРОЕКТА =====
+
+.
+├── .env.local
+├── .eslintrc.js
+├── .prettierrc
+├── collect-code.js
+├── eslint.config.mjs
+├── full_code.txt
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── public
+    └── images
+    │   ├── machine1.png
+    │   ├── machine2.png
+    │   ├── machine3.png
+    │   ├── machine4.png
+    │   ├── machine5.png
+    │   ├── machine6.png
+    │   ├── machine7.png
+    │   ├── machine8.png
+    │   └── robot.png
+├── README.md
+├── src
+    ├── app
+    │   ├── deposit
+    │   │   ├── Deposit.module.scss
+    │   │   └── page.tsx
+    │   ├── error.tsx
+    │   ├── Home.module.scss
+    │   ├── icon.svg
+    │   ├── layout.module.scss
+    │   ├── layout.tsx
+    │   ├── loading.tsx
+    │   ├── not-found.tsx
+    │   ├── page.tsx
+    │   ├── referral
+    │   │   ├── page.tsx
+    │   │   └── Referral.module.scss
+    │   ├── shop
+    │   │   ├── page.tsx
+    │   │   └── Shop.module.scss
+    │   └── withdraw
+    │   │   ├── page.tsx
+    │   │   └── Withdraw.module.scss
+    ├── entities
+    │   ├── deposit
+    │   │   ├── api
+    │   │   │   ├── deposit.api.ts
+    │   │   │   └── index.ts
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   │   ├── index.ts
+    │   │   │   └── types.ts
+    │   │   └── ui
+    │   │   │   └── index.ts
+    │   ├── machine
+    │   │   ├── api
+    │   │   │   ├── index.ts
+    │   │   │   └── machine.api.ts
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   │   ├── index.ts
+    │   │   │   └── types.ts
+    │   │   └── ui
+    │   │   │   └── index.ts
+    │   ├── user
+    │   │   ├── api
+    │   │   │   ├── index.ts
+    │   │   │   └── user.api.ts
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   │   ├── index.ts
+    │   │   │   ├── types.ts
+    │   │   │   ├── UserContext.tsx
+    │   │   │   └── useUserInit.ts
+    │   │   └── ui
+    │   │   │   └── index.ts
+    │   └── withdrawal
+    │   │   ├── api
+    │   │       ├── index.ts
+    │   │       └── withdrawal.api.ts
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │       ├── index.ts
+    │   │       └── types.ts
+    │   │   └── ui
+    │   │       └── index.ts
+    ├── features
+    │   ├── auth
+    │   ├── currency-converter
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   │   ├── converter.ts
+    │   │   │   ├── hooks.ts
+    │   │   │   ├── index.ts
+    │   │   │   └── types.ts
+    │   │   └── ui
+    │   ├── deposit
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   │   └── types.ts
+    │   │   └── ui
+    │   │   │   ├── DepositForm.module.scss
+    │   │   │   └── DepositForm.tsx
+    │   ├── mining
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   └── ui
+    │   │   │   ├── ClaimAnimation.tsx
+    │   │   │   ├── index.ts
+    │   │   │   ├── MachineList.module.scss
+    │   │   │   └── MachineList.tsx
+    │   ├── referral
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │   └── ui
+    │   │   │   ├── ReferralList.module.scss
+    │   │   │   └── ReferralList.tsx
+    │   ├── timer
+    │   │   ├── model
+    │   │   │   └── useTimer.ts
+    │   │   └── ui
+    │   └── withdraw
+    │   │   ├── index.ts
+    │   │   ├── model
+    │   │       ├── hooks.ts
+    │   │       └── types.ts
+    │   │   └── ui
+    │   │       ├── WithdrawForm.module.scss
+    │   │       └── WithdrawForm.tsx
+    ├── shared
+    │   ├── api
+    │   │   ├── axios.ts
+    │   │   ├── index.ts
+    │   │   └── telegram-web-app.d.ts
+    │   ├── assets
+    │   │   └── icons
+    │   │   │   ├── Arrow.tsx
+    │   │   │   ├── Copy.tsx
+    │   │   │   ├── index.ts
+    │   │   │   ├── Info.tsx
+    │   │   │   └── Invite.tsx
+    │   ├── config
+    │   │   ├── env.ts
+    │   │   └── index.ts
+    │   ├── lib
+    │   │   ├── contexts
+    │   │   │   └── MachineContext.tsx
+    │   │   ├── hooks
+    │   │   │   └── useTelegramWebApp.ts
+    │   │   ├── index.ts
+    │   │   └── providers
+    │   │   │   ├── AppProviders.tsx
+    │   │   │   └── index.ts
+    │   ├── styles
+    │   │   ├── global.scss
+    │   │   ├── _animations.scss
+    │   │   ├── _mixins.scss
+    │   │   └── _variables.scss
+    │   └── ui
+    │   │   ├── back-button
+    │   │       ├── BackButton.module.scss
+    │   │       ├── BackButton.tsx
+    │   │       └── index.ts
+    │   │   ├── button
+    │   │       ├── Button.module.scss
+    │   │       ├── Button.tsx
+    │   │       ├── index.ts
+    │   │       └── types.ts
+    │   │   ├── index.ts
+    │   │   ├── info-button
+    │   │       ├── index.ts
+    │   │       ├── InfoButton.module.scss
+    │   │       ├── InfoButton.tsx
+    │   │       └── types.ts
+    │   │   ├── input
+    │   │       ├── index.ts
+    │   │       ├── Input.module.scss
+    │   │       ├── Input.tsx
+    │   │       └── types.ts
+    │   │   ├── loading-indicator
+    │   │       ├── index.ts
+    │   │       ├── LoadingIndicator.module.scss
+    │   │       └── LoadingIndicator.tsx
+    │   │   └── modal
+    │   │       ├── index.ts
+    │   │       ├── Modal.module.scss
+    │   │       └── Modal.tsx
+    └── widgets
+    │   ├── action-buttons
+    │       ├── index.ts
+    │       ├── model
+    │       └── ui
+    │       │   ├── ActionButtons.module.scss
+    │       │   └── ActionButtons.tsx
+    │   ├── balance
+    │       ├── index.ts
+    │       ├── model
+    │       └── ui
+    │       │   ├── Balance.module.scss
+    │       │   └── Balance.tsx
+    │   ├── header
+    │       ├── index.ts
+    │       ├── model
+    │       │   └── store
+    │       └── ui
+    │       │   ├── Header.module.scss
+    │       │   └── Header.tsx
+    │   ├── machine-card
+    │       ├── index.ts
+    │       ├── model
+    │       │   ├── index.ts
+    │       │   ├── machines.ts
+    │       │   └── types.ts
+    │       └── ui
+    │       │   ├── BuyMachineLink.module.scss
+    │       │   ├── BuyMachineLink.tsx
+    │       │   ├── BuyMoreCard.module.scss
+    │       │   ├── BuyMoreCard.tsx
+    │       │   ├── index.ts
+    │       │   ├── MachineCard.module.scss
+    │       │   ├── MachineCard.tsx
+    │       │   ├── MachineInfoModal.module.scss
+    │       │   └── MachineInfoModal.tsx
+    │   ├── referral-card
+    │       ├── index.ts
+    │       ├── model
+    │       │   ├── index.ts
+    │       │   ├── machines.ts
+    │       │   └── types.ts
+    │       └── ui
+    │       │   ├── ReferralCard.module.scss
+    │       │   └── ReferralCard.tsx
+    │   ├── referral-link
+    │       ├── index.ts
+    │       ├── ReferralLink.module.scss
+    │       └── ReferralLink.tsx
+    │   ├── user
+    │       ├── index.ts
+    │       ├── model
+    │       └── ui
+    │       │   ├── User.module.scss
+    │       │   └── User.tsx
+    │   └── user-initializer
+    │       ├── index.ts
+    │       ├── model
+    │           └── index.ts
+    │       └── ui
+    │           ├── index.ts
+    │           └── UserInitializer.tsx
+└── tsconfig.json

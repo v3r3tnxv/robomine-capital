@@ -2,9 +2,8 @@
 import type { Metadata } from 'next';
 import { Lato } from 'next/font/google';
 import '@/shared/styles/global.scss';
+import { AppProviders } from '../shared/lib/providers';
 import styles from './layout.module.scss';
-import { MachineProvider } from '@/shared/lib/contexts/MachineContext';
-import { UserInitializer } from '@/widgets/user-initializer/ui/UserInitializer';
 
 // Подключаем шрифт Lato
 const latoSans = Lato({
@@ -35,11 +34,7 @@ export default function RootLayout({
             </head>
             <body className={`${styles.layout} ${latoSans.variable} `}>
                 <main className={styles.content}>
-                    <MachineProvider>
-                        <UserInitializer>
-                            {children}
-                        </UserInitializer>
-                    </MachineProvider>
+                    <AppProviders>{children}</AppProviders>
                 </main>
             </body>
         </html>

@@ -7,3 +7,7 @@ export type {
     UserProfile,
     UserReferralData,
 } from './types';
+
+export { UserProvider, useUser } from './UserContext';
+export { useUserInit } from './useUserInit';
+export {} from './';

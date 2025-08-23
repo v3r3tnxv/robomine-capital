@@ -1,8 +1,18 @@
+'use client';
+
 // entities/user/model/useUserInit.ts
 import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
+import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
+import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
-import { checkUserExists, createUser, getMe } from '../api/user.api';
-import { CreateUserDto, UserProfile } from './types';
+
+// Расширяем интерфейс Window для глобальной переменной
+declare global {
+    interface Window {
+        telegramUser?: UserProfile;
+    }
+}
 
 export const useUserInit = () => {
     const [user, setUser] = useState<UserProfile | null>(null);
@@ -13,8 +23,9 @@ export const useUserInit = () => {
     useEffect(() => {
         const initializeUser = async () => {
             try {
-                if (isTgLoading) return;
-
+                if (isTgLoading) {
+                    return;
+                }
                 if (!tgUser?.id) {
                     setError('Не удалось получить данные пользователя из Telegram');
                     setIsLoading(false);
@@ -29,25 +40,50 @@ export const useUserInit = () => {
 
                 if (!exists) {
                     // Создаем нового пользователя
-                    console.log('Создаем нового пользователя');
                     const userData: CreateUserDto = {
                         telegram_id: tgUser.id,
-                        username: tgUser.username || 'Unknown',
+                        username: tgUser.username || `user_${tgUser.id}`,
                     };
-
-                    const newUser = await createUser(userData);
-                    console.log('Пользователь создан:', newUser);
-                    setUser(newUser);
+                    try {
+                        const newUser = await createUser(userData);
+                        setUser(newUser);
+                        // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                        if (typeof window !== 'undefined') {
+                            window.telegramUser = newUser;
+                        }
+                    } catch (createError: unknown) {
+                        // Обрабатываем 409 Conflict - пользователь уже существует
+                        if (
+                            createError instanceof AxiosError &&
+                            createError.response?.status === 409
+                        ) {
+                            const userData = await getMe();
+                            setUser(userData);
+                            // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                            if (typeof window !== 'undefined') {
+                                window.telegramUser = userData;
+                            }
+                        } else {
+                            // Другая ошибка - пробрасываем её дальше
+                            throw createError;
+                        }
+                    }
                 } else {
-                    // Получаем данные существующего пользователя
-                    console.log('Пользователь существует, получаем данные');
+                    // Пользователь существует, получаем данные
                     const userData = await getMe();
-                    console.log('Данные пользователя:', userData);
                     setUser(userData);
+                    // Сохраняем данные пользователя в глобальную переменную (если нужно)
+                    if (typeof window !== 'undefined') {
+                        window.telegramUser = userData;
+                    }
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error('Ошибка инициализации пользователя:', err);
-                setError('Ошибка при инициализации пользователя');
+                if (err instanceof Error) {
+                    setError(`Ошибка инициализации: ${err.message}`);
+                } else {
+                    setError('Неизвестная ошибка инициализации');
+                }
             } finally {
                 setIsLoading(false);
             }
