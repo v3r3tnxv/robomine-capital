@@ -8,9 +8,9 @@ import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
 import styles from './MachineList.module.scss';
 
 interface MachineListProps {
-    machines: MachineWithState[];
+    machines?: MachineWithState[];
     filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard: boolean;
+    showBuyMoreCard?: boolean;
 }
 
 export const MachineList: React.FC<MachineListProps> = ({

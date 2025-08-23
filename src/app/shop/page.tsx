@@ -8,7 +8,7 @@ export default function ShopPage() {
         <div className={styles.shopPage}>
             <BackButton />
             <h1 className={styles.title}>Майнинг машины</h1>
-            <MachineList filterType="all" machines={[]} showBuyMoreCard={false} />
+            <MachineList filterType="all" />
         </div>
     );
 }

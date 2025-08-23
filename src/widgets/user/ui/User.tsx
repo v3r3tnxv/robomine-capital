@@ -8,7 +8,7 @@ export const User = () => {
 
     return (
         <div className={styles.user}>
-            <span className={styles.userStatus}>{String(user!.blago_status)}</span>
+            {/* <span className={styles.userStatus}>{String(user!.blago_status)}</span> */}
             <span className={styles.userName}>
                 {user!.username || `Пользователь ${user!.telegram_id}`}
             </span>
