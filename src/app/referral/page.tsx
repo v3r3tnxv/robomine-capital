@@ -23,7 +23,6 @@ export default function ReferralPage() {
                 } catch (err) {
                     console.error('Ошибка при загрузке данных рефералов (клиент):', err);
                 }
-                // finally блок с setLoading(false) убран
             };
             fetchData();
         }
