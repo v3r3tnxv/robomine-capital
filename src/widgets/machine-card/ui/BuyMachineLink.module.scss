@@ -35,5 +35,9 @@
     .label {
         align-self: self-end;
         text-decoration: underline;
+        text-shadow:
+            0 0 1px rgba($font-neon-orange, 0.6),
+            0 0 8px rgba($font-neon-orange, 0.4),
+            0 0 16px rgba($font-neon-orange, 0.2);
     }
 }

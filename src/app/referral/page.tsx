@@ -36,7 +36,8 @@ export default function ReferralPage() {
         window.open(telegramShareUrl, '_blank');
     };
 
-    const formattedReferrerProfit = user?.referrer_profit.toFixed(3);
+    const referrerProfit = Number(user?.referrer_profit);
+    const formattedReferrerProfit = !isNaN(referrerProfit) ? referrerProfit.toFixed(3) : '0.000';
 
     return (
         <div className={styles.referralPage}>
