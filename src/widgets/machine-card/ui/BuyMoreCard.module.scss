@@ -45,7 +45,7 @@
         height: 36px;
         align-self: self-end;
         z-index: 13;
-        color: $color-accent !important;
+        text-shadow: 0 0 16px color.adjust($font-neon-orange, $lightness: -10%);
         font-weight: 700;
     }
 }
