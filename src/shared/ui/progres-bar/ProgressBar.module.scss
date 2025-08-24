@@ -1,0 +1,18 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables.scss' as *;
+
+.progressBar {
+    width: 100%;
+    height: 6px;
+    background-color: rgba($color: #000000, $alpha: 0.25);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(to right $color-accent-dark, $color-accent);
+    transition: width 0.3s ease;
+    border-radius: 16px;
+}

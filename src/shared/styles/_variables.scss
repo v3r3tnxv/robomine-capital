@@ -104,9 +104,11 @@ $color-gray6-dark: rgb(28, 28, 30);
 $color-gray6-accessible-light: rgb(235, 235, 240);
 $color-gray6-accessible-dark: rgb(36, 36, 38);
 
+// app colors
 $color-white: rgb(245, 245, 247);
 $color-black: #0b090d;
 $color-accent: rgba(202, 68, 255, 1);
+$color-accent-dark: rgba(202, 68, 255, 0.5);
 
 $font-white: #f5f5f7;
 $font-black: #1d1d1f;
@@ -119,8 +121,12 @@ $font-pastel-blue: #708dfa;
 $font-pastel-pink: #d464ae;
 $font-pastel-pink-light: #eda4ff;
 $font-pastel-green: #4e949f;
+
 $font-neon-orange: rgb(255, 164, 32);
 $font-neon-blue: rgb(4, 217, 255);
+$font-neon-orange-dark: rgba(255, 164, 32, 0.8);
+$font-neon-blue-dark: rgba(4, 217, 255, 0.8);
+
 $background: rgb(22, 7, 0);
 $background-accent: radial-gradient(ellipse 150% 60% at 100% 0%, $color-accent, $color-black);
 
