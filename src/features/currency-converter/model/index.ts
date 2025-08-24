@@ -1,3 +1,3 @@
 export { convertCurrency } from './converter';
-export { useCurrencyConverter } from './hooks';
+export { useCurrencyConverter } from './useCurrencyConverter';
 export {} from './';

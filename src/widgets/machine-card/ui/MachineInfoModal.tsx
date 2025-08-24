@@ -183,8 +183,7 @@ export const MachineInfoModal = ({
 
     const primaryButtonHandler = getPrimaryButtonHandler();
     const primaryButtonText = getPrimaryButtonText();
-    const isPrimaryButtonDisabled =
-        isProcessing || (!isPurchased && isProcessing) || (isPurchased && !primaryButtonHandler);
+    const isPrimaryButtonDisabled = isProcessing || (isPurchased && !primaryButtonHandler);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>

@@ -225,15 +225,18 @@ export default function ReferralPage() {
                 } catch (err) {
                     console.error('Ошибка при загрузке данных рефералов (клиент):', err);
                 }
-                // finally блок с setLoading(false) убран
             };
             fetchData();
         }
     }, [user, referralsData]);
 
-    if (!user) {
-        return <div className={styles.referralPage}>Пользователь не найден</div>;
-    }
+    const handleInvite = () => {
+        const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user?.telegram_id}`;
+        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать! 👉 ${referralLink}`;
+
+        const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
+        window.open(telegramShareUrl, '_blank');
+    };
 
     return (
         <div className={styles.referralPage}>
@@ -241,11 +244,13 @@ export default function ReferralPage() {
             <h1 className={styles.title}>Рефераллы</h1>
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
-            <span className={styles.earningsAmount}>{user.referrer_profit} USDT</span>
+            <span className={styles.earningsAmount}>{user?.referrer_profit} USDT</span>
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
-            <ReferralLink telegramId={user.telegram_id} />
-            <Button className={styles.button}>Пригласить</Button>
+            <ReferralLink telegramId={user?.telegram_id} />
+            <Button className={styles.button} onClick={handleInvite}>
+                Пригласить
+            </Button>
             {referralsData && <ReferralList referrals={referralsData.referrals} />}
         </div>
     );
@@ -563,7 +568,6 @@ import {
     CreateUserDto,
     ReplenishDto,
     UserAttributes,
-    UserProfile,
     UserReferralData,
 } from '../model/types';
 
@@ -603,8 +607,8 @@ export const createUser = async (userData: CreateUserDto): Promise<UserAttribute
 /**
  * Получить данные текущего пользователя
  */
-export const getMe = async (): Promise<UserProfile> => {
-    const response = await api.get<UserProfile>('/users/getMe');
+export const getMe = async (): Promise<UserAttributes> => {
+    const response = await api.get<UserAttributes>('/users/getMe');
     return response.data;
 };
 
@@ -666,10 +670,10 @@ export * from './ui';
 
 // src/shared/lib/contexts/UserContext.tsx
 import React, { ReactNode, createContext, useContext } from 'react';
-import { UserProfile, useUserInit } from '@/entities/user';
+import { UserAttributes, useUserInit } from '@/entities/user';
 
 interface UserContextType {
-    user: UserProfile | null;
+    user: UserAttributes | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -705,7 +709,6 @@ export type {
     ReplenishDto,
     UserAttributes,
     UserCreationAttributes,
-    UserProfile,
     UserReferralData,
 } from './types';
 
@@ -783,23 +786,6 @@ export interface UserReferralData {
     referralCount: number;
 }
 
-// --- Тип для ответа getMe (предполагаем, что это расширенные данные пользователя) ---
-// Вам, возможно, нужно будет адаптировать это под реальный ответ от UserService.getMe
-export interface UserProfile {
-    id: number;
-    telegram_id: number;
-    username: string | null;
-    balance: number;
-    tokens: number;
-    ref_balance: number;
-    referrer_profit: number;
-    blago_status: boolean;
-    level: number;
-    subscription: boolean;
-    is_banned: boolean;
-    // Добавьте другие поля, которые возвращает LevelToUserService.updateUserLevel
-}
-
 
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\useUserInit.ts =====
 
@@ -809,18 +795,18 @@ export interface UserProfile {
 import { useEffect, useState } from 'react';
 import { AxiosError } from 'axios';
 import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
-import { CreateUserDto, UserProfile } from '@/entities/user/model/types';
+import { CreateUserDto, UserAttributes } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
 // Расширяем интерфейс Window для глобальной переменной
 declare global {
     interface Window {
-        telegramUser?: UserProfile;
+        telegramUser?: UserAttributes;
     }
 }
 
 export const useUserInit = () => {
-    const [user, setUser] = useState<UserProfile | null>(null);
+    const [user, setUser] = useState<UserAttributes | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
@@ -1337,9 +1323,9 @@ import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
 import styles from './MachineList.module.scss';
 
 interface MachineListProps {
-    machines: MachineWithState[];
+    machines?: MachineWithState[];
     filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard: boolean;
+    showBuyMoreCard?: boolean;
 }
 
 export const MachineList: React.FC<MachineListProps> = ({
@@ -2343,21 +2329,12 @@ const convertToRub = (usdtAmount: number): number => {
 export const Balance = () => {
     const { user } = useUser();
 
-    if (!user) {
-        return (
-            <div className={styles.balance}>
-                <span className={styles.balanceConvert}>0 RUB</span>
-                <span className={styles.balanceMain}>Не удалось загрузить баланс</span>
-            </div>
-        );
-    }
-
-    const balanceRub = convertToRub(Number(user.balance));
+    const balanceRub = convertToRub(Number(user?.balance));
 
     return (
         <div className={styles.balance}>
             <span className={styles.balanceConvert}>{balanceRub} RUB</span>
-            <span className={styles.balanceMain}>{Number(user.balance)} USDT</span>
+            <span className={styles.balanceMain}>{Number(user?.balance)} USDT</span>
         </div>
     );
 };
@@ -2478,11 +2455,11 @@ export const BuyMachineLink = () => {
         <Link className={styles.shopLink} href="/shop">
             <div className={styles.imageWrapper}>
                 <Image
-                    src="/images/robot.png"
+                    src="/images/mascot.png"
                     width={100}
                     height={100}
                     alt="Робот"
-                    className={styles.robotImage}
+                    className={styles.mascotImage}
                 />
             </div>
             <span className={styles.label}>Купить майнинг-машину</span>
@@ -2691,13 +2668,13 @@ export const MachineCard = memo(({ status, price, image, machineData }: MachineC
 
         switch (localStatus) {
             case 'awaiting':
-                return 'Ожидает активации';
+                return 'Активировать';
             case 'in_progress':
                 return 'В работе';
             case 'waiting_for_reward':
-                return 'Майнинг завершен';
+                return 'Забрать';
             case 'completed':
-                return 'Завершена';
+                return 'Купить';
             default:
                 return 'Куплена';
         }
@@ -2973,8 +2950,7 @@ export const MachineInfoModal = ({
 
     const primaryButtonHandler = getPrimaryButtonHandler();
     const primaryButtonText = getPrimaryButtonText();
-    const isPrimaryButtonDisabled =
-        isProcessing || (!isPurchased && isProcessing) || (isPurchased && !primaryButtonHandler);
+    const isPrimaryButtonDisabled = isProcessing || (isPurchased && !primaryButtonHandler);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
@@ -3152,33 +3128,20 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-link\ReferralLink.tsx =====
 
-'use client';
-
 // @/shared/ui/referral-link/ReferralLink.tsx
-import { useState } from 'react';
 import { Copy } from '@/shared/assets/icons';
 import { Input } from '@/shared/ui';
 import styles from './ReferralLink.module.scss';
 
-// Добавляем пропс для telegramId
 interface ReferralLinkProps {
-    telegramId: number; // Или string, если у вас строка
+    telegramId?: number;
 }
 
 export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
-    // Создаем состояние для отображения "Скопировано!"
-    const [copied, setCopied] = useState(false);
-
-    // Генерируем реальную реферальную ссылку
-    // Замените 'your_bot_username' на имя вашего бота
     const referralLink = `https://t.me/RoboMine_CapitalBot?start=${telegramId}`;
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(referralLink).then(() => {
-            setCopied(true);
-            // Через 2 секунды возвращаем надпись "Копировать"
-            setTimeout(() => setCopied(false), 2000);
-        });
+    const handleCopy = async () => {
+        navigator.clipboard.writeText(referralLink).then(() => {});
     };
 
     return (
@@ -3186,8 +3149,8 @@ export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
             <button
                 className={styles.referralLink}
                 onClick={handleCopy}
-                aria-label={copied ? 'Ссылка скопирована' : 'Копировать реферальную ссылку'}
                 type="button"
+                aria-label={''}
             >
                 <Input
                     className={styles.input}
@@ -3197,12 +3160,8 @@ export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
                     value={referralLink}
                     readOnly
                 />
-                {/* Отображаем разный текст в зависимости от состояния */}
-                {copied ? (
-                    <span className={styles.copyText}>Скопировано!</span>
-                ) : (
-                    <Copy className={styles.copyIcon} />
-                )}
+
+                <Copy className={styles.copyIcon} />
             </button>
         </div>
     );
@@ -3260,15 +3219,11 @@ import styles from './User.module.scss';
 export const User = () => {
     const { user } = useUser();
 
-    if (!user) {
-        return <div className={styles.user}>Не удалось загрузить имя пользователя</div>;
-    }
-
     return (
         <div className={styles.user}>
-            <span className={styles.userStatus}>{String(user.blago_status)}</span>
+            {/* <span className={styles.userStatus}>{String(user?.blago_status)}</span> */}
             <span className={styles.userName}>
-                {user.username || `Пользователь ${user.telegram_id}`}
+                {user?.username || `Пользователь ${user?.telegram_id}`}
             </span>
         </div>
     );
@@ -3281,6 +3236,7 @@ export const User = () => {
 ├── .env.local
 ├── .eslintrc.js
 ├── .prettierrc
+├── colect-
 ├── collect-code.js
 ├── eslint.config.mjs
 ├── full_code.txt
@@ -3298,7 +3254,7 @@ export const User = () => {
     │   ├── machine6.png
     │   ├── machine7.png
     │   ├── machine8.png
-    │   └── robot.png
+    │   └── mascot.png
 ├── README.md
 ├── src
     ├── app
@@ -3496,6 +3452,9 @@ export const User = () => {
     │       │   ├── MachineCard.tsx
     │       │   ├── MachineInfoModal.module.scss
     │       │   └── MachineInfoModal.tsx
+    │   ├── referral
+    │       ├── model
+    │       └── ui
     │   ├── referral-card
     │       ├── index.ts
     │       ├── model
@@ -3511,7 +3470,6 @@ export const User = () => {
     │       └── ReferralLink.tsx
     │   ├── referral-list
     │       ├── index.ts
-    │       ├── model
     │       └── ui
     │       │   ├── ReferralList.module.scss
     │       │   └── ReferralList.tsx

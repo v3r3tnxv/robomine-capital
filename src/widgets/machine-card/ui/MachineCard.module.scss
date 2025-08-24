@@ -1,6 +1,7 @@
 @use '@/shared/styles/animations';
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
+@use 'sass:color';
 
 .card {
     position: relative;
@@ -44,12 +45,7 @@
         align-self: self-end;
         z-index: 13;
         color: $font-neon-blue;
-
-        text-shadow:
-            0 0 5px $font-neon-blue,
-            0 0 10px $font-neon-blue,
-            0 0 15px $font-neon-blue,
-            0 0 20px $font-neon-blue;
+        text-shadow: 0 0 16px color.adjust($font-neon-blue, $lightness: -10%);
     }
 
     .statusText {
@@ -61,12 +57,7 @@
         z-index: 13;
         color: $font-neon-orange;
         font-weight: 700;
-
-        text-shadow:
-            0 0 5px $font-neon-orange,
-            0 0 10px $font-neon-orange,
-            0 0 15px $font-neon-orange,
-            0 0 20px $font-neon-orange;
+        text-shadow: 0 0 16px color.adjust($font-neon-orange, $lightness: -10%);
     }
 
     // .info {
