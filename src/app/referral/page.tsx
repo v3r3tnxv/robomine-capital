@@ -36,13 +36,15 @@ export default function ReferralPage() {
         window.open(telegramShareUrl, '_blank');
     };
 
+    const formattedReferrerProfit = user?.referrer_profit.toFixed(3);
+
     return (
         <div className={styles.referralPage}>
             <BackButton />
             <h1 className={styles.title}>Рефераллы</h1>
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
-            <span className={styles.earningsAmount}>{user?.referrer_profit} USDT</span>
+            <span className={styles.earningsAmount}>{formattedReferrerProfit} USDT</span>
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
             <ReferralLink telegramId={user?.telegram_id} />

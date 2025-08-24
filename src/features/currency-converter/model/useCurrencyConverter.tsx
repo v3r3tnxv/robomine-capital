@@ -1,3 +1,5 @@
+'use client';
+
 // src/features/currency-converter/model/hooks.ts
 import { useEffect, useState } from 'react';
 import { CurrencyRates } from './types';

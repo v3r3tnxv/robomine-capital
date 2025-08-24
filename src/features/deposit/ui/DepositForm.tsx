@@ -20,13 +20,14 @@ export const DepositForm = () => {
             if (!rubAmount) {
                 // Если RUB очищен, очищаем USDT
                 setUsdtAmount('');
-            } else if (!isNaN(Number(rubAmount))) {
+            } else if (!isNaN(Number(rubAmount)) && rates) {
+                // <-- Проверяем rates на null
                 // Обновляем USDT на основе RUB
                 const converted = convertCurrency({
                     amount: Number(rubAmount),
                     from: 'RUB',
                     to: 'USDT',
-                    rates,
+                    rates, // <-- Теперь rates гарантированно не null в этом блоке
                 });
                 setUsdtAmount(converted.toString());
             }
@@ -34,13 +35,14 @@ export const DepositForm = () => {
             if (!usdtAmount) {
                 // Если USDT очищен, очищаем RUB
                 setRubAmount('');
-            } else if (!isNaN(Number(usdtAmount))) {
+            } else if (!isNaN(Number(usdtAmount)) && rates) {
+                // <-- Проверяем rates на null
                 // Обновляем RUB на основе USDT
                 const converted = convertCurrency({
                     amount: Number(usdtAmount),
                     from: 'USDT',
                     to: 'RUB',
-                    rates,
+                    rates, // <-- Теперь rates гарантированно не null в этом блоке
                 });
                 setRubAmount(converted.toString());
             }
