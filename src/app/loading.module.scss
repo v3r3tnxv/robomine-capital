@@ -1,0 +1,14 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.loading {
+    .loadingImage {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .label {
+        color: $font-neon-orange;
+    }
+}

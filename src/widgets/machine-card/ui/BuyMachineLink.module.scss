@@ -1,3 +1,7 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
 .shopLink {
     display: grid;
     grid-template-rows: 1fr max-content;
@@ -5,6 +9,7 @@
     justify-items: center;
     gap: 16px;
     width: 80%;
+    @include interactive-behavior(0.96, 1.2, 0.3s);
 
     .imageWrapper {
         position: relative;
