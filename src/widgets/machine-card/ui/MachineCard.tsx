@@ -7,13 +7,13 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { InfoButton } from '@/shared/ui';
+import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
 
 export const MachineCard = memo(
-    ({ status, price, image, machineData, onAction, machine }: MachineCardProps) => {
+    ({ status, price, image, machineData, onAction }: MachineCardProps) => {
         const { updateMachineStatusLocally } = useMachines();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
@@ -49,7 +49,7 @@ export const MachineCard = memo(
         useEffect(() => {
             setProgress(0);
 
-            if (currentStatus === 'in_progress' && lastUpdated) {
+            if (currentStatus === 'in_progress' && lastUpdated && machineData?.car?.id) {
                 const startTime = lastUpdated;
 
                 if (startTime <= 0) {
@@ -65,7 +65,9 @@ export const MachineCard = memo(
                     setProgress(100);
                     const timer = setTimeout(() => {
                         setCurrentStatus('waiting_for_reward');
-                        updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
+                        if (machineData.car.id) {
+                            updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
+                        }
                     }, 1000);
                     return () => clearTimeout(timer);
                 }
@@ -82,10 +84,12 @@ export const MachineCard = memo(
                     if (progressPercent >= 100) {
                         setTimeout(() => {
                             setCurrentStatus('waiting_for_reward');
-                            updateMachineStatusLocally(
-                                machineData?.car?.id || 0,
-                                'waiting_for_reward'
-                            );
+                            if (machineData.car.id) {
+                                updateMachineStatusLocally(
+                                    machineData.car.id,
+                                    'waiting_for_reward'
+                                );
+                            }
                         }, 1000);
                     }
                 };
@@ -155,40 +159,36 @@ export const MachineCard = memo(
         // --- Рендер полосы прогресса ---
         const renderProgressBar = () => {
             if (currentStatus === 'in_progress') {
-                return (
-                    <div className={styles.progressBar}>
-                        <div className={styles.progressFill} style={{ width: `${progress}%` }} />
-                    </div>
-                );
+                return <ProgressBar progress={progress} className={styles.progressBar} />;
             }
             return null;
         };
 
         // --- Обработчик покупки ---
         const handleBuy = async () => {
-            if (isProcessing) return;
+            if (isProcessing || !machineData?.car?.id) return;
 
             setIsProcessing(true);
             setActionError(null);
 
             try {
-                const success = await purchaseMachine({ car_id: machine.car.id });
+                const success = await purchaseMachine({ car_id: machineData.car.id });
 
                 if (success) {
-                    console.log(`Машина ${machine.car.id} успешно куплена.`);
+                    console.log(`Машина ${machineData.car.id} успешно куплена.`);
 
                     // Локальное обновление без перезагрузки
                     setCurrentStatus('awaiting');
-                    updateMachineStatusLocally(machine.car.id, 'awaiting');
+                    updateMachineStatusLocally(machineData.car.id, 'awaiting');
 
                     window.dispatchEvent(
                         new CustomEvent('machinePurchased', {
-                            detail: { machineId: machine.car.id },
+                            detail: { machineId: machineData.car.id },
                         })
                     );
 
                     if (onAction) {
-                        onAction('purchased', machine.car.id);
+                        onAction('purchased', machineData.car.id);
                     }
                 } else {
                     throw new Error('Сервер сообщил о неудаче операции.');
@@ -209,34 +209,34 @@ export const MachineCard = memo(
 
         // --- Обработчик активации ---
         const handleActivate = async () => {
-            if (isProcessing) return;
+            if (isProcessing || !machineData?.car?.id) return;
 
             setIsProcessing(true);
             setActionError(null);
 
             try {
-                const result = await activateMachine({ car_id: machine.car.id });
+                const result = await activateMachine({ car_id: machineData.car.id });
 
                 if (result) {
-                    console.log(`Машина ${machine.car.id} активирована.`);
+                    console.log(`Машина ${machineData.car.id} активирована.`);
 
                     // Локальное обновление без перезагрузки
                     const newStatus = 'in_progress';
                     setCurrentStatus(newStatus);
-                    updateMachineStatusLocally(machine.car.id, newStatus);
+                    updateMachineStatusLocally(machineData.car.id, newStatus);
 
                     const lastUpdated = Math.floor(Date.now() / 1000);
                     window.dispatchEvent(
                         new CustomEvent('machineActivated', {
                             detail: {
-                                machineId: machine.car.id,
+                                machineId: machineData.car.id,
                                 lastUpdated,
                             },
                         })
                     );
 
                     if (onAction) {
-                        onAction('activated', machine.car.id);
+                        onAction('activated', machineData.car.id);
                     }
                 }
             } catch (err) {
@@ -249,25 +249,27 @@ export const MachineCard = memo(
 
         // --- Обработчик получения награды ---
         const handleCollectReward = async () => {
-            if (isProcessing || !machine.state_car?.id) return;
+            if (isProcessing || !machineData?.state_car?.id) return;
 
             setIsProcessing(true);
             setActionError(null);
 
             try {
-                const result = await transitionMachine({ car_to_user_id: machine.state_car.id });
+                const result = await transitionMachine({
+                    car_to_user_id: machineData.state_car.id,
+                });
 
                 if (result) {
-                    console.log(`Награда получена для машины ${machine.car.id}.`);
+                    console.log(`Награда получена для машины ${machineData.car.id}.`);
 
                     // Определяем следующий статус
                     const nextState =
-                        machine.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                        machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
                     setCurrentStatus(nextState);
-                    updateMachineStatusLocally(machine.car.id, nextState);
+                    updateMachineStatusLocally(machineData.car.id, nextState);
 
                     if (onAction) {
-                        onAction('transitioned', machine.car.id);
+                        onAction('transitioned', machineData.car.id);
                     }
                 }
             } catch (err) {
@@ -318,6 +320,8 @@ export const MachineCard = memo(
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {
+            if (!machineData?.car?.id) return undefined;
+
             if (!isPurchased) {
                 return handleBuy;
             }
@@ -341,8 +345,12 @@ export const MachineCard = memo(
                     onClick={actionHandler}
                     type="button"
                     aria-label={`Майнинг-машина за ${price} USDT`}
+                    disabled={isProcessing}
                 >
-                    <InfoButton onClick={() => setIsModalOpen(true)} />
+                    <InfoButton
+                        className={styles.infoButton}
+                        onClick={() => setIsModalOpen(true)}
+                    />
                     <div className={styles.plate} />
 
                     <Image

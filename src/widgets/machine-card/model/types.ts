@@ -9,7 +9,6 @@ export interface MachineCardProps {
     isPurchased: boolean;
     onAction?: (action: CardAction, machineId: number) => void;
     machineData?: MachineWithState;
-    machine: MachineWithState;
 }
 
 export interface MachineInfoModalProps {

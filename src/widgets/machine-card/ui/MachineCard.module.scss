@@ -1,7 +1,6 @@
 @use '@/shared/styles/animations';
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
-@use 'sass:color';
 
 .card {
     position: relative;
@@ -45,7 +44,7 @@
         align-self: self-end;
         z-index: 13;
         color: $font-neon-blue;
-        text-shadow: 0 0 16px color.adjust($font-neon-blue, $lightness: -10%);
+        text-shadow: 0 0 16px $font-neon-blue-dark;
     }
 
     .statusText {
@@ -57,13 +56,13 @@
         z-index: 13;
         color: $font-neon-orange;
         font-weight: 700;
-        text-shadow: 0 0 16px color.adjust($font-neon-orange, $lightness: -10%);
+        text-shadow: 0 0 16px $font-neon-orange-dark;
     }
 
-    // .info {
-    //     position: absolute;
-    //     right: 0;
-    // }
+    .infoButton {
+        position: absolute;
+        right: 0;
+    }
 
     .not_purchased {
     }
