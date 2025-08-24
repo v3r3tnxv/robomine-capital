@@ -10,9 +10,16 @@
     overflow: hidden;
 
     .progressFill {
-        height: 100%;
-        background: linear-gradient(to right, $font-neon-orange-dark, $font-neon-orange);
-        transition: width 0.3s ease;
-        border-radius: 16px;
+        filter: drop-shadow(0 0 8px $font-neon-orange);
+        animation: neonPulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes neonPulse {
+        from {
+            filter: drop-shadow(0 0 6px $font-neon-orange);
+        }
+        to {
+            filter: drop-shadow(0 0 12px $font-neon-orange) drop-shadow(0 0 20px $font-neon-orange);
+        }
     }
 }
