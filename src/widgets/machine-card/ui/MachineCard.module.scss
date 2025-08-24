@@ -35,7 +35,7 @@
         transition: filter 0.9s ease;
 
         &.purchased {
-            filter: none; // Убираем blur для купленных
+            filter: none;
         }
     }
 
@@ -46,9 +46,9 @@
         z-index: 13;
         color: $font-neon-blue;
         text-shadow:
-            0 0 2px rgba($font-neon-blue, 1),
-            0 0 4px rgba($font-neon-blue, 0.8),
-            0 0 8px rgba($font-neon-blue, 0.4);
+            0 0 1px rgba($font-neon-blue, 0.6),
+            0 0 8px rgba($font-neon-blue, 0.4),
+            0 0 16px rgba($font-neon-blue, 0.2);
     }
 
     .statusText {
@@ -62,12 +62,14 @@
         color: $font-neon-orange;
         font-weight: 700;
         text-shadow:
-            0 0 2px rgba($font-neon-orange, 1),
-            0 0 4px rgba($font-neon-orange, 0.8),
-            0 0 8px rgba($font-neon-orange, 0.4);
+            0 0 1px rgba($font-neon-orange, 0.6),
+            0 0 8px rgba($font-neon-orange, 0.4),
+            0 0 16px rgba($font-neon-orange, 0.2);
     }
 
     .infoButton {
+        position: relative;
+        z-index: 13;
         position: absolute;
         right: 0;
     }

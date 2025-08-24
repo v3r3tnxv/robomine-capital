@@ -7,7 +7,6 @@
     height: 6px;
     background-color: rgba($color: #000000, $alpha: 0.25);
     border-radius: 16px;
-    overflow: hidden;
 
     .progressFill {
         height: 100%;
@@ -15,8 +14,8 @@
         border-radius: 16px;
         background: linear-gradient(to right, $font-neon-orange-dark, $font-neon-orange);
         box-shadow:
-            0 0 2px rgba(255, 154, 84, 1),
-            0 0 4px rgba(255, 154, 84, 0.8),
-            0 0 8px rgba(255, 154, 84, 0.4);
+            0 0 1px rgba($font-neon-orange, 0.6),
+            0 0 8px rgba($font-neon-orange, 0.4),
+            0 0 16px rgba($font-neon-orange, 0.2);
     }
 }
