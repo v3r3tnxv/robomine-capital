@@ -1,3 +1,5 @@
+'use client';
+
 // src/widgets/balance/ui/Balance.tsx
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
@@ -15,7 +17,7 @@ export const Balance = () => {
               amount: userBalance,
               from: 'USDT',
               to: 'RUB',
-              rates: rates, // Передаем объект rates из хука
+              rates: rates,
           })
         : 0;
 
