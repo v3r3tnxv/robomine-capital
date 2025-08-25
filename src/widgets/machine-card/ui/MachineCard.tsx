@@ -1,7 +1,6 @@
-// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-// <-- Добавлено в самое начало
+// @/widgets/machine-card/ui/MachineCard.tsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
@@ -9,22 +8,15 @@ import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-// <-- Импортируем useUser
 import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
 
-// @/widgets/machine-card/ui/MachineCard.tsx
-
-// @/widgets/machine-card/ui/MachineCard.tsx
-
-// @/widgets/machine-card/ui/MachineCard.tsx
-
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
         const { updateMachineStatusLocally } = useMachines();
-        const { refreshUserBalance } = useUser(); // <-- Получаем функцию обновления баланса
+        const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
         const [progress, setProgress] = useState<number>(0);
@@ -103,7 +95,15 @@ export const MachineCard = memo(
                 }
             }, 1000);
 
-            return () => clearInterval(interval);
+            intervalRef.current = interval;
+
+            const intervalId = intervalRef.current;
+
+            return () => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            };
         }, [currentStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
 
         // --- Обработчики событий ---
