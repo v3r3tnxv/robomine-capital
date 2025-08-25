@@ -15,10 +15,10 @@ const latoSans = Lato({
 
 export const metadata: Metadata = {
     title: {
-        default: '121 Games',
-        template: '%s | 121 Games', // Для дочерних страниц
+        default: 'Robomine capital',
+        template: '%s | Robomine capital',
     },
-    description: 'Play and win',
+    description: 'Зарабатывай на майнинге криптовалюты',
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
 };
 
