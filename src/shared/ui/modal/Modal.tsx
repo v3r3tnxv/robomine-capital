@@ -41,12 +41,10 @@ export const Modal = ({ isOpen, onClose, children }: ModalProps) => {
 
     return (
         <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
-            <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
-                    ×
-                </button>
-                {children}
-            </div>
+            <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
+                ×
+            </button>
+            <div className={styles.modalContent}>{children}</div>
         </div>
     );
 };

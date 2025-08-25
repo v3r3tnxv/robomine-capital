@@ -27,7 +27,7 @@ export const Balance = () => {
     return (
         <div className={styles.balance}>
             <span className={styles.balanceConvert}>{formattedBalanceRub} RUB</span>
-            <span className={styles.balanceMain}>{formattedBalanceUSDT} USDT</span>
+            <span className={styles.balanceMain}>≈ {formattedBalanceUSDT} USDT</span>
         </div>
     );
 };
