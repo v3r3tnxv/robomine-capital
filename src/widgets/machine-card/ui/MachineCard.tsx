@@ -1,20 +1,30 @@
+// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-// @/widgets/machine-card/ui/MachineCard.tsx
+// <-- Добавлено в самое начало
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
+import { useUser } from '@/entities/user';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
+// <-- Импортируем useUser
 import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
 
+// @/widgets/machine-card/ui/MachineCard.tsx
+
+// @/widgets/machine-card/ui/MachineCard.tsx
+
+// @/widgets/machine-card/ui/MachineCard.tsx
+
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
         const { updateMachineStatusLocally } = useMachines();
+        const { refreshUserBalance } = useUser(); // <-- Получаем функцию обновления баланса
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
         const [progress, setProgress] = useState<number>(0);
@@ -172,6 +182,19 @@ export const MachineCard = memo(
                     if (onAction) {
                         onAction('purchased', machineData.car.id);
                     }
+
+                    // --- Обновляем баланс пользователя ---
+                    try {
+                        await refreshUserBalance();
+                        console.log('Баланс пользователя обновлён после покупки машины.');
+                    } catch (balanceError) {
+                        console.error(
+                            'Ошибка обновления баланса после покупки машины:',
+                            balanceError
+                        );
+                        // Ошибка обновления баланса не должна блокировать основную операцию
+                    }
+                    // --- Конец обновления баланса ---
                 } else {
                     throw new Error('Сервер сообщил о неудаче операции.');
                 }
@@ -221,6 +244,19 @@ export const MachineCard = memo(
                     if (onAction) {
                         onAction('activated', machineData.car.id);
                     }
+
+                    // --- Обновляем баланс пользователя ---
+                    // Примечание: Обычно активация не меняет баланс напрямую,
+                    // но если в будущем будет, раскомментируй:
+                    /*
+                    try {
+                        await refreshUserBalance();
+                        console.log("Баланс пользователя обновлён после активации машины.");
+                    } catch (balanceError) {
+                        console.error("Ошибка обновления баланса после активации машины:", balanceError);
+                    }
+                    */
+                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка активации:', err);
@@ -254,6 +290,19 @@ export const MachineCard = memo(
                     if (onAction) {
                         onAction('transitioned', machineData.car.id);
                     }
+
+                    // --- Обновляем баланс пользователя ---
+                    try {
+                        await refreshUserBalance();
+                        console.log('Баланс пользователя обновлён после получения награды.');
+                    } catch (balanceError) {
+                        console.error(
+                            'Ошибка обновления баланса после получения награды:',
+                            balanceError
+                        );
+                        // Ошибка обновления баланса не должна блокировать основную операцию
+                    }
+                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка получения награды:', err);
