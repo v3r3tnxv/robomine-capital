@@ -1,0 +1,42 @@
+@use '@/shared/styles/animations';
+@use '@/shared/styles/mixins' as *;
+@use '@/shared/styles/variables' as *;
+
+.splashSceen {
+    position: fixed; // Фиксированное позиционирование
+    top: 0; // Прижимаем к верху viewport
+    left: 0; // Прижимаем к левому краю viewport
+    width: 100vw; // Ширина равна ширине viewport
+    height: 100vh; // Высота равна высоте viewport
+
+    display: flex; // Используем flexbox для центрирования содержимого
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    // background-color: rgba(8, 0, 22, 1); // Фон, если нужно отличный от body
+    background: rgba(8, 0, 22, 1); // Совпадает с .layout
+    z-index: 9999; // Высокий z-index, чтобы быть поверх всего
+    gap: 20px; // Расстояние между элементами
+
+    .background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1; // За содержимым
+    }
+
+    .label {
+        width: 100%;
+        height: 36px;
+        align-self: self-end;
+        align-content: center;
+        color: $font-neon-orange;
+    }
+
+    .progressBarContainer {
+        width: 80%;
+        max-width: 300px;
+    }
+}
