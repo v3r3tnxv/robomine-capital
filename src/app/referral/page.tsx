@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { UserReferralData, getUserReferrals } from '@/entities/user';
 import { useUser } from '@/entities/user/model/UserContext';
 import { BackButton, Button } from '@/shared/ui';
+import { ReferralBalance } from '@/widgets/referral-balance';
 import { ReferralLink } from '@/widgets/referral-link';
 import { ReferralList } from '@/widgets/referral-list';
 import styles from './Referral.module.scss';
@@ -36,16 +37,13 @@ export default function ReferralPage() {
         window.open(telegramShareUrl, '_blank');
     };
 
-    const referrerProfit = Number(user?.referrer_profit);
-    const formattedReferrerProfit = !isNaN(referrerProfit) ? referrerProfit.toFixed(3) : '0.000';
-
     return (
         <div className={styles.referralPage}>
             <BackButton />
             <h1 className={styles.title}>Рефераллы</h1>
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
-            <span className={styles.earningsAmount}>{formattedReferrerProfit} USDT</span>
+            <ReferralBalance />
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
             <ReferralLink telegramId={user?.telegram_id} />

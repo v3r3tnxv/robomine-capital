@@ -6,12 +6,14 @@ import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import styles from './Balance.module.scss';
 
-export const Balance = () => {
+export const ReferralBalance = () => {
     const { user } = useUser();
     const { rates } = useCurrencyConverter();
 
     const userBalance =
-        user?.balance !== undefined && user?.balance !== null ? Number(user.balance) : 0;
+        user?.referrer_profit !== undefined && user?.referrer_profit !== null
+            ? Number(user.referrer_profit)
+            : 0;
 
     const balanceRub = rates
         ? convertCurrency({
