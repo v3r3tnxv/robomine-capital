@@ -1,13 +1,18 @@
 'use client';
 
-// src/entities/user/model/UserContext.tsx
-import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { UserAttributes, getMe } from '@/entities/user';
+// src/entities/user/model/UserContext.tsx (фрагмент)
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { getMe } from '@/entities/user/api/user.api';
+import { UserAttributes } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
-// Хук для получения данных из Telegram WebApp
-
-// --- Расширяем тип контекста ---
 interface UserContextType {
     user: UserAttributes | null;
     isLoading: boolean;
@@ -19,25 +24,20 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-interface UserProviderProps {
-    children: ReactNode;
-}
-
-export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<UserAttributes | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp(); // Получаем данные пользователя из Telegram
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
-    // --- Функция для загрузки/обновления полных данных пользователя ---
-    const fetchUserData = async () => {
-        if (!tgUser?.id) return; // Не пытаемся загрузить, если нет tgUser
+    const fetchUserData = useCallback(async () => {
+        // <-- useCallback для fetchUserData
+        if (!tgUser?.id) return;
         try {
             setIsLoading(true);
             setError(null);
             const userData = await getMe();
             setUser(userData);
-            // Опционально: сохраняем в глобальную переменную, если нужно
             if (typeof window !== 'undefined') {
                 window.telegramUser = userData;
             }
@@ -47,68 +47,59 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [tgUser?.id]); // Зависит от tgUser.id
 
-    // --- Функция для обновления только баланса ---
-    const refreshUserBalance = async () => {
-        if (!user) return; // Нечего обновлять, если пользователя нет
+    const refreshUserBalance = useCallback(async () => {
+        // <-- useCallback
+        if (!user) return;
         try {
-            // Получаем обновленные данные пользователя
             const updatedUser = await getMe();
-            // Обновляем состояние контекста, заменяя старые данные новыми
-            setUser(updatedUser);
-            // Или, если хочешь обновить только конкретные поля:
-            // setUser(prevUser => {
-            //   if (!prevUser) return updatedUser;
-            //   return {
-            //     ...prevUser,
-            //     balance: updatedUser.balance,
-            //     tokens: updatedUser.tokens,
-            //     ref_balance: updatedUser.ref_balance,
-            //     // ... другие поля баланса ...
-            //   };
-            // });
+            setUser(updatedUser); // Или точечное обновление, если нужно
         } catch (err) {
             console.error('Ошибка обновления баланса:', err);
-            // Можно установить ошибку в контексте или просто залогировать
         }
-    };
+    }, [user]); // Зависит от user
 
-    // --- Функция для полного обновления пользователя ---
-    const refreshUser = async () => {
-        await fetchUserData(); // Используем существующую функцию
-    };
+    const refreshUser = useCallback(async () => {
+        // <-- useCallback
+        await fetchUserData();
+    }, [fetchUserData]); // Зависит от fetchUserData
 
-    // --- Функция для мгновенного локального обновления ---
-    const updateUserLocally = (updates: Partial<UserAttributes>) => {
+    const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
+        // <-- useCallback
         setUser((prevUser) => {
             if (!prevUser) return null;
             return { ...prevUser, ...updates };
         });
-    };
+    }, []); // Не зависит от внешних переменных, кроме setUser
 
-    // --- Инициализация пользователя при монтировании или изменении tgUser ---
     useEffect(() => {
         if (!isTgLoading && tgUser?.id) {
             fetchUserData();
         } else if (!isTgLoading && !tgUser?.id) {
-            // Если tgUser загрузился, но id нет (например, не авторизован в боте)
             setIsLoading(false);
-            // setError('Пользователь не авторизован'); // Опционально
         }
-    }, [tgUser, isTgLoading]);
+    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
+
+    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
+    const contextValue = React.useMemo(
+        () => ({
+            // <-- useMemo для value
+            user,
+            isLoading,
+            error,
+            refreshUser,
+            refreshUserBalance,
+            updateUserLocally,
+        }),
+        [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
+    );
+    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
 
     return (
-        <UserContext.Provider
-            value={{
-                user,
-                isLoading,
-                error,
-                refreshUser,
-                refreshUserBalance,
-                updateUserLocally,
-            }}
-        >
+        <UserContext.Provider value={contextValue}>
+            {' '}
+            {/* <-- Передаем мемоизированное значение */}
             {children}
         </UserContext.Provider>
     );

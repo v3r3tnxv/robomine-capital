@@ -82,10 +82,10 @@ const latoSans = Lato({
 
 export const metadata: Metadata = {
     title: {
-        default: '121 Games',
-        template: '%s | 121 Games', // Для дочерних страниц
+        default: 'Robomine capital',
+        template: '%s | Robomine capital',
     },
-    description: 'Play and win',
+    description: 'Зарабатывай на майнинге криптовалюты',
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
 };
 
@@ -112,12 +112,22 @@ export default function RootLayout({
 ===== C:\Users\USER\Projects\robomine-capital\src\app\loading.tsx =====
 
 // @/app/loading.tsx
-
+import Image from 'next/image';
+import { ProgressBar } from '@/shared/ui';
+import styles from './Home.module.scss';
 
 export default function Loading() {
     return (
-        <div>
-            <p>Главная Загрузка...</p>
+        <div className={styles.loading}>
+            <Image
+                src="/images/loading-scrine.png"
+                width={100}
+                height={100}
+                alt="Робот"
+                className={styles.loadingImage}
+            />
+            <p className={styles.label}>Загрузка</p>
+            <ProgressBar progress={10} />
         </div>
     );
 }
@@ -207,6 +217,7 @@ import { useEffect, useState } from 'react';
 import { UserReferralData, getUserReferrals } from '@/entities/user';
 import { useUser } from '@/entities/user/model/UserContext';
 import { BackButton, Button } from '@/shared/ui';
+import { ReferralBalance } from '@/widgets/referral-balance';
 import { ReferralLink } from '@/widgets/referral-link';
 import { ReferralList } from '@/widgets/referral-list';
 import styles from './Referral.module.scss';
@@ -238,15 +249,13 @@ export default function ReferralPage() {
         window.open(telegramShareUrl, '_blank');
     };
 
-    const formattedReferrerProfit = user?.referrer_profit.toFixed(3);
-
     return (
         <div className={styles.referralPage}>
             <BackButton />
             <h1 className={styles.title}>Рефераллы</h1>
 
             <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
-            <span className={styles.earningsAmount}>{formattedReferrerProfit} USDT</span>
+            <ReferralBalance />
 
             <span className={styles.referralText}>Ваша реферальная ссылка:</span>
             <ReferralLink telegramId={user?.telegram_id} />
@@ -670,14 +679,21 @@ export * from './ui';
 
 'use client';
 
-// src/shared/lib/contexts/UserContext.tsx
-import React, { ReactNode, createContext, useContext } from 'react';
-import { UserAttributes, useUserInit } from '@/entities/user';
+// src/entities/user/model/UserContext.tsx
+import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { UserAttributes, getMe } from '@/entities/user';
+import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
+// Хук для получения данных из Telegram WebApp
+
+// --- Расширяем тип контекста ---
 interface UserContextType {
     user: UserAttributes | null;
     isLoading: boolean;
     error: string | null;
+    refreshUser: () => Promise<void>;
+    refreshUserBalance: () => Promise<void>;
+    updateUserLocally: (updates: Partial<UserAttributes>) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -687,10 +703,93 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-    const { user, isLoading, error } = useUserInit();
+    const [user, setUser] = useState<UserAttributes | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp(); // Получаем данные пользователя из Telegram
+
+    // --- Функция для загрузки/обновления полных данных пользователя ---
+    const fetchUserData = async () => {
+        if (!tgUser?.id) return; // Не пытаемся загрузить, если нет tgUser
+        try {
+            setIsLoading(true);
+            setError(null);
+            const userData = await getMe();
+            setUser(userData);
+            // Опционально: сохраняем в глобальную переменную, если нужно
+            if (typeof window !== 'undefined') {
+                window.telegramUser = userData;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки данных пользователя:', err);
+            setError('Не удалось загрузить данные пользователя');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // --- Функция для обновления только баланса ---
+    const refreshUserBalance = async () => {
+        if (!user) return; // Нечего обновлять, если пользователя нет
+        try {
+            // Получаем обновленные данные пользователя
+            const updatedUser = await getMe();
+            // Обновляем состояние контекста, заменяя старые данные новыми
+            setUser(updatedUser);
+            // Или, если хочешь обновить только конкретные поля:
+            // setUser(prevUser => {
+            //   if (!prevUser) return updatedUser;
+            //   return {
+            //     ...prevUser,
+            //     balance: updatedUser.balance,
+            //     tokens: updatedUser.tokens,
+            //     ref_balance: updatedUser.ref_balance,
+            //     // ... другие поля баланса ...
+            //   };
+            // });
+        } catch (err) {
+            console.error('Ошибка обновления баланса:', err);
+            // Можно установить ошибку в контексте или просто залогировать
+        }
+    };
+
+    // --- Функция для полного обновления пользователя ---
+    const refreshUser = async () => {
+        await fetchUserData(); // Используем существующую функцию
+    };
+
+    // --- Функция для мгновенного локального обновления ---
+    const updateUserLocally = (updates: Partial<UserAttributes>) => {
+        setUser((prevUser) => {
+            if (!prevUser) return null;
+            return { ...prevUser, ...updates };
+        });
+    };
+
+    // --- Инициализация пользователя при монтировании или изменении tgUser ---
+    useEffect(() => {
+        if (!isTgLoading && tgUser?.id) {
+            fetchUserData();
+        } else if (!isTgLoading && !tgUser?.id) {
+            // Если tgUser загрузился, но id нет (например, не авторизован в боте)
+            setIsLoading(false);
+            // setError('Пользователь не авторизован'); // Опционально
+        }
+    }, [tgUser, isTgLoading]);
 
     return (
-        <UserContext.Provider value={{ user, isLoading, error }}>{children}</UserContext.Provider>
+        <UserContext.Provider
+            value={{
+                user,
+                isLoading,
+                error,
+                refreshUser,
+                refreshUserBalance,
+                updateUserLocally,
+            }}
+        >
+            {children}
+        </UserContext.Provider>
     );
 };
 
@@ -1031,6 +1130,61 @@ export type TransferResult = WithdrawalAttributes;
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\withdrawal\ui\index.ts =====
 
 export {} from '.';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\claim-animation\ui\ClaimAnimation.tsx =====
+
+// 'use client';
+
+// // src/features/claim-animation/ui/ClaimAnimation.tsx
+// import { useEffect, useState } from 'react';
+// import moleCoin from '@/assets/icons/mole-coin.webp';
+// import tonCoin from '@/assets/icons/ton-coin.webp';
+// import './ClaimAnimation.scss';
+
+// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
+
+// export const ClaimAnimation = () => {
+//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
+//     const [coinType, setcoinType] = useState<string[]>([]);
+
+//     useEffect(() => {
+//         setcoinType([
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//         ]);
+//         setShouldAnimateCoins(true);
+//     }, []);
+
+//     return (
+//         <div className="ClaimAnimation">
+//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
+//             <img
+//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[0]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[1]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[2]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[3]}
+//                 alt="coin"
+//             />
+//         </div>
+//     );
+// };
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\index.ts =====
@@ -2136,7 +2290,7 @@ export { InfoButton } from './info-button';
 export { BackButton } from './back-button';
 export { Modal } from './modal';
 export { Input } from './input';
-export { ReferralLink } from '../../widgets/referral-link';
+export { ProgressBar } from './progres-bar';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\info-button\InfoButton.tsx =====
@@ -2323,12 +2477,10 @@ export const Modal = ({ isOpen, onClose, children }: ModalProps) => {
 
     return (
         <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
-            <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
-                    ×
-                </button>
-                {children}
-            </div>
+            <button className={styles.closeButton} onClick={onClose} aria-label="Закрыть">
+                ×
+            </button>
+            <div className={styles.modalContent}>{children}</div>
         </div>
     );
 };
@@ -2337,6 +2489,35 @@ export const Modal = ({ isOpen, onClose, children }: ModalProps) => {
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\modal\index.ts =====
 
 export { Modal } from './Modal';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\progres-bar\ProgressBar.tsx =====
+
+'use client';
+
+import { memo } from 'react';
+import clsx from 'clsx';
+import styles from './ProgressBar.module.scss';
+
+interface ProgressBarProps {
+    progress: number;
+    className?: string;
+}
+
+export const ProgressBar = memo(({ progress, className }: ProgressBarProps) => {
+    return (
+        <div className={clsx(styles.progressBar, className)}>
+            <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+        </div>
+    );
+});
+
+ProgressBar.displayName = 'ProgressBar';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\progres-bar\index.ts =====
+
+export { ProgressBar } from './ProgressBar';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\action-buttons\index.ts =====
@@ -2395,6 +2576,7 @@ export { Balance } from './ui/Balance';
 'use client';
 
 // src/widgets/balance/ui/Balance.tsx
+import CountUp from 'react-countup';
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import styles from './Balance.module.scss';
@@ -2415,13 +2597,36 @@ export const Balance = () => {
           })
         : 0;
 
-    const formattedBalanceRub = balanceRub.toFixed(3);
-    const formattedBalanceUSDT = userBalance.toFixed(3);
+    const formattedBalanceRub = balanceRub.toFixed(2);
+    const formattedBalanceUSDT = userBalance.toFixed(2);
 
     return (
         <div className={styles.balance}>
-            <span className={styles.balanceConvert}>{formattedBalanceRub} RUB</span>
-            <span className={styles.balanceMain}>{formattedBalanceUSDT} USDT</span>
+            <div className={styles.balanceRUB}>
+                <CountUp
+                    end={parseFloat(formattedBalanceRub)}
+                    decimals={2}
+                    duration={0.5}
+                    separator=" "
+                    decimal="."
+                    prefix=""
+                    suffix=""
+                />
+                <span>RUB</span>
+            </div>
+            <div className={styles.balanceUSDT}>
+                <CountUp
+                    end={parseFloat(formattedBalanceUSDT)} // Преобразуем в число
+                    decimals={2}
+                    duration={0.5} // Продолжительность анимации в секундах
+                    separator=" " // Разделитель тысяч (если нужно)
+                    decimal="."
+                    prefix="" // Префикс (если нужен, например, "$")
+                    suffix=" "
+                    className={styles.value}
+                />
+                <span>USDT</span>
+            </div>
         </div>
     );
 };
@@ -2510,22 +2715,20 @@ export const MACHINES = [
 // @/widgets/machine-card/model/types.ts
 import { MachineWithState } from '@/entities/machine';
 
+type CardAction = 'purchased' | 'activated' | 'transitioned';
 export interface MachineCardProps {
     image: string;
     price: number;
     status: 'not_purchased' | 'awaiting' | 'in_progress' | 'waiting_for_reward' | 'completed';
     isPurchased: boolean;
+    onAction?: (action: CardAction, machineId: number) => void;
     machineData?: MachineWithState;
 }
-
-type ModalAction = 'purchased' | 'activated' | 'transitioned';
 
 export interface MachineInfoModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAction?: (action: ModalAction, machineId: number) => void;
     machine: MachineWithState;
-    isPurchased: boolean;
     status: string;
 }
 
@@ -2574,470 +2777,440 @@ export const BuyMoreCard = () => {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineCard.tsx =====
 
+// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-// @/widgets/machine-card/ui/MachineCard.tsx
-import { useCallback, useEffect, useState } from 'react';
+// <-- Добавлено в самое начало
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
+import { useUser } from '@/entities/user';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
+// <-- Импортируем useUser
+import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
 
-export const MachineCard = memo(({ status, price, image, machineData }: MachineCardProps) => {
-    const { updateMachineStatusLocally } = useMachines();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [localStatus, setLocalStatus] = useState(status);
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
-    const [progress, setProgress] = useState<number>(0);
-    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+// @/widgets/machine-card/ui/MachineCard.tsx
 
-    const isPurchased = localStatus !== 'not_purchased';
+// @/widgets/machine-card/ui/MachineCard.tsx
 
-    // Синхронизируем локальный статус с пропсами
-    useEffect(() => {
-        setLocalStatus(status);
-    }, [status]);
+// @/widgets/machine-card/ui/MachineCard.tsx
 
-    // --- Рассчитываем доход за активацию ---
-    const earnings = Number(machineData?.car?.daily_replenishment || 0);
+export const MachineCard = memo(
+    ({ status, price, image, machineData, onAction }: MachineCardProps) => {
+        const { updateMachineStatusLocally } = useMachines();
+        const { refreshUserBalance } = useUser(); // <-- Получаем функцию обновления баланса
+        const [isModalOpen, setIsModalOpen] = useState(false);
+        const [currentStatus, setCurrentStatus] = useState(status);
+        const [progress, setProgress] = useState<number>(0);
+        const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+        const [isProcessing, setIsProcessing] = useState(false);
+        const [actionError, setActionError] = useState<string | null>(null);
+        const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // --- Получаем время работы ---
-    const getWorkTime = (): number => {
-        const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
-        return isNaN(workTime) ? 30 : workTime;
-    };
+        const isPurchased = currentStatus !== 'not_purchased';
 
-    // --- Обновляем lastUpdated при изменении machineData ---
-    useEffect(() => {
-        if (machineData?.state_car?.last_updated) {
-            setLastUpdated(machineData.state_car.last_updated);
-        }
-    }, [machineData?.state_car?.last_updated]);
+        // Синхронизируем локальный статус с пропсами
+        useEffect(() => {
+            setCurrentStatus(status);
+        }, [status]);
 
-    // --- Таймер для состояния "в работе" ---
-    useEffect(() => {
-        setTimeLeft(null);
-        setProgress(0);
+        // --- Рассчитываем доход за активацию ---
+        const earnings = Number(machineData?.car?.daily_replenishment || 0);
 
-        if (localStatus === 'in_progress' && lastUpdated) {
-            const startTime = lastUpdated;
+        // --- Получаем время работы ---
+        const getWorkTime = (): number => {
+            const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
+            return isNaN(workTime) ? 30 : workTime;
+        };
 
-            if (startTime <= 0) {
+        // --- Обновляем lastUpdated при изменении machineData ---
+        useEffect(() => {
+            if (machineData?.state_car?.last_updated) {
+                setLastUpdated(machineData.state_car.last_updated);
+            }
+        }, [machineData?.state_car?.last_updated]);
+
+        // Очищаем интервал при размонтировании
+        useEffect(() => {
+            return () => {
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                }
+            };
+        }, []);
+
+        // --- Таймер для обновления прогресса ---
+        useEffect(() => {
+            if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
                 return;
             }
 
+            const startTime = lastUpdated;
             const workTime = getWorkTime();
             const endTime = startTime + workTime;
-            const now = Math.floor(Date.now() / 1000);
 
-            // Если время уже вышло
-            if (now >= endTime) {
-                setTimeLeft(0);
-                setProgress(100);
-                const timer = setTimeout(() => {
-                    setLocalStatus('waiting_for_reward');
-                    updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
-                }, 1000);
-                return () => clearTimeout(timer);
-            }
+            const updateProgress = () => {
+                const now = Math.floor(Date.now() / 1000);
+                const remaining = Math.max(0, endTime - now);
+                const elapsed = workTime - remaining;
+                const progressPercent = Math.min(100, Math.max(0, (elapsed / workTime) * 100));
 
-            const updateTimer = () => {
-                const currentNow = Math.floor(Date.now() / 1000);
-                const remaining = endTime - currentNow;
+                setProgress(progressPercent);
 
-                if (remaining > 0) {
-                    const elapsed = workTime - remaining;
-                    const progressPercent = Math.min(100, Math.max(0, (elapsed / workTime) * 100));
-
-                    setTimeLeft(remaining);
-                    setProgress(progressPercent);
-                } else {
-                    setTimeLeft(0);
-                    setProgress(100);
-                    setTimeout(() => {
-                        setLocalStatus('waiting_for_reward');
-                        updateMachineStatusLocally(machineData?.car?.id || 0, 'waiting_for_reward');
-                    }, 1000);
+                if (progressPercent >= 100) {
+                    setCurrentStatus('waiting_for_reward');
+                    if (machineData.car.id) {
+                        updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
+                    }
+                    return false; // Останавливаем интервал
                 }
+                return true; // Продолжаем интервал
             };
 
             // Первый запуск
-            updateTimer();
+            updateProgress();
 
             // Запускаем таймер
-            const interval = setInterval(updateTimer, 1000);
+            const interval = setInterval(() => {
+                if (!updateProgress()) {
+                    clearInterval(interval);
+                }
+            }, 1000);
 
-            return () => {
-                clearInterval(interval);
+            return () => clearInterval(interval);
+        }, [currentStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
+
+        // --- Обработчики событий ---
+        useEffect(() => {
+            const handleMachinePurchased = (event: CustomEvent) => {
+                if (event.detail.machineId === machineData?.car?.id) {
+                    setCurrentStatus('awaiting');
+                }
             };
-        }
-    }, [localStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
 
-    // --- Обработчики событий ---
-    useEffect(() => {
-        const handleMachinePurchased = (event: CustomEvent) => {
-            if (event.detail.machineId === machineData?.car?.id) {
-                setLocalStatus('awaiting');
-            }
-        };
+            const handleMachineActivated = (event: CustomEvent) => {
+                if (event.detail.machineId === machineData?.car?.id) {
+                    setCurrentStatus('in_progress');
+                    setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
+                }
+            };
 
-        const handleMachineActivated = (event: CustomEvent) => {
-            if (event.detail.machineId === machineData?.car?.id) {
-                setLocalStatus('in_progress');
-                setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
-            }
-        };
+            const handleMachineTransitioned = (event: CustomEvent) => {
+                if (event.detail.machineId === machineData?.car?.id) {
+                    // Определяем следующий статус
+                    const nextState =
+                        machineData?.state_car?.remaining_uses &&
+                        machineData.state_car.remaining_uses > 1
+                            ? 'awaiting'
+                            : 'completed';
+                    setCurrentStatus(nextState);
+                }
+            };
 
-        const handleMachineTransitioned = (event: CustomEvent) => {
-            if (event.detail.machineId === machineData?.car?.id) {
-                // Определяем следующий статус
-                const nextState =
-                    machineData?.state_car?.remaining_uses &&
-                    machineData.state_car.remaining_uses > 1
-                        ? 'awaiting'
-                        : 'completed';
-                setLocalStatus(nextState);
-            }
-        };
-
-        window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
-        window.addEventListener('machineActivated', handleMachineActivated as EventListener);
-        window.addEventListener('machineTransitioned', handleMachineTransitioned as EventListener);
-
-        return () => {
-            window.removeEventListener('machinePurchased', handleMachinePurchased as EventListener);
-            window.removeEventListener('machineActivated', handleMachineActivated as EventListener);
-            window.removeEventListener(
+            window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
+            window.addEventListener('machineActivated', handleMachineActivated as EventListener);
+            window.addEventListener(
                 'machineTransitioned',
                 handleMachineTransitioned as EventListener
             );
-        };
-    }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
 
-    // --- Форматирование времени ---
-    const formatTime = (seconds: number): string => {
-        if (seconds === null || seconds < 0) return '00:00:00';
-        const hrs = Math.floor(seconds / 3600);
-        const mins = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
+            return () => {
+                window.removeEventListener(
+                    'machinePurchased',
+                    handleMachinePurchased as EventListener
+                );
+                window.removeEventListener(
+                    'machineActivated',
+                    handleMachineActivated as EventListener
+                );
+                window.removeEventListener(
+                    'machineTransitioned',
+                    handleMachineTransitioned as EventListener
+                );
+            };
+        }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
 
-    // --- Получить текст для отображения вместо цены ---
-    const getDisplayText = useCallback(() => {
-        if (!isPurchased) {
-            return `${price} USDT`;
-        }
+        // --- Обработчик покупки ---
+        const handleBuy = async () => {
+            if (isProcessing || !machineData?.car?.id) return;
 
-        switch (localStatus) {
-            case 'awaiting':
-                return `+${earnings} USDT за 23 ч.`;
-            case 'in_progress':
-                if (timeLeft !== null) {
-                    return formatTime(timeLeft);
+            setIsProcessing(true);
+            setActionError(null);
+
+            try {
+                const success = await purchaseMachine({ car_id: machineData.car.id });
+
+                if (success) {
+                    console.log(`Машина ${machineData.car.id} успешно куплена.`);
+
+                    // Локальное обновление без перезагрузки
+                    setCurrentStatus('awaiting');
+                    updateMachineStatusLocally(machineData.car.id, 'awaiting');
+
+                    window.dispatchEvent(
+                        new CustomEvent('machinePurchased', {
+                            detail: { machineId: machineData.car.id },
+                        })
+                    );
+
+                    if (onAction) {
+                        onAction('purchased', machineData.car.id);
+                    }
+
+                    // --- Обновляем баланс пользователя ---
+                    try {
+                        await refreshUserBalance();
+                        console.log('Баланс пользователя обновлён после покупки машины.');
+                    } catch (balanceError) {
+                        console.error(
+                            'Ошибка обновления баланса после покупки машины:',
+                            balanceError
+                        );
+                        // Ошибка обновления баланса не должна блокировать основную операцию
+                    }
+                    // --- Конец обновления баланса ---
+                } else {
+                    throw new Error('Сервер сообщил о неудаче операции.');
                 }
-                return 'В работе...';
-            case 'waiting_for_reward':
-                return `+${earnings} USDT`;
-            case 'completed':
-                return 'Завершена';
-            default:
+            } catch (err) {
+                console.error('Ошибка при покупке машины:', err);
+                let errorMessage = 'Произошла ошибка при покупке. Пожалуйста, попробуйте позже.';
+                if (err instanceof Error) {
+                    if (err.message.includes('Insufficient funds')) {
+                        errorMessage = 'Недостаточно средств на балансе.';
+                    }
+                }
+                setActionError(errorMessage);
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+
+        // --- Обработчик активации ---
+        const handleActivate = async () => {
+            if (isProcessing || !machineData?.car?.id) return;
+
+            setIsProcessing(true);
+            setActionError(null);
+
+            try {
+                const result = await activateMachine({ car_id: machineData.car.id });
+
+                if (result) {
+                    console.log(`Машина ${machineData.car.id} активирована.`);
+
+                    // Локальное обновление без перезагрузки
+                    const newStatus = 'in_progress';
+                    setCurrentStatus(newStatus);
+                    updateMachineStatusLocally(machineData.car.id, newStatus);
+
+                    const lastUpdated = Math.floor(Date.now() / 1000);
+                    setLastUpdated(lastUpdated); // ← Это важно! Добавлено
+                    window.dispatchEvent(
+                        new CustomEvent('machineActivated', {
+                            detail: {
+                                machineId: machineData.car.id,
+                                lastUpdated,
+                            },
+                        })
+                    );
+
+                    if (onAction) {
+                        onAction('activated', machineData.car.id);
+                    }
+
+                    // --- Обновляем баланс пользователя ---
+                    // Примечание: Обычно активация не меняет баланс напрямую,
+                    // но если в будущем будет, раскомментируй:
+                    /*
+                    try {
+                        await refreshUserBalance();
+                        console.log("Баланс пользователя обновлён после активации машины.");
+                    } catch (balanceError) {
+                        console.error("Ошибка обновления баланса после активации машины:", balanceError);
+                    }
+                    */
+                    // --- Конец обновления баланса ---
+                }
+            } catch (err) {
+                console.error('Ошибка активации:', err);
+                setActionError('Ошибка активации машины');
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+
+        // --- Обработчик получения награды ---
+        const handleCollectReward = async () => {
+            if (isProcessing || !machineData?.state_car?.id) return;
+
+            setIsProcessing(true);
+            setActionError(null);
+
+            try {
+                const result = await transitionMachine({
+                    car_to_user_id: machineData.state_car.id,
+                });
+
+                if (result) {
+                    console.log(`Награда получена для машины ${machineData.car.id}.`);
+
+                    // Определяем следующий статус
+                    const nextState =
+                        machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                    setCurrentStatus(nextState);
+                    updateMachineStatusLocally(machineData.car.id, nextState);
+
+                    if (onAction) {
+                        onAction('transitioned', machineData.car.id);
+                    }
+
+                    // --- Обновляем баланс пользователя ---
+                    try {
+                        await refreshUserBalance();
+                        console.log('Баланс пользователя обновлён после получения награды.');
+                    } catch (balanceError) {
+                        console.error(
+                            'Ошибка обновления баланса после получения награды:',
+                            balanceError
+                        );
+                        // Ошибка обновления баланса не должна блокировать основную операцию
+                    }
+                    // --- Конец обновления баланса ---
+                }
+            } catch (err) {
+                console.error('Ошибка получения награды:', err);
+                setActionError('Ошибка получения награды');
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+
+        // --- Получить текст для отображения вместо цены ---
+        const getDisplayText = useCallback(() => {
+            if (!isPurchased) {
                 return `${price} USDT`;
-        }
-    }, [isPurchased, localStatus, price, earnings, timeLeft]);
+            }
 
-    // --- Получить текст для статуса ---
-    const getStatusText = useCallback(() => {
-        if (!isPurchased) return 'Подробнее';
+            switch (currentStatus) {
+                case 'awaiting':
+                    return `+${earnings} USDT за 23 ч.`;
+                case 'in_progress':
+                    return 'Работаем...';
+                case 'waiting_for_reward':
+                    return `${earnings} USDT`;
+                case 'completed':
+                    return 'Завершена';
+                default:
+                    return `${price} USDT`;
+            }
+        }, [isPurchased, currentStatus, price, earnings]);
 
-        switch (localStatus) {
-            case 'awaiting':
-                return 'Активировать';
-            case 'in_progress':
-                return 'В работе';
-            case 'waiting_for_reward':
-                return 'Забрать';
-            case 'completed':
-                return 'Купить';
-            default:
-                return 'Куплена';
-        }
-    }, [isPurchased, localStatus]);
+        // --- Получить текст для статуса ---
+        const getStatusText = useCallback(() => {
+            if (!isPurchased) return isProcessing ? 'Покупка...' : 'Купить';
 
-    // Функция для получения класса прогресса
-    const getProgressClass = useCallback(() => {
-        if (progress < 10) return styles.progress0;
-        if (progress < 20) return styles.progress10;
-        if (progress < 30) return styles.progress20;
-        if (progress < 40) return styles.progress30;
-        if (progress < 50) return styles.progress40;
-        if (progress < 60) return styles.progress50;
-        if (progress < 70) return styles.progress60;
-        if (progress < 80) return styles.progress70;
-        if (progress < 90) return styles.progress80;
-        if (progress < 100) return styles.progress90;
-        return styles.progress100;
-    }, [progress]);
+            switch (currentStatus) {
+                case 'awaiting':
+                    return isProcessing ? 'Активация...' : 'Активировать';
+                case 'in_progress':
+                    return <ProgressBar progress={progress} className={styles.progressBar} />;
+                case 'waiting_for_reward':
+                    return isProcessing ? 'Получение...' : 'Забрать';
+                case 'completed':
+                    return 'Купить';
+                default:
+                    return 'Куплена';
+            }
+        }, [isPurchased, currentStatus, isProcessing, progress]);
 
-    return (
-        <>
-            <button
-                className={clsx(styles.card, localStatus === 'in_progress' && getProgressClass())}
-                onClick={() => setIsModalOpen(true)}
-                type="button"
-                aria-label={`Майнинг-машина за ${price} USDT`}
-            >
-                <div className={clsx(styles.plate, styles[`${localStatus}`])} />
+        // --- Получить обработчик для события ---
+        const getActionHandler = () => {
+            if (!machineData?.car?.id) return undefined;
 
-                <Image
-                    className={clsx(styles.image, { [styles.purchased]: isPurchased })}
-                    src={`/images/${image}`}
-                    width={100}
-                    height={100}
-                    alt="Майнинг-машина"
-                />
+            if (!isPurchased) {
+                return handleBuy;
+            }
 
-                <span className={styles.displayText}>{getDisplayText()}</span>
+            switch (currentStatus) {
+                case 'awaiting':
+                    return handleActivate;
+                case 'waiting_for_reward':
+                    return handleCollectReward;
+                default:
+                    return undefined;
+            }
+        };
 
-                <span className={styles.statusText}>{getStatusText()}</span>
-            </button>
+        const actionHandler = getActionHandler();
 
-            {machineData && (
-                <MachineInfoModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    onAction={(action, machineId) => {
-                        // Отправляем глобальные события
-                        switch (action) {
-                            case 'purchased':
-                                window.dispatchEvent(
-                                    new CustomEvent('machinePurchased', {
-                                        detail: { machineId },
-                                    })
-                                );
-                                break;
-                            case 'activated':
-                                window.dispatchEvent(
-                                    new CustomEvent('machineActivated', {
-                                        detail: {
-                                            machineId,
-                                            lastUpdated: Math.floor(Date.now() / 1000),
-                                        },
-                                    })
-                                );
-                                break;
-                            case 'transitioned':
-                                window.dispatchEvent(
-                                    new CustomEvent('machineTransitioned', {
-                                        detail: { machineId },
-                                    })
-                                );
-                                break;
-                        }
-                    }}
-                    machine={machineData}
-                    isPurchased={isPurchased}
-                    status={localStatus}
-                />
-            )}
-        </>
-    );
-});
+        return (
+            <>
+                <button
+                    className={clsx(styles.card)}
+                    onClick={actionHandler}
+                    type="button"
+                    aria-label={`Майнинг-машина за ${price} USDT`}
+                    disabled={isProcessing}
+                >
+                    <InfoButton
+                        className={styles.infoButton}
+                        onClick={() => setIsModalOpen(true)}
+                    />
+                    <div className={styles.plate} />
+
+                    <Image
+                        className={clsx(styles.image, { [styles.purchased]: isPurchased })}
+                        src={`/images/${image}`}
+                        width={100}
+                        height={100}
+                        alt="Майнинг-машина"
+                    />
+
+                    {getDisplayText() && (
+                        <span className={styles.displayText}>{getDisplayText()}</span>
+                    )}
+
+                    {getStatusText() && (
+                        <span className={styles.statusText}>{getStatusText()}</span>
+                    )}
+
+                    {/* --- Отображаем ошибки --- */}
+                    {actionError && <div className={styles.buyError}>{actionError}</div>}
+                </button>
+
+                {machineData && (
+                    <MachineInfoModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        machine={machineData}
+                        status={currentStatus}
+                    />
+                )}
+            </>
+        );
+    }
+);
 
 MachineCard.displayName = 'MachineCard';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineInfoModal.tsx =====
 
-'use client';
-
 // @/widgets/machine-card/ui/MachineInfoModal.tsx
-import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { Button, Modal } from '@/shared/ui';
+import { Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
 
-export const MachineInfoModal = ({
-    isOpen,
-    onClose,
-    onAction,
-    machine,
-    isPurchased,
-    status,
-}: MachineInfoModalProps) => {
-    const { updateMachineStatusLocally } = useMachines();
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [modalError, setModalError] = useState<string | null>(null);
-    const [currentStatus, setCurrentStatus] = useState(status);
-
-    // Синхронизируем статус с пропсами
-    useEffect(() => {
-        setCurrentStatus(status);
-    }, [status]);
-
+export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalProps) => {
     // --- Рассчитываем доход за активацию ---
     const earnings = Number(machine.car.daily_replenishment || 0);
-
-    // --- Обработчик покупки ---
-    const handleBuy = async () => {
-        if (isProcessing) return;
-
-        setIsProcessing(true);
-        setModalError(null);
-
-        try {
-            const success = await purchaseMachine({ car_id: machine.car.id });
-
-            if (success) {
-                console.log(`Машина ${machine.car.id} успешно куплена.`);
-
-                // Локальное обновление без перезагрузки
-                setCurrentStatus('awaiting');
-                updateMachineStatusLocally(machine.car.id, 'awaiting');
-
-                window.dispatchEvent(
-                    new CustomEvent('machinePurchased', {
-                        detail: { machineId: machine.car.id },
-                    })
-                );
-
-                if (onAction) {
-                    onAction('purchased', machine.car.id);
-                }
-
-                onClose();
-            } else {
-                throw new Error('Сервер сообщил о неудаче операции.');
-            }
-        } catch (err) {
-            console.error('Ошибка при покупке машины:', err);
-            let errorMessage = 'Произошла ошибка при покупке. Пожалуйста, попробуйте позже.';
-            if (err instanceof Error) {
-                if (err.message.includes('Insufficient funds')) {
-                    errorMessage = 'Недостаточно средств на балансе.';
-                }
-            }
-            setModalError(errorMessage);
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    // --- Обработчик активации ---
-    const handleActivate = async () => {
-        if (isProcessing) return;
-
-        setIsProcessing(true);
-        setModalError(null);
-
-        try {
-            const result = await activateMachine({ car_id: machine.car.id });
-
-            if (result) {
-                console.log(`Машина ${machine.car.id} активирована.`);
-
-                // Локальное обновление без перезагрузки
-                const newStatus = 'in_progress';
-                setCurrentStatus(newStatus);
-                updateMachineStatusLocally(machine.car.id, newStatus);
-
-                const lastUpdated = Math.floor(Date.now() / 1000);
-                window.dispatchEvent(
-                    new CustomEvent('machineActivated', {
-                        detail: {
-                            machineId: machine.car.id,
-                            lastUpdated,
-                        },
-                    })
-                );
-
-                if (onAction) {
-                    onAction('activated', machine.car.id);
-                }
-            }
-        } catch (err) {
-            console.error('Ошибка активации:', err);
-            setModalError('Ошибка активации машины');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    // --- Обработчик получения награды ---
-    const handleCollectReward = async () => {
-        if (isProcessing || !machine.state_car?.id) return;
-
-        setIsProcessing(true);
-        setModalError(null);
-
-        try {
-            const result = await transitionMachine({ car_to_user_id: machine.state_car.id });
-
-            if (result) {
-                console.log(`Награда получена для машины ${machine.car.id}.`);
-
-                // Определяем следующий статус
-                const nextState = machine.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
-                setCurrentStatus(nextState);
-                updateMachineStatusLocally(machine.car.id, nextState);
-
-                if (onAction) {
-                    onAction('transitioned', machine.car.id);
-                }
-            }
-        } catch (err) {
-            console.error('Ошибка получения награды:', err);
-            setModalError('Ошибка получения награды');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    // --- Получить текст для основной кнопки ---
-    const getPrimaryButtonText = () => {
-        if (!isPurchased) {
-            return isProcessing ? 'Покупка...' : `Купить за ${machine.car.price} USDT`;
-        }
-
-        switch (currentStatus) {
-            case 'awaiting':
-                return isProcessing ? 'Активация...' : 'Активировать';
-            case 'in_progress':
-                return 'В работе...';
-            case 'waiting_for_reward':
-                return isProcessing ? 'Получение...' : 'Забрать награду';
-            case 'completed':
-                return 'Завершена';
-            default:
-                return 'Уже у вас';
-        }
-    };
-
-    // --- Получить обработчик для основной кнопки ---
-    const getPrimaryButtonHandler = () => {
-        if (!isPurchased) {
-            return handleBuy;
-        }
-
-        switch (currentStatus) {
-            case 'awaiting':
-                return handleActivate;
-            case 'waiting_for_reward':
-                return handleCollectReward;
-            default:
-                return undefined;
-        }
-    };
-
-    const primaryButtonHandler = getPrimaryButtonHandler();
-    const primaryButtonText = getPrimaryButtonText();
-    const isPrimaryButtonDisabled = isProcessing || (isPurchased && !primaryButtonHandler);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
@@ -3070,31 +3243,7 @@ export const MachineInfoModal = ({
                         <span className={styles.label}>Доход за 1 активацию:</span>
                         <span className={styles.value}>+{earnings} USDT</span>
                     </div>
-
-                    {/* --- Отображаем статус машины --- */}
-                    {isPurchased && (
-                        <div className={styles.infoItem}>
-                            <span className={styles.label}>Статус:</span>
-                            <span className={styles.value}>
-                                {currentStatus === 'awaiting' && 'Готова к активации'}
-                                {currentStatus === 'in_progress' && 'В работе'}
-                                {currentStatus === 'waiting_for_reward' && 'Готова к получению'}
-                                {currentStatus === 'completed' && 'Завершена'}
-                            </span>
-                        </div>
-                    )}
                 </div>
-
-                {/* --- Отображаем ошибки --- */}
-                {modalError && <div className={styles.buyError}>{modalError}</div>}
-
-                <Button
-                    className={styles.buyButton}
-                    onClick={primaryButtonHandler}
-                    disabled={isPrimaryButtonDisabled}
-                >
-                    {primaryButtonText}
-                </Button>
             </div>
         </Modal>
     );
@@ -3108,6 +3257,74 @@ export { BuyMoreCard } from './BuyMoreCard';
 export { MachineCard } from './MachineCard';
 export { MachineInfoModal } from './MachineInfoModal';
 export {} from './';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-balance\index.ts =====
+
+export { ReferralBalance } from './ui/ReferralBalance';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-balance\ui\ReferralBalance.tsx =====
+
+'use client';
+
+// src/widgets/balance/ui/Balance.tsx
+import CountUp from 'react-countup';
+import { useUser } from '@/entities/user/model/UserContext';
+import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import styles from './ReferralBalance.module.scss';
+
+export const ReferralBalance = () => {
+    const { user } = useUser();
+    const { rates } = useCurrencyConverter();
+
+    const userBalance =
+        user?.referrer_profit !== undefined && user?.referrer_profit !== null
+            ? Number(user.referrer_profit)
+            : 0;
+
+    const balanceRub = rates
+        ? convertCurrency({
+              amount: userBalance,
+              from: 'USDT',
+              to: 'RUB',
+              rates: rates,
+          })
+        : 0;
+
+    const formattedBalanceRub = balanceRub.toFixed(2);
+    const formattedBalanceUSDT = userBalance.toFixed(2);
+
+    return (
+        <div className={styles.balance}>
+            <div className={styles.balanceRUB}>
+                <CountUp
+                    end={parseFloat(formattedBalanceRub)}
+                    decimals={2}
+                    duration={1}
+                    separator=" "
+                    decimal="."
+                    prefix=""
+                    suffix=""
+                />
+                <span>RUB</span>
+            </div>
+            <div className={styles.balanceUSDT}>
+                <CountUp
+                    end={parseFloat(formattedBalanceUSDT)} // Преобразуем в число
+                    decimals={2}
+                    duration={0.5} // Продолжительность анимации в секундах
+                    separator=" " // Разделитель тысяч (если нужно)
+                    decimal="."
+                    prefix="" // Префикс (если нужен, например, "$")
+                    suffix=" "
+                    className={styles.value}
+                />
+                <span>USDT</span>
+            </div>
+        </div>
+    );
+};
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-card\index.ts =====
@@ -3333,6 +3550,7 @@ export const User = () => {
 ├── package.json
 ├── public
     └── images
+    │   ├── loading-scrine.png
     │   ├── machine1.png
     │   ├── machine2.png
     │   ├── machine3.png
@@ -3353,6 +3571,7 @@ export const User = () => {
     │   ├── icon.svg
     │   ├── layout.module.scss
     │   ├── layout.tsx
+    │   ├── loading.module.scss
     │   ├── loading.tsx
     │   ├── not-found.tsx
     │   ├── page.tsx
@@ -3410,6 +3629,10 @@ export const User = () => {
     │   │       └── index.ts
     ├── features
     │   ├── auth
+    │   ├── claim-animation
+    │   │   └── ui
+    │   │   │   ├── ClaimAnimation.module.scss
+    │   │   │   └── ClaimAnimation.tsx
     │   ├── currency-converter
     │   │   ├── index.ts
     │   │   ├── model
@@ -3499,10 +3722,14 @@ export const User = () => {
     │   │       ├── index.ts
     │   │       ├── LoadingIndicator.module.scss
     │   │       └── LoadingIndicator.tsx
-    │   │   └── modal
+    │   │   ├── modal
     │   │       ├── index.ts
     │   │       ├── Modal.module.scss
     │   │       └── Modal.tsx
+    │   │   └── progres-bar
+    │   │       ├── index.ts
+    │   │       ├── ProgressBar.module.scss
+    │   │       └── ProgressBar.tsx
     └── widgets
     │   ├── action-buttons
     │       ├── index.ts
@@ -3542,6 +3769,12 @@ export const User = () => {
     │   ├── referral
     │       ├── model
     │       └── ui
+    │   ├── referral-balance
+    │       ├── index.ts
+    │       ├── model
+    │       └── ui
+    │       │   ├── ReferralBalance.module.scss
+    │       │   └── ReferralBalance.tsx
     │   ├── referral-card
     │       ├── index.ts
     │       ├── model

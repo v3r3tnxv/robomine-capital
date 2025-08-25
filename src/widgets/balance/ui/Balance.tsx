@@ -31,7 +31,7 @@ export const Balance = () => {
                 <CountUp
                     end={parseFloat(formattedBalanceRub)}
                     decimals={2}
-                    duration={1}
+                    duration={0.5}
                     separator=" "
                     decimal="."
                     prefix=""
@@ -43,7 +43,7 @@ export const Balance = () => {
                 <CountUp
                     end={parseFloat(formattedBalanceUSDT)} // Преобразуем в число
                     decimals={2}
-                    duration={1} // Продолжительность анимации в секундах
+                    duration={0.5} // Продолжительность анимации в секундах
                     separator=" " // Разделитель тысяч (если нужно)
                     decimal="."
                     prefix="" // Префикс (если нужен, например, "$")

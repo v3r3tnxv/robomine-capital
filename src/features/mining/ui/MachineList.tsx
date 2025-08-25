@@ -2,22 +2,16 @@
 
 // @/features/mining/ui/MachineList.tsx
 import React from 'react';
-import { MachineWithState } from '@/entities/machine';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
+import { MachineListProps } from '../model';
 import styles from './MachineList.module.scss';
 
-interface MachineListProps {
-    machines?: MachineWithState[];
-    filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard?: boolean;
-}
-
-export const MachineList: React.FC<MachineListProps> = ({
+export const MachineList = ({
     machines: propMachines,
     filterType = 'all',
     showBuyMoreCard = false,
-}) => {
+}: MachineListProps) => {
     // Используем контекст если machines не переданы
     const { machines: contextMachines } = useMachines();
 
