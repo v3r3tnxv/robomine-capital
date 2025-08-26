@@ -18,6 +18,66 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\app\_error\page.tsx =====
+
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/shared/ui/button';
+
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+    useEffect(() => {
+        console.error(error);
+    }, [error]);
+
+    return (
+        <div>
+            <h1>Ошибка</h1>
+            <p>Произошла ошибка при загрузке страницы.</p>
+            <Button onClick={() => reset()} className="" label="Попробовать снова" />
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\_loading\loading.tsx =====
+
+// // @/app/loading.tsx
+// import Image from 'next/image';
+// import { ProgressBar } from '@/shared/ui';
+// import styles from './Home.module.scss';
+
+// export default function Loading() {
+//     return (
+//         <div className={styles.loading}>
+//             <Image
+//                 src="/images/.png"
+//                 width={100}
+//                 height={100}
+//                 alt="Робот"
+//                 className={styles.loadingImage}
+//             />
+//             <p className={styles.label}>Загрузка</p>
+//             <ProgressBar progress={10} />
+//         </div>
+//     );
+// }
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\_not-found\page.tsx =====
+
+// @/app/not-found.tsx
+
+export default function NotFound() {
+    return (
+        <div>
+            <h1 className="not-found__title">404</h1>
+            <p className="not-found__description">Страница не найдена</p>
+        </div>
+    );
+}
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\app\deposit\page.tsx =====
 
 // @/app/deposit/page.tsx
@@ -36,28 +96,6 @@ export default function DepositPage() {
                 <span>Сумма для пополнения</span>
                 <DepositForm />
             </div>
-        </div>
-    );
-}
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\app\error.tsx =====
-
-'use client';
-
-import { useEffect } from 'react';
-import { Button } from '@/shared/ui/button';
-
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
-    useEffect(() => {
-        console.error(error);
-    }, [error]);
-
-    return (
-        <div>
-            <h1>Ошибка</h1>
-            <p>Произошла ошибка при загрузке страницы.</p>
-            <Button onClick={() => reset()} className="" label="Попробовать снова" />
         </div>
     );
 }
@@ -105,44 +143,6 @@ export default function RootLayout({
                 </main>
             </body>
         </html>
-    );
-}
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\app\loading.tsx =====
-
-// @/app/loading.tsx
-import Image from 'next/image';
-import { ProgressBar } from '@/shared/ui';
-import styles from './Home.module.scss';
-
-export default function Loading() {
-    return (
-        <div className={styles.loading}>
-            <Image
-                src="/images/loading-scrine.png"
-                width={100}
-                height={100}
-                alt="Робот"
-                className={styles.loadingImage}
-            />
-            <p className={styles.label}>Загрузка</p>
-            <ProgressBar progress={10} />
-        </div>
-    );
-}
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\app\not-found.tsx =====
-
-// @/app/not-found.tsx
-
-export default function NotFound() {
-    return (
-        <div>
-            <h1 className="not-found__title">404</h1>
-            <p className="not-found__description">Страница не найдена</p>
-        </div>
     );
 }
 
@@ -679,14 +679,19 @@ export * from './ui';
 
 'use client';
 
-// src/entities/user/model/UserContext.tsx
-import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { UserAttributes, getMe } from '@/entities/user';
+// src/entities/user/model/UserContext.tsx (фрагмент)
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { getMe } from '@/entities/user/api/user.api';
+import { UserAttributes } from '@/entities/user/model/types';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
-// Хук для получения данных из Telegram WebApp
-
-// --- Расширяем тип контекста ---
 interface UserContextType {
     user: UserAttributes | null;
     isLoading: boolean;
@@ -698,25 +703,20 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-interface UserProviderProps {
-    children: ReactNode;
-}
-
-export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<UserAttributes | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp(); // Получаем данные пользователя из Telegram
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
-    // --- Функция для загрузки/обновления полных данных пользователя ---
-    const fetchUserData = async () => {
-        if (!tgUser?.id) return; // Не пытаемся загрузить, если нет tgUser
+    const fetchUserData = useCallback(async () => {
+        // <-- useCallback для fetchUserData
+        if (!tgUser?.id) return;
         try {
             setIsLoading(true);
             setError(null);
             const userData = await getMe();
             setUser(userData);
-            // Опционально: сохраняем в глобальную переменную, если нужно
             if (typeof window !== 'undefined') {
                 window.telegramUser = userData;
             }
@@ -726,68 +726,59 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [tgUser?.id]); // Зависит от tgUser.id
 
-    // --- Функция для обновления только баланса ---
-    const refreshUserBalance = async () => {
-        if (!user) return; // Нечего обновлять, если пользователя нет
+    const refreshUserBalance = useCallback(async () => {
+        // <-- useCallback
+        if (!user) return;
         try {
-            // Получаем обновленные данные пользователя
             const updatedUser = await getMe();
-            // Обновляем состояние контекста, заменяя старые данные новыми
-            setUser(updatedUser);
-            // Или, если хочешь обновить только конкретные поля:
-            // setUser(prevUser => {
-            //   if (!prevUser) return updatedUser;
-            //   return {
-            //     ...prevUser,
-            //     balance: updatedUser.balance,
-            //     tokens: updatedUser.tokens,
-            //     ref_balance: updatedUser.ref_balance,
-            //     // ... другие поля баланса ...
-            //   };
-            // });
+            setUser(updatedUser); // Или точечное обновление, если нужно
         } catch (err) {
             console.error('Ошибка обновления баланса:', err);
-            // Можно установить ошибку в контексте или просто залогировать
         }
-    };
+    }, [user]); // Зависит от user
 
-    // --- Функция для полного обновления пользователя ---
-    const refreshUser = async () => {
-        await fetchUserData(); // Используем существующую функцию
-    };
+    const refreshUser = useCallback(async () => {
+        // <-- useCallback
+        await fetchUserData();
+    }, [fetchUserData]); // Зависит от fetchUserData
 
-    // --- Функция для мгновенного локального обновления ---
-    const updateUserLocally = (updates: Partial<UserAttributes>) => {
+    const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
+        // <-- useCallback
         setUser((prevUser) => {
             if (!prevUser) return null;
             return { ...prevUser, ...updates };
         });
-    };
+    }, []); // Не зависит от внешних переменных, кроме setUser
 
-    // --- Инициализация пользователя при монтировании или изменении tgUser ---
     useEffect(() => {
         if (!isTgLoading && tgUser?.id) {
             fetchUserData();
         } else if (!isTgLoading && !tgUser?.id) {
-            // Если tgUser загрузился, но id нет (например, не авторизован в боте)
             setIsLoading(false);
-            // setError('Пользователь не авторизован'); // Опционально
         }
-    }, [tgUser, isTgLoading]);
+    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
+
+    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
+    const contextValue = React.useMemo(
+        () => ({
+            // <-- useMemo для value
+            user,
+            isLoading,
+            error,
+            refreshUser,
+            refreshUserBalance,
+            updateUserLocally,
+        }),
+        [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
+    );
+    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
 
     return (
-        <UserContext.Provider
-            value={{
-                user,
-                isLoading,
-                error,
-                refreshUser,
-                refreshUserBalance,
-                updateUserLocally,
-            }}
-        >
+        <UserContext.Provider value={contextValue}>
+            {' '}
+            {/* <-- Передаем мемоизированное значение */}
             {children}
         </UserContext.Provider>
     );
@@ -1490,6 +1481,22 @@ export const DepositForm = () => {
 export * from './ui';
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\model\index.ts =====
+
+export type { MachineListProps } from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\mining\model\types.ts =====
+
+import { MachineWithState } from '@/entities/machine';
+
+export interface MachineListProps {
+    machines?: MachineWithState[];
+    filterType: 'purchased' | 'not_purchased' | 'all';
+    showBuyMoreCard?: boolean;
+}
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\ClaimAnimation.tsx =====
 
 // import { useEffect, useState } from 'react';
@@ -1548,22 +1555,16 @@ export * from './ui';
 
 // @/features/mining/ui/MachineList.tsx
 import React from 'react';
-import { MachineWithState } from '@/entities/machine';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
+import { MachineListProps } from '../model';
 import styles from './MachineList.module.scss';
 
-interface MachineListProps {
-    machines?: MachineWithState[];
-    filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard?: boolean;
-}
-
-export const MachineList: React.FC<MachineListProps> = ({
+export const MachineList = ({
     machines: propMachines,
     filterType = 'all',
     showBuyMoreCard = false,
-}) => {
+}: MachineListProps) => {
     // Используем контекст если machines не переданы
     const { machines: contextMachines } = useMachines();
 
@@ -1989,16 +1990,28 @@ export { API_URL } from './env';
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\contexts\MachineContext.tsx =====
 
-// @/shared/lib/contexts/MachineContext.tsx
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// @/shared/lib/contexts/MachineContext.tsx
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
 import { MachineWithState, getAllMachines } from '@/entities/machine';
 
 // Определяем возможные статусы машины
 // Предполагается, что они совпадают с теми, что в MachineToUserAttributes
 // Если они определены где-то как тип или константы, лучше импортировать оттуда
-type MachineStatus = 'not_purchased' | 'awaiting' | 'in_progress' | 'waiting_for_reward' | 'completed';
+type MachineStatus =
+    | 'not_purchased'
+    | 'awaiting'
+    | 'in_progress'
+    | 'waiting_for_reward'
+    | 'completed';
 
 interface MachineContextType {
     machines: MachineWithState[];
@@ -2010,7 +2023,10 @@ interface MachineContextType {
     // Обновляет статус машины (если state_car существует)
     updateMachineStatusLocally: (machineId: number, newStatus: MachineStatus) => void;
     // Обновляет конкретные поля state_car (если он существует)
-    updateMachineStateCarLocally: (machineId: number, updates: Partial<NonNullable<MachineWithState['state_car']>>) => void;
+    updateMachineStateCarLocally: (
+        machineId: number,
+        updates: Partial<NonNullable<MachineWithState['state_car']>>
+    ) => void;
 }
 
 const MachineContext = createContext<MachineContextType | undefined>(undefined);
@@ -2020,7 +2036,7 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const refreshMachines = async () => {
+    const refreshMachines = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -2032,88 +2048,113 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // Точечное обновление машины без перезагрузки всего списка
-    const updateMachineLocally = (machineId: number, updates: Partial<MachineWithState>) => {
-        setMachines(prevMachines => 
-            prevMachines.map(machine => {
-                if (machine.car.id === machineId) {
-                    // Создаем поверхностную копию и применяем обновления
-                    return { ...machine, ...updates };
-                }
-                return machine;
-            })
-        );
-    };
+    const updateMachineLocally = useCallback(
+        (machineId: number, updates: Partial<MachineWithState>) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) => {
+                    if (machine.car.id === machineId) {
+                        // Создаем поверхностную копию и применяем обновления
+                        return { ...machine, ...updates };
+                    }
+                    return machine;
+                })
+            );
+        },
+        []
+    );
 
     // Обновление только статуса (только если state_car существует)
-    const updateMachineStatusLocally = (machineId: number, newStatus: MachineStatus) => {
-        setMachines(prevMachines => 
-            prevMachines.map(machine => {
-                // Проверяем, что state_car существует, прежде чем обновлять
-                if (machine.car.id === machineId && machine.state_car) {
-                    return {
-                        ...machine,
-                        state_car: {
-                            ...machine.state_car,
-                            status: newStatus
-                        }
-                    };
-                }
-                return machine;
-            })
-        );
-    };
+    const updateMachineStatusLocally = useCallback(
+        (machineId: number, newStatus: MachineStatus) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) => {
+                    // Проверяем, что state_car существует, прежде чем обновлять
+                    if (machine.car.id === machineId && machine.state_car) {
+                        return {
+                            ...machine,
+                            state_car: {
+                                ...machine.state_car,
+                                status: newStatus,
+                            },
+                        };
+                    }
+                    return machine;
+                })
+            );
+        },
+        []
+    );
 
     // Обновление конкретных полей state_car (только если он существует)
-    const updateMachineStateCarLocally = (
-        machineId: number, 
-        updates: Partial<NonNullable<MachineWithState['state_car']>>
-    ) => {
-        setMachines(prevMachines => 
-            prevMachines.map(machine => {
-                // Проверяем, что state_car существует, прежде чем обновлять
-                if (machine.car.id === machineId && machine.state_car) {
-                    return {
-                        ...machine,
-                        state_car: {
-                            ...machine.state_car,
-                            ...updates
-                        }
-                    };
-                }
-                return machine;
-            })
-        );
-    };
+    const updateMachineStateCarLocally = useCallback(
+        (machineId: number, updates: Partial<NonNullable<MachineWithState['state_car']>>) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) => {
+                    // Проверяем, что state_car существует, прежде чем обновлять
+                    if (machine.car.id === machineId && machine.state_car) {
+                        return {
+                            ...machine,
+                            state_car: {
+                                ...machine.state_car,
+                                ...updates,
+                            },
+                        };
+                    }
+                    return machine;
+                })
+            );
+        },
+        []
+    );
 
     useEffect(() => {
         refreshMachines();
-    }, []);
+    }, [refreshMachines]);
 
-    return (
-        <MachineContext.Provider value={{
+    // --- КРИТИЧЕСКИ ВАЖНО: useMemo для value ---
+    const contextValue = React.useMemo(
+        () => ({
+            // <-- useMemo
             machines,
             loading,
             error,
             refreshMachines,
             updateMachineLocally,
             updateMachineStatusLocally,
-            updateMachineStateCarLocally
-        }}>
+            updateMachineStateCarLocally,
+            // ... другие функции ...
+        }),
+        [
+            machines,
+            loading,
+            error,
+            refreshMachines,
+            updateMachineLocally,
+            updateMachineStatusLocally,
+            updateMachineStateCarLocally /* ... другие зависимости ... */,
+        ]
+    );
+    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
+
+    return (
+        <MachineContext.Provider value={contextValue}>
+            {/* <-- Передаем мемоизированное значение */}
             {children}
         </MachineContext.Provider>
     );
 };
 
-export const useMachines = () => {
+export const useMachines = (): MachineContextType => {
     const context = useContext(MachineContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error('useMachines must be used within a MachineProvider');
     }
     return context;
 };
+
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\hooks\useTelegramWebApp.ts =====
 
@@ -2174,6 +2215,7 @@ export * from './';
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserProvider } from '@/entities/user';
+// import { SplashScreen } from '@/shared/ui';
 import { MachineProvider } from '../contexts/MachineContext';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -2187,6 +2229,23 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
                 },
             })
     );
+
+    // const [showSplash, setShowSplash] = useState(true);
+
+    // // Эффект для установки таймера
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         setShowSplash(false); // Через 5 секунд скрываем сплеш
+    //     }, 3000); // 5000 миллисекунд = 5 секунд
+
+    //     // Очистка таймера при размонтировании (хорошая практика)
+    //     return () => clearTimeout(timer);
+    // }, []); // Пустой массив зависимостей - запускается только при монтировании
+
+    // // Если showSplash true, рендерим только экран загрузки
+    // if (showSplash) {
+    //     return <SplashScreen />; // <-- Отображаем SplashScreen
+    // }
 
     return (
         <QueryClientProvider client={queryClient}>
@@ -2291,6 +2350,7 @@ export { BackButton } from './back-button';
 export { Modal } from './modal';
 export { Input } from './input';
 export { ProgressBar } from './progres-bar';
+export { SplashScreen } from './splash-screen';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\info-button\InfoButton.tsx =====
@@ -2411,27 +2471,6 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\loading-indicator\LoadingIndicator.tsx =====
-
-'use client';
-
-// src/shared/ui/loading-indicator/LoadingIndicator.tsx
-import styles from './LoadingIndicator.module.scss';
-
-export const LoadingIndicator = ({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) => {
-    return (
-        <div className={`${styles.loader} ${styles[size]}`}>
-            <div className={styles.spinner}></div>
-        </div>
-    );
-};
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\loading-indicator\index.ts =====
-
-export {} from './LoadingIndicator';
-
-
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\modal\Modal.tsx =====
 
 'use client';
@@ -2518,6 +2557,59 @@ ProgressBar.displayName = 'ProgressBar';
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\progres-bar\index.ts =====
 
 export { ProgressBar } from './ProgressBar';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\splash-screen\SplashScreen.tsx =====
+
+'use client';
+
+// src/shared/ui/splash-screen/SplashScreen.tsx
+import { useEffect, useState } from 'react';
+import { ProgressBar } from '../progres-bar';
+import styles from './SplashScreen.module.scss';
+
+export function SplashScreen() {
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        // Общее время показа SplashScreen в миллисекундах
+        const TOTAL_DURATION_MS = 500; // 3 секунды
+        // Интервал обновления в миллисекундах
+        const INTERVAL_TIME_MS = 5;
+
+        // Рассчитываем, на сколько процентов увеличивать прогресс за каждый шаг
+        // 100% / (TOTAL_DURATION_MS / INTERVAL_TIME_MS) = 100% / (3000 / 50) = 100% / 60 = 1.666...%
+        const INCREMENT_PER_STEP = 100 / (TOTAL_DURATION_MS / INTERVAL_TIME_MS);
+
+        const interval = setInterval(() => {
+            setProgress((prevProgress) => {
+                const newProgress = prevProgress + INCREMENT_PER_STEP;
+                // Если прогресс достиг или превысил 100%, останавливаем интервал
+                if (newProgress >= 100) {
+                    clearInterval(interval);
+                    return 100;
+                }
+                return newProgress;
+            });
+        }, INTERVAL_TIME_MS);
+
+        // Функция очистки: очищаем интервал, когда компонент размонтируется
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className={styles.splashSceen}>
+            <p className={styles.label}>Загрузка...</p>
+            <ProgressBar className={styles.progressBar} progress={progress} />
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\splash-screen\index.ts =====
+
+// src/shared/ui/splash-screen/index.ts
+export { SplashScreen } from './SplashScreen';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\action-buttons\index.ts =====
@@ -2777,10 +2869,9 @@ export const BuyMoreCard = () => {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineCard.tsx =====
 
-// @/widgets/machine-card/ui/MachineCard.tsx
 'use client';
 
-// <-- Добавлено в самое начало
+// @/widgets/machine-card/ui/MachineCard.tsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
@@ -2788,22 +2879,15 @@ import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-// <-- Импортируем useUser
 import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
 
-// @/widgets/machine-card/ui/MachineCard.tsx
-
-// @/widgets/machine-card/ui/MachineCard.tsx
-
-// @/widgets/machine-card/ui/MachineCard.tsx
-
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
         const { updateMachineStatusLocally } = useMachines();
-        const { refreshUserBalance } = useUser(); // <-- Получаем функцию обновления баланса
+        const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
         const [progress, setProgress] = useState<number>(0);
@@ -2882,7 +2966,15 @@ export const MachineCard = memo(
                 }
             }, 1000);
 
-            return () => clearInterval(interval);
+            intervalRef.current = interval;
+
+            const intervalId = intervalRef.current;
+
+            return () => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            };
         }, [currentStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
 
         // --- Обработчики событий ---
@@ -3550,7 +3642,6 @@ export const User = () => {
 ├── package.json
 ├── public
     └── images
-    │   ├── loading-scrine.png
     │   ├── machine1.png
     │   ├── machine2.png
     │   ├── machine3.png
@@ -3559,21 +3650,18 @@ export const User = () => {
     │   ├── machine6.png
     │   ├── machine7.png
     │   ├── machine8.png
-    │   └── mascot.png
+    │   ├── mascot.png
+    │   └── splash-screen.png
 ├── README.md
 ├── src
     ├── app
     │   ├── deposit
     │   │   ├── Deposit.module.scss
     │   │   └── page.tsx
-    │   ├── error.tsx
     │   ├── Home.module.scss
     │   ├── icon.svg
     │   ├── layout.module.scss
     │   ├── layout.tsx
-    │   ├── loading.module.scss
-    │   ├── loading.tsx
-    │   ├── not-found.tsx
     │   ├── page.tsx
     │   ├── referral
     │   │   ├── page.tsx
@@ -3581,9 +3669,16 @@ export const User = () => {
     │   ├── shop
     │   │   ├── page.tsx
     │   │   └── Shop.module.scss
-    │   └── withdraw
+    │   ├── withdraw
     │   │   ├── page.tsx
     │   │   └── Withdraw.module.scss
+    │   ├── _error
+    │   │   └── page.tsx
+    │   ├── _loading
+    │   │   ├── loading.module.scss
+    │   │   └── loading.tsx
+    │   └── _not-found
+    │   │   └── page.tsx
     ├── entities
     │   ├── deposit
     │   │   ├── api
@@ -3651,6 +3746,8 @@ export const User = () => {
     │   ├── mining
     │   │   ├── index.ts
     │   │   ├── model
+    │   │   │   ├── index.ts
+    │   │   │   └── types.ts
     │   │   └── ui
     │   │   │   ├── ClaimAnimation.tsx
     │   │   │   ├── index.ts
@@ -3718,18 +3815,18 @@ export const User = () => {
     │   │       ├── Input.module.scss
     │   │       ├── Input.tsx
     │   │       └── types.ts
-    │   │   ├── loading-indicator
-    │   │       ├── index.ts
-    │   │       ├── LoadingIndicator.module.scss
-    │   │       └── LoadingIndicator.tsx
     │   │   ├── modal
     │   │       ├── index.ts
     │   │       ├── Modal.module.scss
     │   │       └── Modal.tsx
-    │   │   └── progres-bar
+    │   │   ├── progres-bar
     │   │       ├── index.ts
     │   │       ├── ProgressBar.module.scss
     │   │       └── ProgressBar.tsx
+    │   │   └── splash-screen
+    │   │       ├── index.ts
+    │   │       ├── SplashScreen.module.scss
+    │   │       └── SplashScreen.tsx
     └── widgets
     │   ├── action-buttons
     │       ├── index.ts
