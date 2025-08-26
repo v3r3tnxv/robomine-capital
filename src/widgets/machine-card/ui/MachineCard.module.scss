@@ -67,24 +67,14 @@
             0 0 16px rgba($font-neon-orange, 0.2);
     }
 
-    .activationsValue {
+    .info {
         position: absolute;
         z-index: 13;
-        left: 0;
-        display: grid;
-        place-items: center;
-        width: 36px;
+        width: max-content;
         height: 36px;
-        border: none;
-        border-radius: 100%;
+        border-radius: 8px;
         background: rgba(255, 255, 255, 0.08);
         color: $color-accent;
-    }
-
-    .infoButton {
-        position: absolute;
-        z-index: 13;
-        right: 0;
     }
 
     .not_purchased {

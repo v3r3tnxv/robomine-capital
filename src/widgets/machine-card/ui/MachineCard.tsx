@@ -29,7 +29,6 @@ export const MachineCard = memo(
 
         const totalActivations = machineData?.car?.lifespan ?? 0;
         const remainingUses = machineData?.state_car?.remaining_uses ?? 0;
-        const usedActivations = totalActivations - remainingUses;
 
         // Синхронизируем локальный статус с пропсами
         useEffect(() => {
@@ -370,13 +369,19 @@ export const MachineCard = memo(
                     aria-label={`Майнинг-машина за ${price} USDT`}
                     disabled={isProcessing}
                 >
-                    <InfoButton
-                        className={styles.infoButton}
-                        onClick={() => setIsModalOpen(true)}
-                    />
-
-                    <div className={styles.activationsValue}>
-                        {usedActivations} / {totalActivations}
+                    <div className={styles.info}>
+                        {isPurchased ? (
+                            // Если машина куплена, отображаем оставшиеся активации
+                            <span className={styles.activationsDisplay}>{remainingUses}</span>
+                        ) : (
+                            // Если не куплена, отображаем кнопку с иконкой Info
+                            <InfoButton
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsModalOpen(true);
+                                }}
+                            />
+                        )}
                     </div>
 
                     <div className={styles.plate} />
