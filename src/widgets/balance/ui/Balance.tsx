@@ -35,7 +35,7 @@ export const Balance = () => {
                     separator=" "
                     decimal="."
                     prefix=""
-                    suffix=""
+                    suffix=" "
                 />
                 <span>RUB</span>
             </div>

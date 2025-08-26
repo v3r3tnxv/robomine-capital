@@ -10,7 +10,9 @@ import {
 /**
  * Инициировать вывод средств
  */
-export const transfer = async (data: CreateWithdrawalDto): Promise<TransferResult> => {
+export const transfer = async (
+    data: Omit<CreateWithdrawalDto, 'spend_id'>
+): Promise<TransferResult> => {
     const response = await api.post<TransferResult>('/withdrawal/transfer', data);
     return response.data;
 };

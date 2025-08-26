@@ -2,6 +2,8 @@
 
 // @/features/deposit/ui/WithdrawForm.tsx
 import { useEffect, useState } from 'react';
+import { useUser } from '@/entities/user/model/UserContext';
+import { TransferResult, transfer } from '@/entities/withdrawal';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Button, Input } from '@/shared/ui';
 import styles from './WithdrawForm.module.scss';
@@ -9,9 +11,14 @@ import styles from './WithdrawForm.module.scss';
 export const WithdrawForm = () => {
     const [rubAmount, setRubAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState('');
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+        null
+    );
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('RUB');
     const { rates } = useCurrencyConverter();
+    const { user } = useUser();
 
     // Обновляем одно поле в зависимости от другого
     useEffect(() => {
@@ -69,6 +76,7 @@ export const WithdrawForm = () => {
             setRubAmount(sanitizedValue);
             setLastChanged('RUB');
             setError('');
+            if (message) setMessage(null);
         }
         // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
@@ -82,26 +90,79 @@ export const WithdrawForm = () => {
             setUsdtAmount(sanitizedValue);
             setLastChanged('USDT');
             setError('');
+            if (message) setMessage(null);
         }
         // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!rubAmount || Number(rubAmount) <= 0) {
             setError('Введите корректную сумму');
             return;
         }
-        console.log('Пополнение RUB:', rubAmount);
-        console.log('Эквивалент в USDT:', usdtAmount);
 
-        // Очищаем форму после успешной отправки
-        setRubAmount('');
-        setUsdtAmount('');
+        const amountToWithdraw = parseFloat(usdtAmount);
+
+        // Проверка баланса пользователя (в USDT, предполагая, что user.balance в USDT)
+        const userBalance = user?.balance ?? 0;
+        if (amountToWithdraw > userBalance) {
+            setError('Недостаточно средств на балансе');
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+        setMessage(null);
+
+        try {
+            console.log(`Инициация вывода ${amountToWithdraw}`);
+
+            // Вызываем API-функцию для перевода, передавая сумму в USDT
+            const withdrawalResult: TransferResult = await transfer({ amount: usdtAmount });
+
+            console.log('Результат вывода:', withdrawalResult);
+
+            // Показываем сообщение пользователю
+            if (withdrawalResult.status === 'completed') {
+                setMessage({ type: 'success', text: `Вывод успешно выполнен!` });
+                // Очищаем поля ввода
+                setRubAmount('');
+                setUsdtAmount('');
+            } else if (withdrawalResult.status === 'pending_confirmation') {
+                setMessage({
+                    type: 'success',
+                    text: `Заявка на вывод создана и ожидает подтверждения.`,
+                });
+                // Очищаем поля ввода
+                setRubAmount('');
+                setUsdtAmount('');
+            } else {
+                setMessage({
+                    type: 'success',
+                    text: `Вывод инициирован со статусом: ${withdrawalResult.status}`,
+                });
+                // Очищаем поля ввода
+                setRubAmount('');
+                setUsdtAmount('');
+            }
+        } catch (err: unknown) {
+            console.error('Ошибка при создании инвойса:', err);
+            let errorMessage = 'Ошибка при попытке пополнения. Попробуйте позже.';
+            if (err instanceof Error) {
+                const axiosLikeError = err as { response?: { data?: { error?: string } } };
+                if (axiosLikeError.response?.data?.error) {
+                    errorMessage = `Ошибка: ${axiosLikeError.response.data.error}`;
+                } else {
+                    errorMessage = `Ошибка: ${err.message}`;
+                }
+            }
+
+            setError(errorMessage);
+        }
     };
 
     // Проверяем, можно ли активировать кнопку
-    const isButtonDisabled =
-        !rubAmount || !usdtAmount || Number(rubAmount) <= 0 || Number(usdtAmount) <= 0;
+    const isButtonDisabled = !usdtAmount || Number(usdtAmount) <= 0 || isLoading;
 
     return (
         <div className={styles.withdrawForm}>
@@ -114,7 +175,6 @@ export const WithdrawForm = () => {
                 value={rubAmount}
                 onChange={(e) => handleRubChange(e.target.value)}
                 currency="RUB"
-                error={error}
             />
 
             <Input
@@ -129,8 +189,12 @@ export const WithdrawForm = () => {
                 error={error}
             />
 
+            {message && (
+                <p className={`${styles.message} ${styles[message.type]}`}>{message.text}</p>
+            )}
+
             <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
-                Пополнить
+                {isLoading ? 'Обработка...' : 'Вывести'}
             </Button>
         </div>
     );
