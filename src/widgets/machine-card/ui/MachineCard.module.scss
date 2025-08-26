@@ -70,11 +70,16 @@
     .info {
         position: absolute;
         z-index: 13;
+        right: 0;
         width: max-content;
         height: 36px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.08);
-        color: $color-accent;
+        color: $font-neon-orange !important;
+
+        .activationsDisplay {
+            padding: 0 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+        }
     }
 
     .not_purchased {

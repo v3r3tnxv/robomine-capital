@@ -372,7 +372,15 @@ export const MachineCard = memo(
                     <div className={styles.info}>
                         {isPurchased ? (
                             // Если машина куплена, отображаем оставшиеся активации
-                            <span className={styles.activationsDisplay}>{remainingUses}</span>
+                            <span
+                                className={styles.activationsDisplay}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                {remainingUses} / {totalActivations}
+                            </span>
                         ) : (
                             // Если не куплена, отображаем кнопку с иконкой Info
                             <InfoButton
