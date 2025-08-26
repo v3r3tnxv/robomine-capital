@@ -25,7 +25,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const timer = setTimeout(() => {
             setShowSplash(false); // Через 5 секунд скрываем сплеш
-        }, 5000); // 5000 миллисекунд = 5 секунд
+        }, 3000); // 5000 миллисекунд = 5 секунд
 
         // Очистка таймера при размонтировании (хорошая практика)
         return () => clearTimeout(timer);

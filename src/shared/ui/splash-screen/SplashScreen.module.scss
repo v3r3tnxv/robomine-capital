@@ -3,39 +3,43 @@
 @use '@/shared/styles/variables' as *;
 
 .splashSceen {
-    position: fixed; // Фиксированное позиционирование
-    top: 0; // Прижимаем к верху viewport
-    left: 0; // Прижимаем к левому краю viewport
-    width: 100vw; // Ширина равна ширине viewport
-    height: 100vh; // Высота равна высоте viewport
+    position: fixed;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    padding-bottom: 16px;
 
-    display: flex; // Используем flexbox для центрирования содержимого
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    // background-color: rgba(8, 0, 22, 1); // Фон, если нужно отличный от body
-    background: rgba(8, 0, 22, 1); // Совпадает с .layout
-    z-index: 9999; // Высокий z-index, чтобы быть поверх всего
-    gap: 20px; // Расстояние между элементами
+    display: grid;
+    grid-template-rows: 1fr max-content max-content;
+    align-items: self-end;
+    justify-items: center;
 
-    .background {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1; // За содержимым
-    }
+    background:
+        /* 1. Затемняющий градиент (сверху) */
+        radial-gradient(
+            ellipse 88.48% 47.66% at 50% 50%,
+            rgba(0, 0, 0, 0) 77.88%,
+            rgba(0, 0, 0, 0.8) 100%
+        ),
+        /* 2. Фоновое изображение (позади градиента) */ url('/images/splash-screen.png');
+    background-size: cover;
+    background-position: bottom;
+    background-repeat: no-repeat;
 
     .label {
+        position: relative;
+        z-index: 1;
         width: 100%;
         height: 36px;
-        align-self: self-end;
-        align-content: center;
-        color: $font-neon-orange;
+        text-align: center;
+        color: $color-accent;
     }
 
-    .progressBarContainer {
+    .progressBar {
+        position: relative;
+        z-index: 1;
         width: 80%;
         max-width: 300px;
     }

@@ -7,7 +7,7 @@
 //     return (
 //         <div className={styles.loading}>
 //             <Image
-//                 src="/images/loading-scrine.png"
+//                 src="/images/.png"
 //                 width={100}
 //                 height={100}
 //                 alt="Робот"
