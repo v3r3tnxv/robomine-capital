@@ -10,10 +10,10 @@ import styles from './DepositForm.module.scss';
 export const DepositForm = () => {
     const [rubAmount, setRubAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('USDT');
     const { rates } = useCurrencyConverter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     // Эффект для конвертации USDT <-> RUB для отображения
     useEffect(() => {
@@ -89,7 +89,9 @@ export const DepositForm = () => {
         // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); // Предотвращаем перезагрузку страницы
+
         // Основная проверка по полю USDT
         if (!usdtAmount || Number(usdtAmount) <= 0) {
             setError('Введите корректную сумму');
@@ -141,17 +143,8 @@ export const DepositForm = () => {
             console.error('Ошибка при создании инвойса:', err);
             let errorMessage = 'Ошибка при попытке пополнения. Попробуйте позже.';
 
-            // Проверяем тип ошибки
-            // Если используете Axios, можно импортировать AxiosError
-            // import { AxiosError } from 'axios';
-            // if (err instanceof AxiosError) { ... }
             if (err instanceof Error) {
-                // Базовая проверка на Error
-                // Проверяем, есть ли сообщение об ошибке от вашего API
-                // Предполагаем, что ошибка может иметь свойство response с data
-                // Нужно адаптировать под структуру ошибок вашего API (например, Axios)
-                // Пример для Axios-подобной структуры:
-                // --- Адаптация под потенциальную структуру Axios ошибки ---
+                // Пытаемся извлечь сообщение об ошибке от бэкенда
                 const axiosLikeError = err as { response?: { data?: { error?: string } } };
                 if (axiosLikeError.response?.data?.error) {
                     errorMessage = `Ошибка: ${axiosLikeError.response.data.error}`;

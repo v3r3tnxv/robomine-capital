@@ -2,7 +2,16 @@
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
 
-.depositForm {
+.withdrawForm {
     display: grid;
     gap: 16px;
+
+    .button {
+        width: 100%;
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
 }
