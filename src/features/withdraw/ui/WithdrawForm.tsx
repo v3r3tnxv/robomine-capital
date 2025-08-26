@@ -139,37 +139,34 @@ export const WithdrawForm = () => {
         !usdtAmount || isNaN(parseFloat(usdtAmount)) || parseFloat(usdtAmount) <= 0 || isLoading;
 
     return (
-        <div className={styles.withdrawForm}>
-            {/* Оборачиваем в форму для правильной семантики и обработки onSubmit */}
-            <form onSubmit={handleSubmit}>
-                <Input
-                    type="tel"
-                    inputMode="decimal"
-                    pattern="[0-9]+([\.][0-9]+)?"
-                    variant="balance"
-                    placeholder="Введите сумму"
-                    value={rubAmount}
-                    onChange={(e) => handleRubChange(e.target.value)}
-                    currency="RUB"
-                    // error={error} // Ошибки обычно привязаны к основному полю действия или отдельному сообщению
-                />
+        <form className={styles.withdrawForm} onSubmit={handleSubmit}>
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={rubAmount}
+                onChange={(e) => handleRubChange(e.target.value)}
+                currency="RUB"
+                // error={error} // Ошибки обычно привязаны к основному полю действия или отдельному сообщению
+            />
 
-                <Input
-                    type="tel"
-                    inputMode="decimal"
-                    pattern="[0-9]+([\.][0-9]+)?"
-                    variant="balance"
-                    placeholder="Введите сумму"
-                    value={usdtAmount}
-                    onChange={(e) => handleUsdtChange(e.target.value)}
-                    currency="USDT"
-                    error={error} // Отображаем ошибки на основном поле ввода (USDT)
-                />
+            <Input
+                type="tel"
+                inputMode="decimal"
+                pattern="[0-9]+([\.][0-9]+)?"
+                variant="balance"
+                placeholder="Введите сумму"
+                value={usdtAmount}
+                onChange={(e) => handleUsdtChange(e.target.value)}
+                currency="USDT"
+                error={error} // Отображаем ошибки на основном поле ввода (USDT)
+            />
 
-                <Button className={styles.button} type="submit" disabled={isButtonDisabled}>
-                    {isLoading ? 'Обработка...' : 'Вывести'}
-                </Button>
-            </form>
-        </div>
+            <Button className={styles.button} type="submit" disabled={isButtonDisabled}>
+                {isLoading ? 'Обработка...' : 'Вывести'}
+            </Button>
+        </form>
     );
 };

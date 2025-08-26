@@ -161,7 +161,7 @@ export const DepositForm = () => {
     const isButtonDisabled = !usdtAmount || Number(usdtAmount) <= 0;
 
     return (
-        <div className={styles.depositForm}>
+        <form className={styles.depositForm} onSubmit={handleSubmit}>
             <Input
                 type="tel"
                 inputMode="decimal"
@@ -185,9 +185,9 @@ export const DepositForm = () => {
                 error={error}
             />
 
-            <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
+            <Button className={styles.button} type="submit" disabled={isButtonDisabled}>
                 {isLoading ? 'Обработка...' : 'Пополнить'}
             </Button>
-        </div>
+        </form>
     );
 };
