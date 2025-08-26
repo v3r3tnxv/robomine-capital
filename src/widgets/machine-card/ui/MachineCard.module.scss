@@ -67,10 +67,23 @@
             0 0 16px rgba($font-neon-orange, 0.2);
     }
 
-    .infoButton {
-        position: relative;
-        z-index: 13;
+    .activationsValue {
         position: absolute;
+        z-index: 13;
+        left: 0;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 100%;
+        background: rgba(255, 255, 255, 0.08);
+        color: $color-accent;
+    }
+
+    .infoButton {
+        position: absolute;
+        z-index: 13;
         right: 0;
     }
 

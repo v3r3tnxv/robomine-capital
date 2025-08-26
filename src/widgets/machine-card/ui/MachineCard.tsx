@@ -27,6 +27,10 @@ export const MachineCard = memo(
 
         const isPurchased = currentStatus !== 'not_purchased';
 
+        const totalActivations = machineData?.car?.lifespan ?? 0;
+        const remainingUses = machineData?.state_car?.remaining_uses ?? 0;
+        const usedActivations = totalActivations - remainingUses;
+
         // Синхронизируем локальный статус с пропсами
         useEffect(() => {
             setCurrentStatus(status);
@@ -244,19 +248,6 @@ export const MachineCard = memo(
                     if (onAction) {
                         onAction('activated', machineData.car.id);
                     }
-
-                    // --- Обновляем баланс пользователя ---
-                    // Примечание: Обычно активация не меняет баланс напрямую,
-                    // но если в будущем будет, раскомментируй:
-                    /*
-                    try {
-                        await refreshUserBalance();
-                        console.log("Баланс пользователя обновлён после активации машины.");
-                    } catch (balanceError) {
-                        console.error("Ошибка обновления баланса после активации машины:", balanceError);
-                    }
-                    */
-                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка активации:', err);
@@ -383,6 +374,11 @@ export const MachineCard = memo(
                         className={styles.infoButton}
                         onClick={() => setIsModalOpen(true)}
                     />
+
+                    <div className={styles.activationsValue}>
+                        {usedActivations} / {totalActivations}
+                    </div>
+
                     <div className={styles.plate} />
 
                     <Image

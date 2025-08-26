@@ -18,66 +18,6 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\app\_error\page.tsx =====
-
-'use client';
-
-import { useEffect } from 'react';
-import { Button } from '@/shared/ui/button';
-
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
-    useEffect(() => {
-        console.error(error);
-    }, [error]);
-
-    return (
-        <div>
-            <h1>Ошибка</h1>
-            <p>Произошла ошибка при загрузке страницы.</p>
-            <Button onClick={() => reset()} className="" label="Попробовать снова" />
-        </div>
-    );
-}
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\app\_loading\loading.tsx =====
-
-// // @/app/loading.tsx
-// import Image from 'next/image';
-// import { ProgressBar } from '@/shared/ui';
-// import styles from './Home.module.scss';
-
-// export default function Loading() {
-//     return (
-//         <div className={styles.loading}>
-//             <Image
-//                 src="/images/.png"
-//                 width={100}
-//                 height={100}
-//                 alt="Робот"
-//                 className={styles.loadingImage}
-//             />
-//             <p className={styles.label}>Загрузка</p>
-//             <ProgressBar progress={10} />
-//         </div>
-//     );
-// }
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\app\_not-found\page.tsx =====
-
-// @/app/not-found.tsx
-
-export default function NotFound() {
-    return (
-        <div>
-            <h1 className="not-found__title">404</h1>
-            <p className="not-found__description">Страница не найдена</p>
-        </div>
-    );
-}
-
-
 ===== C:\Users\USER\Projects\robomine-capital\src\app\deposit\page.tsx =====
 
 // @/app/deposit/page.tsx
@@ -96,6 +36,28 @@ export default function DepositPage() {
                 <span>Сумма для пополнения</span>
                 <DepositForm />
             </div>
+        </div>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\error.tsx =====
+
+'use client';
+
+import { useEffect } from 'react';
+import { Button } from '@/shared/ui/button';
+
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+    useEffect(() => {
+        console.error(error);
+    }, [error]);
+
+    return (
+        <div>
+            <h1>Ошибка</h1>
+            <p>Произошла ошибка при загрузке страницы.</p>
+            <Button onClick={() => reset()} className="" label="Попробовать снова" />
         </div>
     );
 }
@@ -143,6 +105,30 @@ export default function RootLayout({
                 </main>
             </body>
         </html>
+    );
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\loading.tsx =====
+
+// @/app/loading.tsx
+import styles from './Home.module.scss';
+
+export default function Loading() {
+    return <div className={styles.loading}></div>;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\app\not-found.tsx =====
+
+// @/app/not-found.tsx
+
+export default function NotFound() {
+    return (
+        <div>
+            <h1 className="not-found__title">404</h1>
+            <p className="not-found__description">Страница не найдена</p>
+        </div>
     );
 }
 
@@ -1009,7 +995,9 @@ import {
 /**
  * Инициировать вывод средств
  */
-export const transfer = async (data: CreateWithdrawalDto): Promise<TransferResult> => {
+export const transfer = async (
+    data: Omit<CreateWithdrawalDto, 'spend_id'>
+): Promise<TransferResult> => {
     const response = await api.post<TransferResult>('/withdrawal/transfer', data);
     return response.data;
 };
@@ -1340,6 +1328,7 @@ export { DepositForm } from './ui/DepositForm';
 
 // @/features/deposit/ui/DepositForm.tsx
 import { useEffect, useState } from 'react';
+import { DepositDto, createDepositInvoice } from '@/entities/deposit';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Button, Input } from '@/shared/ui';
 import styles from './DepositForm.module.scss';
@@ -1347,11 +1336,12 @@ import styles from './DepositForm.module.scss';
 export const DepositForm = () => {
     const [rubAmount, setRubAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState('');
-    const [error, setError] = useState('');
-    const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('RUB');
+    const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('USDT');
     const { rates } = useCurrencyConverter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // Обновляем одно поле в зависимости от другого
+    // Эффект для конвертации USDT <-> RUB для отображения
     useEffect(() => {
         // Если поле очищено, очищаем и второе поле
         if (lastChanged === 'RUB') {
@@ -1365,7 +1355,7 @@ export const DepositForm = () => {
                     amount: Number(rubAmount),
                     from: 'RUB',
                     to: 'USDT',
-                    rates, // <-- Теперь rates гарантированно не null в этом блоке
+                    rates,
                 });
                 setUsdtAmount(converted.toString());
             }
@@ -1380,13 +1370,14 @@ export const DepositForm = () => {
                     amount: Number(usdtAmount),
                     from: 'USDT',
                     to: 'RUB',
-                    rates, // <-- Теперь rates гарантированно не null в этом блоке
+                    rates,
                 });
                 setRubAmount(converted.toString());
             }
         }
     }, [rubAmount, usdtAmount, lastChanged, rates]);
 
+    // Обработчики изменений полей ввода
     const isValidNumericInput = (value: string): boolean => {
         // Разрешает пустую строку, положительные числа и десятичные дроби
         // ^\d*\.?\d*$ - регулярное выражение:
@@ -1424,25 +1415,79 @@ export const DepositForm = () => {
         // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
-    const handleSubmit = () => {
-        if (!rubAmount || Number(rubAmount) <= 0) {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); // Предотвращаем перезагрузку страницы
+
+        // Основная проверка по полю USDT
+        if (!usdtAmount || Number(usdtAmount) <= 0) {
             setError('Введите корректную сумму');
             return;
         }
-        console.log('Пополнение RUB:', rubAmount);
-        console.log('Эквивалент в USDT:', usdtAmount);
 
-        // Очищаем форму после успешной отправки
-        setRubAmount('');
-        setUsdtAmount('');
+        const assetToUse = 'USDT'; // Актив для оплаты
+        const amountToUse = usdtAmount; // Сумма в USDT
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            console.log(`Создание инвойса для ${assetToUse}:`, amountToUse);
+            // Вызываем API-функцию
+            // Предполагаем, что бэкенд (DepositService) был изменен для возврата pay_url
+            const invoiceData: DepositDto & { pay_url?: string } = await createDepositInvoice(
+                assetToUse,
+                amountToUse
+            );
+
+            console.log('Данные инвойса от бэкенда:', invoiceData);
+
+            let payUrl: string | null = null;
+
+            // Проверяем, есть ли pay_url в ответе
+            if (invoiceData.pay_url) {
+                payUrl = invoiceData.pay_url;
+            } else if (invoiceData.invoice_id) {
+                // Если нет, пробуем сформировать его (проверьте правильность формата!)
+                // Формат может отличаться, уточните в документации CryptoBot
+                payUrl = `https://t.me/CryptoBot?start=IV${invoiceData.invoice_id}`;
+                console.warn(
+                    'pay_url не найден в ответе бэкенда, формируем вручную. Проверьте формат.'
+                );
+            }
+
+            if (payUrl) {
+                console.log('Перенаправление на:', payUrl);
+                window.location.href = payUrl;
+            } else {
+                setError('Ошибка получения ссылки на оплату. Обратитесь в поддержку.');
+                console.error(
+                    'Не удалось получить или сформировать pay_url из ответа:',
+                    invoiceData
+                );
+            }
+        } catch (err: unknown) {
+            console.error('Ошибка при создании инвойса:', err);
+            let errorMessage = 'Ошибка при попытке пополнения. Попробуйте позже.';
+
+            if (err instanceof Error) {
+                // Пытаемся извлечь сообщение об ошибке от бэкенда
+                const axiosLikeError = err as { response?: { data?: { error?: string } } };
+                if (axiosLikeError.response?.data?.error) {
+                    errorMessage = `Ошибка: ${axiosLikeError.response.data.error}`;
+                } else {
+                    errorMessage = `Ошибка: ${err.message}`;
+                }
+            }
+            // Если ошибка не является экземпляром Error, используем общее сообщение
+            setError(errorMessage);
+        }
     };
 
     // Проверяем, можно ли активировать кнопку
-    const isButtonDisabled =
-        !rubAmount || !usdtAmount || Number(rubAmount) <= 0 || Number(usdtAmount) <= 0;
+    const isButtonDisabled = !usdtAmount || Number(usdtAmount) <= 0;
 
     return (
-        <div className={styles.depositForm}>
+        <form className={styles.depositForm} onSubmit={handleSubmit}>
             <Input
                 type="tel"
                 inputMode="decimal"
@@ -1452,7 +1497,6 @@ export const DepositForm = () => {
                 value={rubAmount}
                 onChange={(e) => handleRubChange(e.target.value)}
                 currency="RUB"
-                error={error}
             />
 
             <Input
@@ -1467,10 +1511,10 @@ export const DepositForm = () => {
                 error={error}
             />
 
-            <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
-                Пополнить
+            <Button className={styles.button} type="submit" disabled={isButtonDisabled}>
+                {isLoading ? 'Обработка...' : 'Пополнить'}
             </Button>
-        </div>
+        </form>
     );
 };
 
@@ -1662,6 +1706,7 @@ export { WithdrawForm } from './ui/WithdrawForm';
 
 // @/features/deposit/ui/WithdrawForm.tsx
 import { useEffect, useState } from 'react';
+import { TransferResult, transfer } from '@/entities/withdrawal';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Button, Input } from '@/shared/ui';
 import styles from './WithdrawForm.module.scss';
@@ -1669,11 +1714,12 @@ import styles from './WithdrawForm.module.scss';
 export const WithdrawForm = () => {
     const [rubAmount, setRubAmount] = useState('');
     const [usdtAmount, setUsdtAmount] = useState('');
-    const [error, setError] = useState('');
     const [lastChanged, setLastChanged] = useState<'RUB' | 'USDT'>('RUB');
     const { rates } = useCurrencyConverter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // Обновляем одно поле в зависимости от другого
+    // Эффект для конвертации USDT <-> RUB для отображения
     useEffect(() => {
         // Если поле очищено, очищаем и второе поле
         if (lastChanged === 'RUB') {
@@ -1687,7 +1733,7 @@ export const WithdrawForm = () => {
                     amount: Number(rubAmount),
                     from: 'RUB',
                     to: 'USDT',
-                    rates, // <-- Теперь rates гарантированно не null в этом блоке
+                    rates,
                 });
                 setUsdtAmount(converted.toString());
             }
@@ -1702,7 +1748,7 @@ export const WithdrawForm = () => {
                     amount: Number(usdtAmount),
                     from: 'USDT',
                     to: 'RUB',
-                    rates, // <-- Теперь rates гарантированно не null в этом блоке
+                    rates,
                 });
                 setRubAmount(converted.toString());
             }
@@ -1736,8 +1782,6 @@ export const WithdrawForm = () => {
     const handleUsdtChange = (value: string) => {
         // Убираем все символы, кроме цифр и точки
         const sanitizedValue = value.replace(/[^0-9.]/g, '');
-
-        // Проверяем, является ли ввод допустимым числом
         if (isValidNumericInput(sanitizedValue)) {
             setUsdtAmount(sanitizedValue);
             setLastChanged('USDT');
@@ -1746,25 +1790,60 @@ export const WithdrawForm = () => {
         // Если ввод недопустим, мы его игнорируем, не обновляя состояние
     };
 
-    const handleSubmit = () => {
-        if (!rubAmount || Number(rubAmount) <= 0) {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault(); // Предотвращаем перезагрузку страницы
+
+        // Базовая валидация: проверяем, что сумма в USDT введена и положительна
+        if (!usdtAmount || Number(usdtAmount) <= 0) {
             setError('Введите корректную сумму');
             return;
         }
-        console.log('Пополнение RUB:', rubAmount);
-        console.log('Эквивалент в USDT:', usdtAmount);
 
-        // Очищаем форму после успешной отправки
-        setRubAmount('');
-        setUsdtAmount('');
+        const amountToWithdraw = parseFloat(usdtAmount);
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            console.log(`Инициация вывода ${amountToWithdraw} USDT (эквивалент ~${rubAmount} RUB)`);
+
+            const withdrawalResult: TransferResult = await transfer({ amount: usdtAmount });
+
+            console.log('Результат вывода:', withdrawalResult);
+
+            if (withdrawalResult.status === 'completed') {
+                // Очищаем поля ввода
+                setRubAmount('');
+                setUsdtAmount('');
+            } else {
+                // Этот случай маловероятен, если auto_approve=true, но оставим на всякий
+            }
+        } catch (err: unknown) {
+            console.error('Ошибка при выводе:', err);
+            let errorMessage = 'Ошибка при попытке вывода. Попробуйте позже.';
+
+            if (err instanceof Error) {
+                // Пытаемся извлечь сообщение об ошибке от бэкенда
+                const axiosLikeError = err as { response?: { data?: { error?: string } } };
+                if (axiosLikeError.response?.data?.error) {
+                    errorMessage = `Ошибка: ${axiosLikeError.response.data.error}`;
+                } else {
+                    errorMessage = `Ошибка: ${err.message}`;
+                }
+            }
+            setError(errorMessage);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Проверяем, можно ли активировать кнопку
+    // Разрешаем отправку, если введена корректная сумма в USDT
     const isButtonDisabled =
-        !rubAmount || !usdtAmount || Number(rubAmount) <= 0 || Number(usdtAmount) <= 0;
+        !usdtAmount || isNaN(parseFloat(usdtAmount)) || parseFloat(usdtAmount) <= 0 || isLoading;
 
     return (
-        <div className={styles.withdrawForm}>
+        <form className={styles.withdrawForm} onSubmit={handleSubmit}>
             <Input
                 type="tel"
                 inputMode="decimal"
@@ -1774,7 +1853,7 @@ export const WithdrawForm = () => {
                 value={rubAmount}
                 onChange={(e) => handleRubChange(e.target.value)}
                 currency="RUB"
-                error={error}
+                // error={error} // Ошибки обычно привязаны к основному полю действия или отдельному сообщению
             />
 
             <Input
@@ -1786,13 +1865,13 @@ export const WithdrawForm = () => {
                 value={usdtAmount}
                 onChange={(e) => handleUsdtChange(e.target.value)}
                 currency="USDT"
-                error={error}
+                error={error} // Отображаем ошибки на основном поле ввода (USDT)
             />
 
-            <Button className={styles.button} onClick={handleSubmit} disabled={isButtonDisabled}>
-                Пополнить
+            <Button className={styles.button} type="submit" disabled={isButtonDisabled}>
+                {isLoading ? 'Обработка...' : 'Вывести'}
             </Button>
-        </div>
+        </form>
     );
 };
 
@@ -2702,7 +2781,7 @@ export const Balance = () => {
                     separator=" "
                     decimal="."
                     prefix=""
-                    suffix=""
+                    suffix=" "
                 />
                 <span>RUB</span>
             </div>
@@ -3658,10 +3737,13 @@ export const User = () => {
     │   ├── deposit
     │   │   ├── Deposit.module.scss
     │   │   └── page.tsx
+    │   ├── error.tsx
     │   ├── Home.module.scss
     │   ├── icon.svg
     │   ├── layout.module.scss
     │   ├── layout.tsx
+    │   ├── loading.tsx
+    │   ├── not-found.tsx
     │   ├── page.tsx
     │   ├── referral
     │   │   ├── page.tsx
@@ -3669,16 +3751,9 @@ export const User = () => {
     │   ├── shop
     │   │   ├── page.tsx
     │   │   └── Shop.module.scss
-    │   ├── withdraw
+    │   └── withdraw
     │   │   ├── page.tsx
     │   │   └── Withdraw.module.scss
-    │   ├── _error
-    │   │   └── page.tsx
-    │   ├── _loading
-    │   │   ├── loading.module.scss
-    │   │   └── loading.tsx
-    │   └── _not-found
-    │   │   └── page.tsx
     ├── entities
     │   ├── deposit
     │   │   ├── api
