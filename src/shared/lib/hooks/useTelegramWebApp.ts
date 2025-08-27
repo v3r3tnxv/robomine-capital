@@ -16,6 +16,7 @@ declare global {
                 initDataUnsafe: {
                     user?: TelegramUser;
                 };
+                disableVerticalSwipes: () => void;
                 ready: () => void;
             };
         };
@@ -28,6 +29,11 @@ export const useTelegramWebApp = () => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+            // Отключаем вертикальные свайпы для Telegram Mini App
+            if (window.Telegram?.WebApp?.disableVerticalSwipes) {
+                window.Telegram.WebApp.disableVerticalSwipes();
+            }
+
             const user = window.Telegram.WebApp.initDataUnsafe.user || null;
             setTgUser(user);
             setIsLoading(false);
