@@ -6,8 +6,6 @@
 .referralLinkWrapper {
     position: relative;
     width: 100%;
-
-    @include interactive-behavior(0.96, 1.2, 0.3s);
 }
 
 .referralLink {

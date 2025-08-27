@@ -28,12 +28,16 @@ export const MachineCard = memo(
         const isPurchased = currentStatus !== 'not_purchased';
 
         const totalActivations = machineData?.car?.lifespan ?? 0;
-        const remainingUses = machineData?.state_car?.remaining_uses ?? 0;
+        const [remainingUses, setRemainingUses] = useState<number>(
+            machineData?.state_car?.remaining_uses ?? 0
+        );
 
-        // Синхронизируем локальный статус с пропсами
+        // Синхронизируем локальный статус и remainingUses с пропсами при их изменении
         useEffect(() => {
             setCurrentStatus(status);
-        }, [status]);
+            // Обновляем локальное состояние remainingUses при изменении пропса
+            setRemainingUses(machineData?.state_car?.remaining_uses ?? 0);
+        }, [status, machineData?.state_car?.remaining_uses]);
 
         // --- Рассчитываем доход за активацию ---
         const earnings = Number(machineData?.car?.daily_replenishment || 0);

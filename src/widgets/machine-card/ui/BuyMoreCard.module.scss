@@ -12,7 +12,6 @@
     border-bottom: 2px solid rgba(202, 68, 255, 0.33);
     border-radius: 16px;
     z-index: 10;
-    @include interactive-behavior(0.96, 1.2, 0.3s);
 
     .plate {
         position: absolute;

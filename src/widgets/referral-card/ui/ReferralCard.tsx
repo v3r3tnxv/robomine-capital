@@ -18,7 +18,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
             {/* TODO: Заменить на аватар реферала, если он есть */}
             <Image
                 className={styles.avatar}
-                src={`/images/machine1.png`} // Заглушка
+                src={`/images/mascot.webp`} // Заглушка
                 width={100}
                 height={100}
                 alt={`Аватар ${referral.username}`}

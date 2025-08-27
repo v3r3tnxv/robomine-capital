@@ -9,7 +9,6 @@
     justify-items: center;
     gap: 16px;
     width: 80%;
-    @include interactive-behavior(0.96, 1.2, 0.3s);
 
     .imageWrapper {
         position: relative;

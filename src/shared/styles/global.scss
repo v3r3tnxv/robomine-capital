@@ -1,6 +1,68 @@
 @use './variables' as *;
-@use './mixins';
+@use './mixins' as *;
 @use './animations';
+
+/* Reset and base styles  */
+* {
+    font-family:
+        'Lato',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        Cantarell,
+        'Open Sans',
+        'Helvetica Neue',
+        sans-serif;
+    margin: 0px;
+    padding: 0px;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Links */
+
+// Убираем стандартный outline у интерактивных элементов
+button,
+a,
+input[type='button'],
+input[type='submit'],
+input[type='reset'] {
+    @include interactive-behavior;
+
+    &:focus {
+        outline: none;
+        // Если хотите кастомный фокус для доступности, определите его отдельно
+        // &:focus-visible { outline: 2px solid blue; } // Пример кастомного видимого фокуса
+    }
+
+    &:active {
+        // Убираем потенциальные стили активации, если они есть
+        outline: none;
+        box-shadow: none;
+    }
+}
+
+a,
+a:link,
+a:visited {
+    text-decoration: none;
+    color: $color-white;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+/* Common */
 
 body {
     width: 100%;
@@ -21,46 +83,6 @@ h2 {
     font-weight: 700;
     color: $color-white;
 }
-
-/* Reset and base styles  */
-* {
-    font-family:
-        'Lato',
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        Roboto,
-        Oxygen,
-        Ubuntu,
-        Cantarell,
-        'Open Sans',
-        'Helvetica Neue',
-        sans-serif;
-    margin: 0px;
-    padding: 0px;
-    border: none;
-}
-
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-/* Links */
-
-a,
-a:link,
-a:visited {
-    text-decoration: none;
-    color: $color-white;
-}
-
-a:hover {
-    text-decoration: none;
-}
-
-/* Common */
 
 aside,
 nav,
