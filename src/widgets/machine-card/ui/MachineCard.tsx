@@ -317,7 +317,7 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return (
                         <>
-                            +{earnings} <Coin width={24} height={24} /> за 23 часа
+                            +{earnings} <Coin width={20} height={20} /> за 23 часа
                         </>
                     );
                 case 'in_progress':
@@ -325,7 +325,7 @@ export const MachineCard = memo(
                 case 'waiting_for_reward':
                     return (
                         <>
-                            {earnings} <Coin width={24} height={24} />
+                            {earnings} <Coin width={20} height={20} />
                         </>
                     );
                 case 'completed':

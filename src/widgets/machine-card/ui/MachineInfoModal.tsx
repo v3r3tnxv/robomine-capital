@@ -25,7 +25,7 @@ export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalP
                     <div className={styles.infoItem}>
                         <p className={styles.label}>Цена:</p>
                         <p className={styles.value}>
-                            {machine.car.price} <Coin width={24} height={24} />
+                            {machine.car.price} <Coin width={20} height={20} />
                         </p>
                     </div>
 
@@ -37,7 +37,7 @@ export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalP
                     <div className={styles.infoItem}>
                         <p className={styles.label}>Доход за 1 активацию:</p>
                         <p className={styles.value}>
-                            +{earnings} <Coin width={24} height={24} />
+                            +{earnings} <Coin width={20} height={20} />
                         </p>
                     </div>
                 </div>

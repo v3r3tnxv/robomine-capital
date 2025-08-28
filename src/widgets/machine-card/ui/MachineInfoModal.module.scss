@@ -15,13 +15,19 @@
         width: 100%;
 
         .infoItem {
-            display: flex;
+            display: grid;
             justify-content: space-between;
+            grid-template-columns: max-content max-content;
+            align-items: center;
 
             .label {
             }
 
             .value {
+                display: grid;
+                grid-template-columns: repeat(2, max-content);
+                align-items: center;
+                gap: 4px;
             }
         }
     }
