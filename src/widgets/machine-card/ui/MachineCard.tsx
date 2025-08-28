@@ -7,6 +7,7 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
+import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
@@ -314,11 +315,19 @@ export const MachineCard = memo(
 
             switch (currentStatus) {
                 case 'awaiting':
-                    return `+${earnings} USDT за 23 ч.`;
+                    return (
+                        <>
+                            +{earnings} <Coin width={24} height={24} /> за 23 часа
+                        </>
+                    );
                 case 'in_progress':
                     return 'Работаем...';
                 case 'waiting_for_reward':
-                    return `${earnings} USDT`;
+                    return (
+                        <>
+                            {earnings} <Coin width={24} height={24} />
+                        </>
+                    );
                 case 'completed':
                     return 'Завершена';
                 default:
@@ -370,7 +379,7 @@ export const MachineCard = memo(
                     className={clsx(styles.card)}
                     onClick={actionHandler}
                     type="button"
-                    aria-label={`Майнинг-машина за ${price} USDT`}
+                    aria-label={`${machineData!.car.name}`}
                     disabled={isProcessing}
                 >
                     <div className={styles.info}>
@@ -396,7 +405,7 @@ export const MachineCard = memo(
                         )}
                     </div>
 
-                    <div className={styles.plate} />
+                    <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
 
                     <Image
                         className={clsx(styles.image, { [styles.purchased]: isPurchased })}

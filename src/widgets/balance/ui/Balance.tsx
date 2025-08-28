@@ -4,6 +4,7 @@
 import CountUp from 'react-countup';
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Coin } from '@/shared/assets/icons';
 import styles from './Balance.module.scss';
 
 export const Balance = () => {
@@ -37,7 +38,7 @@ export const Balance = () => {
                     prefix=""
                     suffix=" "
                 />
-                <span>RUB</span>
+                <span>₽</span>
             </div>
             <div className={styles.balanceUSDT}>
                 <CountUp
@@ -50,7 +51,7 @@ export const Balance = () => {
                     suffix=" "
                     className={styles.value}
                 />
-                <span>USDT</span>
+                <Coin width={40} height={40} />
             </div>
         </div>
     );

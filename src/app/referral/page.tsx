@@ -13,21 +13,27 @@ import styles from './Referral.module.scss';
 export default function ReferralPage() {
     const { user } = useUser();
     const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Загружаем данные рефералов только один раз, когда пользователь доступен
     useEffect(() => {
-        if (user && !referralsData) {
+        if (user && !referralsData && loading === true && error === null) {
             const fetchData = async () => {
                 try {
+                    setLoading(true);
+                    setError(null);
                     const referralsDataResult = await getUserReferrals();
                     setReferralsData(referralsDataResult);
-                } catch (err) {
-                    console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                } catch {
+                    setError('Не удалось загрузить данные рефералов.');
+                } finally {
+                    setLoading(false); // Завершаем загрузку
                 }
             };
             fetchData();
         }
-    }, [user, referralsData]);
+    }, [user, referralsData, loading, error]);
 
     const handleInvite = () => {
         const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user?.telegram_id}`;
