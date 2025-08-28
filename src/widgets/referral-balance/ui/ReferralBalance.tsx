@@ -53,7 +53,7 @@ export const ReferralBalance = () => {
                     suffix=" "
                     className={styles.value}
                 />
-                <Coin width={48} height={48} />
+                <Coin width={40} height={40} />
             </div>
         </div>
     );

@@ -10,7 +10,7 @@ interface ReferralCardProps {
 }
 
 export const ReferralCard = async ({ referral }: ReferralCardProps) => {
-    const profit = referral.ref_balance || 0;
+    const profit = referral.ref_balance.toFixed(2) || 0;
 
     return (
         <div className={styles.card}>
@@ -23,7 +23,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
             />
             <span className={styles.username}>{referral.username}</span>
             <span className={styles.profit}>
-                +{profit} <Coin />
+                +{profit} <Coin width={24} height={24} />
             </span>
         </div>
     );

@@ -15,8 +15,8 @@ const latoSans = Lato({
 
 export const metadata: Metadata = {
     title: {
-        default: 'Robomine Сapital',
-        template: '%s | Robomine Сapital',
+        default: 'RoboMine Сapital',
+        template: '%s | RoboMine Сapital',
     },
     description: 'Зарабатывай на майнинге криптовалюты',
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
