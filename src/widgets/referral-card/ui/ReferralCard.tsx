@@ -1,6 +1,7 @@
 // @/widgets/referral-card/ui/ReferralCard.tsx
 import Image from 'next/image';
 import { UserAttributes } from '@/entities/user/model/types';
+import { Coin } from '@/shared/assets/icons';
 import styles from './ReferralCard.module.scss';
 
 // Пропсы для карточки реферала
@@ -9,24 +10,21 @@ interface ReferralCardProps {
 }
 
 export const ReferralCard = async ({ referral }: ReferralCardProps) => {
-    // Простой способ получить "прибыль" реферала - можно адаптировать под вашу логику
-    // Например, использовать referral.ref_balance или другое поле
     const profit = referral.ref_balance || 0;
 
     return (
         <div className={styles.card}>
-            {/* TODO: Заменить на аватар реферала, если он есть */}
             <Image
                 className={styles.avatar}
-                src={`/images/mascot.webp`} // Заглушка
+                src={`/images/mascot.webp`}
                 width={100}
                 height={100}
                 alt={`Аватар ${referral.username}`}
             />
-            <span className={styles.username}>
-                {referral.username || `Пользователь ${referral.telegram_id}`}
+            <span className={styles.username}>{referral.username}</span>
+            <span className={styles.profit}>
+                +{profit} <Coin />
             </span>
-            <span className={styles.profit}>+{profit} USDT</span>
         </div>
     );
 };

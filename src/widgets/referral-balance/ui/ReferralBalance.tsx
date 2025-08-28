@@ -4,6 +4,7 @@
 import CountUp from 'react-countup';
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Coin } from '@/shared/assets/icons';
 import styles from './ReferralBalance.module.scss';
 
 export const ReferralBalance = () => {
@@ -37,9 +38,9 @@ export const ReferralBalance = () => {
                     separator=" "
                     decimal="."
                     prefix=""
-                    suffix=""
+                    suffix=" "
                 />
-                <span>RUB</span>
+                <span>₽</span>
             </div>
             <div className={styles.balanceUSDT}>
                 <CountUp
@@ -52,7 +53,7 @@ export const ReferralBalance = () => {
                     suffix=" "
                     className={styles.value}
                 />
-                <span>USDT</span>
+                <Coin width={48} height={48} />
             </div>
         </div>
     );

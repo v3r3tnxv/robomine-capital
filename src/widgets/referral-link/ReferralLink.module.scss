@@ -34,7 +34,9 @@
         overflow: hidden;
         white-space: nowrap;
         font-size: 20px;
+        color: $font-neon-blue;
         cursor: pointer;
+        border-color: $font-neon-blue;
     }
 }
 
@@ -43,6 +45,6 @@
     right: 16px;
     width: 24px;
     height: 24px;
-    color: $color-accent;
+    color: $font-neon-blue;
     pointer-events: none;
 }

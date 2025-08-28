@@ -15,7 +15,7 @@
 
     .balanceUSDT {
         display: grid;
-        grid-template-columns: max-content max-content;
+        grid-template-columns: repeat(2, max-content);
         align-items: center;
         font-size: 32px;
         gap: 4px;

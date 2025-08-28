@@ -40,9 +40,13 @@
 
     .displayText {
         position: relative;
+        z-index: 13;
+        display: grid;
+        grid-template-columns: repeat(2, max-content);
+        align-items: center;
+        gap: 4px;
         height: 36px;
         align-self: self-end;
-        z-index: 13;
         color: $font-neon-blue;
         text-shadow:
             0 0 1px rgba($font-neon-blue, 0.6),
