@@ -30,12 +30,17 @@ export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalP
                     </div>
 
                     <div className={styles.infoItem}>
-                        <p className={styles.label}>Активации (срок службы):</p>
-                        <p className={styles.value}>{machine.car.lifespan} дней</p>
+                        <p className={styles.label}>Заряды:</p>
+                        <p className={styles.value}>{machine.car.lifespan}</p>
                     </div>
 
                     <div className={styles.infoItem}>
-                        <p className={styles.label}>Доход за 1 активацию:</p>
+                        <p className={styles.label}>Время работы 1 заряда:</p>
+                        <p className={styles.value}>24 часа</p>
+                    </div>
+
+                    <div className={styles.infoItem}>
+                        <p className={styles.label}>Доход за 1 заряд:</p>
                         <p className={styles.value}>
                             +{earnings} <Coin width={20} height={20} />
                         </p>

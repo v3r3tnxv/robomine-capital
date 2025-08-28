@@ -317,11 +317,11 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return (
                         <>
-                            +{earnings} <Coin width={20} height={20} /> за 23 часа
+                            +{earnings} <Coin width={20} height={20} /> за 24 часа
                         </>
                     );
                 case 'in_progress':
-                    return 'Работаем...';
+                    return <ProgressBar progress={progress} className={styles.progressBar} />;
                 case 'waiting_for_reward':
                     return (
                         <>
@@ -333,7 +333,7 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings]);
+        }, [isPurchased, currentStatus, price, earnings, progress]);
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
@@ -343,7 +343,7 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return isProcessing ? 'Активация...' : 'Активировать';
                 case 'in_progress':
-                    return <ProgressBar progress={progress} className={styles.progressBar} />;
+                    return 'Работаем...';
                 case 'waiting_for_reward':
                     return isProcessing ? 'Получение...' : 'Забрать';
                 case 'completed':
@@ -351,7 +351,7 @@ export const MachineCard = memo(
                 default:
                     return 'Куплена';
             }
-        }, [isPurchased, currentStatus, isProcessing, progress]);
+        }, [isPurchased, currentStatus, isProcessing]);
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {

@@ -42,7 +42,8 @@
         position: relative;
         z-index: 13;
         display: grid;
-        grid-template-columns: repeat(2, max-content);
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
         align-items: center;
         gap: 4px;
         height: 36px;
@@ -88,23 +89,24 @@
     .not_purchased {
     }
 
-    .awaiting {
+    .awaiting,
+    .in_progress {
         background:
             linear-gradient(0deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04)),
             radial-gradient(80% 80% at 50% -20%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
     }
 
-    .in_progress {
-        background:
-            linear-gradient(
-                180deg,
-                rgba(0, 0, 0, 0.16) 0%,
-                rgba(0, 0, 0, 0.16) 25.48%,
-                rgba(202, 68, 255, 0.66) 32.69%,
-                #ca44ff 100%
-            ),
-            radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
-    }
+    // .in_progress {
+    //     background:
+    //         linear-gradient(
+    //             180deg,
+    //             rgba(0, 0, 0, 0.16) 0%,
+    //             rgba(0, 0, 0, 0.16) 25.48%,
+    //             rgba(202, 68, 255, 0.66) 32.69%,
+    //             #ca44ff 100%
+    //         ),
+    //         radial-gradient(80% 80% at 50% 0%, rgba(202, 68, 255, 0.2) 0%, rgba(0, 0, 0, 0) 100%);
+    // }
 
     .waiting_for_reward {
         background: radial-gradient(80% 80% at 50% -20%, #ca44ff 0%, rgba(0, 0, 0, 0) 100%);

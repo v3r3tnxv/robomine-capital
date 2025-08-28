@@ -52,10 +52,10 @@ export default function ReferralPage() {
             <BackButton />
             <h1 className={styles.title}>Рефераллы</h1>
 
-            <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
+            <p className={styles.referralText}>Ваши рефералы уже заработали для вас:</p>
             <ReferralBalance />
 
-            <span className={styles.referralText}>Ваша реферальная ссылка:</span>
+            <p className={styles.referralText}>Ваша реферальная ссылка:</p>
             <ReferralLink telegramId={user?.telegram_id} />
             <Button className={styles.button} onClick={handleInvite}>
                 Пригласить

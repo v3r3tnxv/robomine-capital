@@ -37,6 +37,7 @@ export const useTelegramWebApp = () => {
             const user = window.Telegram.WebApp.initDataUnsafe.user || null;
             setTgUser(user);
             setIsLoading(false);
+
             window.Telegram.WebApp.ready();
         } else {
             setIsLoading(false);
