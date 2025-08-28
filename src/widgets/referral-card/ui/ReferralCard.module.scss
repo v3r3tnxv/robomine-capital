@@ -28,6 +28,10 @@
     }
 
     .profit {
+        display: grid;
+        grid-template-columns: repeat(2, max-content);
+        align-items: center;
+        gap: 4px;
         color: $color-green;
     }
 }

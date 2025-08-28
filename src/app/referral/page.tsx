@@ -42,8 +42,8 @@ export default function ReferralPage() {
         }
 
         const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user.telegram_id}`;
-        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать! 👉 ${referralLink}`;
-        const telegramShareUrl = `&text=${encodeURIComponent(message)}`;
+        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать!`;
+        const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
         window.open(telegramShareUrl, '_blank');
     };
 

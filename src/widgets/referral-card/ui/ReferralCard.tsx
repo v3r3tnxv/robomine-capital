@@ -10,8 +10,28 @@ interface ReferralCardProps {
 }
 
 export const ReferralCard = async ({ referral }: ReferralCardProps) => {
-    const profit = (typeof referral.ref_balance === 'number' ? referral.ref_balance : parseFloat(referral.ref_balance as any) || 0).toFixed(2);
+    // Получаем значение ref_balance, которое может быть number, string, null или undefined
+    const refBalanceValue = referral.ref_balance;
 
+    // Преобразуем значение в число
+    let numericProfit: number;
+    if (typeof refBalanceValue === 'number') {
+        numericProfit = refBalanceValue;
+    } else if (typeof refBalanceValue === 'string') {
+        // Пробуем преобразовать строку в число
+        numericProfit = parseFloat(refBalanceValue);
+        // Если parseFloat вернул NaN, заменяем на 0
+        if (isNaN(numericProfit)) {
+            numericProfit = 0;
+        }
+    } else {
+        // Если null, undefined или другой тип, используем 0
+        numericProfit = 0;
+    }
+
+    // Форматируем число до 2 знаков после запятой
+    const profit = numericProfit.toFixed(2);
+    
     return (
         <div className={styles.card}>
             <Image
