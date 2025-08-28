@@ -20,11 +20,11 @@ export const MachineCard = memo(
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
-        const [progress, setProgress] = useState<number>(0);
         const [lastUpdated, setLastUpdated] = useState<number | null>(null);
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
+        const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
 
         const isPurchased = currentStatus !== 'not_purchased';
 
@@ -65,9 +65,18 @@ export const MachineCard = memo(
             };
         }, []);
 
-        // --- Таймер для обновления прогресса ---
+        // --- Таймер для обновления отображения оставшегося времени ---
         useEffect(() => {
+            // Очищаем предыдущий интервал
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+
+            // Проверки для запуска таймера
             if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
+                // Если статус не 'in_progress', сбрасываем отображение таймера
+                setTimeLeftFormatted('24:00:00');
                 return;
             }
 
@@ -75,44 +84,54 @@ export const MachineCard = memo(
             const workTime = getWorkTime();
             const endTime = startTime + workTime;
 
-            const updateProgress = () => {
+            const updateTimerDisplay = () => {
                 const now = Math.floor(Date.now() / 1000);
-                const remaining = Math.max(0, endTime - now);
-                const elapsed = workTime - remaining;
-                const progressPercent = Math.min(100, Math.max(0, (elapsed / workTime) * 100));
+                const remainingSeconds = Math.max(0, endTime - now);
 
-                setProgress(progressPercent);
-
-                if (progressPercent >= 100) {
-                    setCurrentStatus('waiting_for_reward');
-                    if (machineData.car.id) {
-                        updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
-                    }
+                if (remainingSeconds <= 0) {
+                    // Время вышло, останавливаем таймер
+                    setTimeLeftFormatted('00:00:00');
                     return false; // Останавливаем интервал
                 }
-                return true; // Продолжаем интервал
+
+                // Форматируем оставшееся время в HH:MM:SS
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes
+                    .toString()
+                    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                setTimeLeftFormatted(formattedTime);
+                return true; // Продолжаем
             };
 
             // Первый запуск
-            updateProgress();
+            updateTimerDisplay();
 
-            // Запускаем таймер
+            // Запускаем интервал обновления таймера
             const interval = setInterval(() => {
-                if (!updateProgress()) {
+                const shouldContinue = updateTimerDisplay();
+                if (!shouldContinue) {
                     clearInterval(interval);
+                    // Проверяем статус и, если нужно, обновляем его
+                    // Это может быть избыточно, если статус обновляется через события
+                    // setCurrentStatus('waiting_for_reward');
+                    // updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
                 }
-            }, 1000);
+            }, 1000); // Обновляем каждую секунду
 
             intervalRef.current = interval;
 
-            const intervalId = intervalRef.current;
-
+            // Функция очистки для useEffect
             return () => {
-                if (intervalId) {
-                    clearInterval(intervalId);
+                if (intervalRef.current === interval) {
+                    clearInterval(interval);
+                    intervalRef.current = null;
                 }
             };
-        }, [currentStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
+        }, [currentStatus, lastUpdated, machineData?.car?.id, getWorkTime]);
 
         // --- Обработчики событий ---
         useEffect(() => {
@@ -295,7 +314,6 @@ export const MachineCard = memo(
                             'Ошибка обновления баланса после получения награды:',
                             balanceError
                         );
-                        // Ошибка обновления баланса не должна блокировать основную операцию
                     }
                     // --- Конец обновления баланса ---
                 }
@@ -317,11 +335,11 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return (
                         <>
-                            +{earnings} <Coin width={20} height={20} /> за 24 часа
+                            +{earnings} <Coin width={20} height={20} />
                         </>
                     );
                 case 'in_progress':
-                    return <ProgressBar progress={progress} className={styles.progressBar} />;
+                    return <span className={styles.timer}>{timeLeftFormatted}</span>;
                 case 'waiting_for_reward':
                     return (
                         <>
@@ -333,7 +351,7 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings, progress]);
+        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]);
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
