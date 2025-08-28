@@ -2,8 +2,9 @@
 
 // @/features/mining/ui/MachineList.tsx
 import React from 'react';
+import Link from 'next/link';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
+import { MachineCard } from '@/widgets/machine-card';
 import { MachineListProps } from '../model';
 import styles from './MachineList.module.scss';
 
@@ -32,15 +33,19 @@ export const MachineList = ({
         }
     });
 
-    // Сортировка по цене от меньшей к большей
-    const sortedMachines = [...filteredMachines].sort((a, b) => a.car.price - b.car.price);
-
     const shouldShowBuyMore = showBuyMoreCard && filterType === 'purchased';
 
     return (
         <div className={styles.machineList}>
-            {shouldShowBuyMore && <BuyMoreCard />}
-            {sortedMachines.map((machineWithState) => {
+            {shouldShowBuyMore && (
+                <Link href="/shop" className={styles.buyMoreCard}>
+                    <div className={styles.plate} />
+                    <span className={styles.add}>+</span>
+                    <span className={styles.label}>Купить ещё</span>
+                </Link>
+            )}
+
+            {filteredMachines.map((machineWithState) => {
                 const { car, state_car } = machineWithState;
                 const status = state_car?.status ?? 'not_purchased';
                 const isPurchased = status !== 'not_purchased';

@@ -7,6 +7,6 @@ export type {
     UserReferralData,
 } from './types';
 
-export { UserProvider, useUser } from './UserContext';
+export { UserProvider, useUser } from '../../../shared/lib/contexts/UserContext';
 export { useUserInit } from './useUserInit';
 export {} from './';

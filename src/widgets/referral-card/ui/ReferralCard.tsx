@@ -9,7 +9,7 @@ interface ReferralCardProps {
     referral: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>;
 }
 
-export const ReferralCard = async ({ referral }: ReferralCardProps) => {
+export const ReferralCard = ({ referral }: ReferralCardProps) => {
     // Получаем значение ref_balance, которое может быть number, string, null или undefined
     const refBalanceValue = referral.ref_balance;
 
@@ -31,7 +31,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
 
     // Форматируем число до 2 знаков после запятой
     const profit = numericProfit.toFixed(2);
-    
+
     return (
         <div className={styles.card}>
             <Image

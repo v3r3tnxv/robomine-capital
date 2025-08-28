@@ -2,9 +2,9 @@
 
 // src/widgets/balance/ui/Balance.tsx
 import CountUp from 'react-countup';
-import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Coin } from '@/shared/assets/icons';
+import { useUser } from '@/shared/lib/contexts/UserContext';
 import styles from './ReferralBalance.module.scss';
 
 export const ReferralBalance = () => {

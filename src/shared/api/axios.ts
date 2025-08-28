@@ -7,32 +7,37 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Добавляем перехватчик для запросов
+// Перехватчик запросов
 api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {
-            try {
-                // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
-                const initData = window.Telegram?.WebApp?.initData;
+            // Убеждаемся, что код выполняется на клиенте
+            // Проверяем, локальная ли разработка
+            const isLocalDev =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1';
 
-                // Проверяем, что initData не undefined и не null
-                if (initData !== undefined && initData !== null) {
-                    config.headers['X-Telegram-Init-Data'] = initData;
-                } else {
-                    // Альтернативный способ - из URL параметров
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const tgWebAppData = urlParams.get('tgWebAppData');
-                    if (tgWebAppData) {
-                        config.headers['X-Telegram-Init-Data'] = tgWebAppData;
+            if (isLocalDev) {
+                // --- Используем моковый initData для локальной разработки ---
+                console.log('Режим локальной разработки: Отправка мокового X-Telegram-Init-Data');
+                config.headers['X-Telegram-Init-Data'] = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
+            } else {
+                // Нормальный режим: пытаемся получить и отправить настоящий initData из Telegram Web App
+                try {
+                    // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
+                    const initData = window.Telegram?.WebApp?.initData;
+                    if (initData) {
+                        config.headers['X-Telegram-Init-Data'] = initData;
                     }
+                } catch (e) {
+                    console.error('Ошибка при получении initData:', e);
                 }
-            } catch (error) {
-                console.error('Error processing Telegram WebApp data:', error);
             }
         }
-
         return config;
     },
+
+    // ... (остальные перехватчики, если есть)
     (error) => {
         return Promise.reject(error);
     }

@@ -1,3 +1,5 @@
+'use client';
+
 // @/app/withdraw/page.tsx
 import { WithdrawForm } from '@/features/withdraw';
 import { BackButton } from '@/shared/ui';
@@ -13,7 +15,7 @@ export default function WithdrawPage() {
             <Header />
 
             <div className={styles.formContainer}>
-                <span>Сумма для вывода</span>
+                <span>Сумма вывода</span>
                 <WithdrawForm />
             </div>
         </div>

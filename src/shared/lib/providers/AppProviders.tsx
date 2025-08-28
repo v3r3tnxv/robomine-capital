@@ -3,9 +3,9 @@
 // app/appProviders.tsx
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { UserProvider } from '@/entities/user';
 // import { SplashScreen } from '@/shared/ui';
-import { MachineProvider } from '../contexts/MachineContext';
+import { MachineProvider, UserProvider } from '../contexts';
+import { ReferralProvider } from '../contexts/ReferralContext';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -39,7 +39,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
             <UserProvider>
-                <MachineProvider>{children}</MachineProvider>
+                <ReferralProvider>
+                    <MachineProvider>{children}</MachineProvider>
+                </ReferralProvider>
             </UserProvider>
         </QueryClientProvider>
     );

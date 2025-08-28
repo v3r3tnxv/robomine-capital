@@ -1,6 +1,6 @@
 // @/app/shop/page.tsx
-import { MachineList } from '@/features/mining';
 import { BackButton } from '@/shared/ui';
+import { MachineList } from '@/widgets/machine-list';
 import styles from './Shop.module.scss';
 
 export default function ShopPage() {
@@ -8,7 +8,7 @@ export default function ShopPage() {
         <div className={styles.shopPage}>
             <BackButton />
             <h1 className={styles.title}>Майнинг машины</h1>
-            <MachineList filterType="all" />
+            <MachineList filterType="not_purchased" showBuyMoreCard={false} />
         </div>
     );
 }

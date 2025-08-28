@@ -9,7 +9,7 @@ import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/
 import { useUser } from '@/entities/user';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { InfoButton, ProgressBar } from '@/shared/ui';
+import { InfoButton } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
@@ -23,8 +23,8 @@ export const MachineCard = memo(
         const [lastUpdated, setLastUpdated] = useState<number | null>(null);
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
-        const intervalRef = useRef<NodeJS.Timeout | null>(null);
         const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
+        const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
         const isPurchased = currentStatus !== 'not_purchased';
 
@@ -43,11 +43,11 @@ export const MachineCard = memo(
         // --- Рассчитываем доход за активацию ---
         const earnings = Number(machineData?.car?.daily_replenishment || 0);
 
-        // --- Получаем время работы ---
-        const getWorkTime = (): number => {
+        // --- Получаем время работы (мемоизировано) ---
+        const getWorkTime = useCallback((): number => {
             const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
             return isNaN(workTime) ? 30 : workTime;
-        };
+        }, []); // useCallback нужен, чтобы getWorkTime не пересоздавалась и не вызывала лишние эффекты
 
         // --- Обновляем lastUpdated при изменении machineData ---
         useEffect(() => {
@@ -67,7 +67,7 @@ export const MachineCard = memo(
 
         // --- Таймер для обновления отображения оставшегося времени ---
         useEffect(() => {
-            // Очищаем предыдущий интервал
+            // Очищаем предыдущий интервал при каждом запуске эффекта
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
@@ -77,11 +77,11 @@ export const MachineCard = memo(
             if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
                 // Если статус не 'in_progress', сбрасываем отображение таймера
                 setTimeLeftFormatted('24:00:00');
-                return;
+                return; // Не запускаем интервал
             }
 
             const startTime = lastUpdated;
-            const workTime = getWorkTime();
+            const workTime = getWorkTime(); // Используем мемоизированную функцию
             const endTime = startTime + workTime;
 
             const updateTimerDisplay = () => {
@@ -89,9 +89,22 @@ export const MachineCard = memo(
                 const remainingSeconds = Math.max(0, endTime - now);
 
                 if (remainingSeconds <= 0) {
-                    // Время вышло, останавливаем таймер
+                    // Время вышло
                     setTimeLeftFormatted('00:00:00');
-                    return false; // Останавливаем интервал
+                    // Останавливаем интервал внутри этой же функции
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    // Автоматически меняем статус на 'waiting_for_reward'
+                    setCurrentStatus('waiting_for_reward');
+                    // Обновляем статус в контексте
+                    if (machineData.car.id) {
+                        updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
+                    }
+                    // Отправляем событие (опционально, если другие части приложения на него подписаны)
+                    // window.dispatchEvent(...) можно добавить, если нужно
+                    return; // Выходим, интервал уже остановлен
                 }
 
                 // Форматируем оставшееся время в HH:MM:SS
@@ -104,34 +117,31 @@ export const MachineCard = memo(
                     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
                 setTimeLeftFormatted(formattedTime);
-                return true; // Продолжаем
+                // Интервал продолжает работать
             };
 
-            // Первый запуск
+            // Первый запуск немедленно
             updateTimerDisplay();
 
             // Запускаем интервал обновления таймера
-            const interval = setInterval(() => {
-                const shouldContinue = updateTimerDisplay();
-                if (!shouldContinue) {
-                    clearInterval(interval);
-                    // Проверяем статус и, если нужно, обновляем его
-                    // Это может быть избыточно, если статус обновляется через события
-                    // setCurrentStatus('waiting_for_reward');
-                    // updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
-                }
-            }, 1000); // Обновляем каждую секунду
+            const interval = setInterval(updateTimerDisplay, 1000); // Обновляем каждую секунду
 
             intervalRef.current = interval;
 
-            // Функция очистки для useEffect
+            // Функция очистки для useEffect: останавливаем интервал, если эффект перезапускается или компонент размонтируется
             return () => {
                 if (intervalRef.current === interval) {
                     clearInterval(interval);
                     intervalRef.current = null;
                 }
             };
-        }, [currentStatus, lastUpdated, machineData?.car?.id, getWorkTime]);
+        }, [
+            currentStatus,
+            lastUpdated,
+            machineData?.car?.id,
+            updateMachineStatusLocally,
+            getWorkTime,
+        ]); // Зависимости: только те, которые влияют на необходимость перезапуска таймера
 
         // --- Обработчики событий ---
         useEffect(() => {
@@ -314,6 +324,8 @@ export const MachineCard = memo(
                             'Ошибка обновления баланса после получения награды:',
                             balanceError
                         );
+                        // Ошибка обновления баланса не должна блокировать основную операцию
+                        // (ошибка в оригинальном коде была поймана, но не обработана)
                     }
                     // --- Конец обновления баланса ---
                 }
@@ -339,6 +351,7 @@ export const MachineCard = memo(
                         </>
                     );
                 case 'in_progress':
+                    // Возвращаем отформатированное время вместо ProgressBar
                     return <span className={styles.timer}>{timeLeftFormatted}</span>;
                 case 'waiting_for_reward':
                     return (
@@ -351,7 +364,7 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]);
+        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]); // Добавлена зависимость timeLeftFormatted
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {

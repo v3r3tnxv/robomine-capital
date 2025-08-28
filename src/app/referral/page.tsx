@@ -1,9 +1,9 @@
 'use client';
 
 // src/app/referral/page.tsx
-import { useEffect, useState } from 'react';
-import { UserReferralData, getUserReferrals } from '@/entities/user';
-import { useUser } from '@/entities/user/model/UserContext';
+import { useState } from 'react';
+import { useReferrals } from '@/shared/lib/contexts';
+import { useUser } from '@/shared/lib/contexts/UserContext';
 import { BackButton, Button } from '@/shared/ui';
 import { ReferralBalance } from '@/widgets/referral-balance';
 import { ReferralLink } from '@/widgets/referral-link';
@@ -12,32 +12,10 @@ import styles from './Referral.module.scss';
 
 export default function ReferralPage() {
     const { user } = useUser();
-    const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // Загружаем данные рефералов только один раз, когда пользователь доступен
-    useEffect(() => {
-        if (user && !referralsData && loading === true && error === null) {
-            const fetchData = async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    const referralsDataResult = await getUserReferrals();
-                    setReferralsData(referralsDataResult);
-                } catch {
-                    setError('Не удалось загрузить данные рефералов.');
-                } finally {
-                    setLoading(false); // Завершаем загрузку
-                }
-            };
-            fetchData();
-        }
-    }, [user, referralsData, loading, error]);
+    const { referralsData } = useReferrals();
 
     const handleInvite = () => {
         if (!user?.telegram_id) {
-            // Можно показать уведомление пользователю
             return;
         }
 

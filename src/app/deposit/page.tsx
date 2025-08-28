@@ -1,3 +1,5 @@
+'use client';
+
 // @/app/deposit/page.tsx
 import { DepositForm } from '@/features/deposit';
 import { BackButton } from '@/shared/ui';
@@ -9,9 +11,11 @@ export default function DepositPage() {
         <div className={styles.depositPage}>
             <BackButton />
             <h1 className={styles.title}>Пополнение баланса</h1>
+
             <Header />
+
             <div className={styles.formContainer}>
-                <span>Сумма для пополнения</span>
+                <span>Сумма пополнения</span>
                 <DepositForm />
             </div>
         </div>

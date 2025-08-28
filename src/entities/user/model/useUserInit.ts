@@ -21,12 +21,21 @@ export const useUserInit = () => {
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
     useEffect(() => {
+        console.log(
+            'useUserInit useEffect triggered. tgUser:',
+            tgUser,
+            'isTgLoading:',
+            isTgLoading
+        );
+
         const initializeUser = async () => {
             try {
                 if (isTgLoading) {
+                    console.log('Telegram WebApp data is still loading (isTgLoading=true)');
                     return;
                 }
                 if (!tgUser?.id) {
+                    console.warn('tgUser.id NOT found. Cannot initialize user.');
                     setError('Не удалось получить данные пользователя из Telegram');
                     setIsLoading(false);
                     return;

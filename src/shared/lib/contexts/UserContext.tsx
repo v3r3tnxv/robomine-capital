@@ -9,8 +9,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { getMe } from '@/entities/user/api/user.api';
-import { UserAttributes } from '@/entities/user/model/types';
+import { UserAttributes, getMe } from '@/entities/user';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
 interface UserContextType {
@@ -96,13 +95,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     );
     // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
 
-    return (
-        <UserContext.Provider value={contextValue}>
-            {' '}
-            {/* <-- Передаем мемоизированное значение */}
-            {children}
-        </UserContext.Provider>
-    );
+    return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
 
 export const useUser = (): UserContextType => {

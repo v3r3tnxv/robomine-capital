@@ -13,6 +13,7 @@ export const BuyMachineLink = () => {
                     height={100}
                     alt="Робот"
                     className={styles.mascotImage}
+                    priority
                 />
             </div>
             <span className={styles.label}>Купить майнинг-машину</span>

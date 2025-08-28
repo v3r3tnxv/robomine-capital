@@ -1,3 +1,5 @@
+'use client';
+
 // @/features/referral/ui/ReferralList.tsx
 import { UserAttributes } from '@/entities/user';
 import { ReferralCard } from '@/widgets/referral-card';

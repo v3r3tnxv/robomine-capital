@@ -2,14 +2,15 @@
 
 ===== C:\Users\USER\Projects\robomine-capital\next.config.ts =====
 
+// next.config.ts
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
     async rewrites() {
         return [
             {
-                source: '/api/:path*',
-                destination: 'http://localhost:5000/api/:path*',
+                source: '/api/v1/:path*',
+                destination: 'https://robomine.ru/api/v1/:path*',
             },
         ];
     },
@@ -82,8 +83,8 @@ const latoSans = Lato({
 
 export const metadata: Metadata = {
     title: {
-        default: 'Robomine capital',
-        template: '%s | Robomine capital',
+        default: 'RoboMine Сapital',
+        template: '%s | RoboMine Сapital',
     },
     description: 'Зарабатывай на майнинге криптовалюты',
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -135,60 +136,24 @@ export default function NotFound() {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\page.tsx =====
 
-'use client';
-
 // app/page.tsx
-import { useEffect, useState } from 'react';
-// <-- Импортируйте хуки
-import { MachineWithState, getAllMachines } from '@/entities/machine';
 import { MachineList } from '@/features/mining/ui/MachineList';
 import { ActionButtons } from '@/widgets/action-buttons';
+import { BuyMachineLink } from '@/widgets/by-machine-link';
 import { Header } from '@/widgets/header/ui/Header';
-import { BuyMachineLink } from '@/widgets/machine-card';
 import styles from './Home.module.scss';
 
 export default function HomePage() {
-    const [userMachines, setUserMachines] = useState<MachineWithState[]>([]);
-
-    useEffect(() => {
-        const fetchMachines = async () => {
-            try {
-                const allMachines = await getAllMachines();
-                // Фильтруем: только купленные/активные машины
-                const purchasedMachines = allMachines.filter(({ state_car }) => {
-                    const status = state_car?.status ?? 'not_purchased';
-                    return status !== 'not_purchased';
-                });
-                setUserMachines(purchasedMachines);
-            } catch (err) {
-                console.error(
-                    'Ошибка при загрузке машин пользователя для главной страницы (клиент):',
-                    err
-                );
-            }
-        };
-
-        fetchMachines();
-    }, []);
-
     return (
         <div className={styles.homePage}>
             <Header />
             <ActionButtons />
 
-            {userMachines.length > 0 ? (
-                // Если есть купленные машины — показываем их список
-                <div className={styles.machinesContainer}>
-                    <MachineList
-                        machines={userMachines}
-                        filterType="purchased"
-                        showBuyMoreCard={true}
-                    />
-                </div>
-            ) : (
-                // Если купленных машин нет — показываем ссылку на магазин
-                <BuyMachineLink />
-            )}
+            <div className={styles.machinesContainer}>
+                <MachineList filterType="purchased" showBuyMoreCard={true} />
+            </div>
+
+            <BuyMachineLink />
         </div>
     );
 }
@@ -211,26 +176,36 @@ import styles from './Referral.module.scss';
 export default function ReferralPage() {
     const { user } = useUser();
     const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Загружаем данные рефералов только один раз, когда пользователь доступен
     useEffect(() => {
-        if (user && !referralsData) {
+        if (user && !referralsData && loading === true && error === null) {
             const fetchData = async () => {
                 try {
+                    setLoading(true);
+                    setError(null);
                     const referralsDataResult = await getUserReferrals();
                     setReferralsData(referralsDataResult);
-                } catch (err) {
-                    console.error('Ошибка при загрузке данных рефералов (клиент):', err);
+                } catch {
+                    setError('Не удалось загрузить данные рефералов.');
+                } finally {
+                    setLoading(false); // Завершаем загрузку
                 }
             };
             fetchData();
         }
-    }, [user, referralsData]);
+    }, [user, referralsData, loading, error]);
 
     const handleInvite = () => {
-        const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user?.telegram_id}`;
-        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать! 👉 ${referralLink}`;
+        if (!user?.telegram_id) {
+            // Можно показать уведомление пользователю
+            return;
+        }
 
+        const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user.telegram_id}`;
+        const message = `Присоединяйся к RoboMine Capital и начни зарабатывать!`;
         const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
         window.open(telegramShareUrl, '_blank');
     };
@@ -240,10 +215,10 @@ export default function ReferralPage() {
             <BackButton />
             <h1 className={styles.title}>Рефераллы</h1>
 
-            <span className={styles.referralText}>Ваши рефералы уже заработали для вас:</span>
+            <p className={styles.referralText}>Ваши рефералы уже заработали для вас:</p>
             <ReferralBalance />
 
-            <span className={styles.referralText}>Ваша реферальная ссылка:</span>
+            <p className={styles.referralText}>Ваша реферальная ссылка:</p>
             <ReferralLink telegramId={user?.telegram_id} />
             <Button className={styles.button} onClick={handleInvite}>
                 Пригласить
@@ -266,7 +241,7 @@ export default function ShopPage() {
         <div className={styles.shopPage}>
             <BackButton />
             <h1 className={styles.title}>Майнинг машины</h1>
-            <MachineList filterType="all" />
+            <MachineList filterType="not_purchased" showBuyMoreCard={false} />
         </div>
     );
 }
@@ -890,12 +865,21 @@ export const useUserInit = () => {
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
     useEffect(() => {
+        console.log(
+            'useUserInit useEffect triggered. tgUser:',
+            tgUser,
+            'isTgLoading:',
+            isTgLoading
+        );
+
         const initializeUser = async () => {
             try {
                 if (isTgLoading) {
+                    console.log('Telegram WebApp data is still loading (isTgLoading=true)');
                     return;
                 }
                 if (!tgUser?.id) {
+                    console.warn('tgUser.id NOT found. Cannot initialize user.');
                     setError('Не удалось получить данные пользователя из Telegram');
                     setIsLoading(false);
                     return;
@@ -1537,7 +1521,7 @@ import { MachineWithState } from '@/entities/machine';
 export interface MachineListProps {
     machines?: MachineWithState[];
     filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard?: boolean;
+    showBuyMoreCard: boolean;
 }
 
 
@@ -1599,8 +1583,9 @@ export interface MachineListProps {
 
 // @/features/mining/ui/MachineList.tsx
 import React from 'react';
+import Link from 'next/link';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { BuyMoreCard, MachineCard } from '@/widgets/machine-card';
+import { MachineCard } from '@/widgets/machine-card';
 import { MachineListProps } from '../model';
 import styles from './MachineList.module.scss';
 
@@ -1633,7 +1618,14 @@ export const MachineList = ({
 
     return (
         <div className={styles.machineList}>
-            {shouldShowBuyMore && <BuyMoreCard />}
+            {shouldShowBuyMore && (
+                <Link href="/shop" className={styles.buyMoreCard}>
+                    <div className={styles.plate} />
+                    <span className={styles.add}>+</span>
+                    <span className={styles.label}>Купить ещё</span>
+                </Link>
+            )}
+
             {filteredMachines.map((machineWithState) => {
                 const { car, state_car } = machineWithState;
                 const status = state_car?.status ?? 'not_purchased';
@@ -1887,32 +1879,37 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Добавляем перехватчик для запросов
+// Перехватчик запросов
 api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {
-            try {
-                // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
-                const initData = window.Telegram?.WebApp?.initData;
+            // Убеждаемся, что код выполняется на клиенте
+            // Проверяем, локальная ли разработка
+            const isLocalDev =
+                window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1';
 
-                // Проверяем, что initData не undefined и не null
-                if (initData !== undefined && initData !== null) {
-                    config.headers['X-Telegram-Init-Data'] = initData;
-                } else {
-                    // Альтернативный способ - из URL параметров
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const tgWebAppData = urlParams.get('tgWebAppData');
-                    if (tgWebAppData) {
-                        config.headers['X-Telegram-Init-Data'] = tgWebAppData;
+            if (isLocalDev) {
+                // --- Используем моковый initData для локальной разработки ---
+                console.log('Режим локальной разработки: Отправка мокового X-Telegram-Init-Data');
+                config.headers['X-Telegram-Init-Data'] = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
+            } else {
+                // Нормальный режим: пытаемся получить и отправить настоящий initData из Telegram Web App
+                try {
+                    // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
+                    const initData = window.Telegram?.WebApp?.initData;
+                    if (initData) {
+                        config.headers['X-Telegram-Init-Data'] = initData;
                     }
+                } catch (e) {
+                    console.error('Ошибка при получении initData:', e);
                 }
-            } catch (error) {
-                console.error('Error processing Telegram WebApp data:', error);
             }
         }
-
         return config;
     },
+
+    // ... (остальные перехватчики, если есть)
     (error) => {
         return Promise.reject(error);
     }
@@ -1939,6 +1936,72 @@ export const Arrow = (props: React.SVGProps<SVGSVGElement>) => (
         <path
             d="M12.9819 11.982L26.1602 11.982L26.1602 6.01816L12.9819 6.01814L12.9819 0.0387962L9.81912 0.0387946L0.857865 9.00005L9.81913 17.9613L12.9819 17.9613L12.9819 11.982Z"
             fill="currentColor"
+        />
+    </svg>
+);
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\assets\icons\Coin.tsx =====
+
+// src/shared/assets/icons/Coin.tsx
+import React from 'react';
+
+export const Coin = ({
+    width = 48,
+    height = 48,
+    className,
+    ...props
+}: React.SVGProps<SVGSVGElement> & { width?: number; height?: number }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="600 600 1200 1200"
+        width={width}
+        height={height}
+        className={className}
+        preserveAspectRatio="xMidYMid slice"
+        {...props} // Передаем остальные пропсы (style, onClick и т.д.)
+    >
+        <path
+            fillRule="evenodd"
+            fill="rgb(99.21875%, 76.951599%, 20.776367%)"
+            fillOpacity="1"
+            d="M 1200 600.050781 C 1531.371094 600.050781 1800 868.679688 1800 1200.050781 C 1800 1531.425781 1531.371094 1800.054688 1200 1800.054688 C 868.628906 1800.054688 600 1531.425781 600 1200.050781 C 600 868.679688 868.628906 600.050781 1200 600.050781 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgb(78.90625%, 53.318787%, 15.696716%)"
+            fillOpacity="1"
+            d="M 1200 720.058594 C 1465.089844 720.058594 1679.988281 934.960938 1679.988281 1200.050781 C 1679.988281 1465.144531 1465.089844 1680.042969 1200 1680.042969 C 934.90625 1680.042969 720.011719 1465.144531 720.011719 1200.050781 C 720.011719 934.960938 934.90625 720.058594 1200 720.058594 Z M 1200 752.339844 C 1447.269531 752.339844 1647.71875 952.789062 1647.71875 1200.050781 C 1647.71875 1447.320312 1447.269531 1647.769531 1200 1647.769531 C 952.730469 1647.769531 752.285156 1447.320312 752.285156 1200.050781 C 752.285156 952.789062 952.730469 752.339844 1200 752.339844 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgb(99.21875%, 68.943787%, 18.821716%)"
+            fillOpacity="1"
+            d="M 1799.980469 1198.730469 L 1800 1200.050781 C 1800 1529.808594 1533.96875 1797.390625 1204.828125 1799.992188 L 1204.828125 1725.160156 C 1492.648438 1722.5625 1725.171875 1488.484375 1725.171875 1200.050781 L 1725.148438 1198.730469 L 1799.980469 1198.730469 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgb(100%, 81.639099%, 31.37207%)"
+            fillOpacity="1"
+            d="M 620.121094 1046.050781 L 620.449219 1044.761719 C 705.796875 726.238281 1032.011719 536.628906 1350.609375 619.308594 L 1331.238281 691.589844 C 1052.558594 619.609375 767.382812 785.53125 692.730469 1064.128906 L 692.402344 1065.421875 L 620.121094 1046.050781 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgb(94.921875%, 63.084412%, 17.259216%)"
+            fillOpacity="1"
+            d="M 1200 689.410156 C 1482.019531 689.410156 1710.648438 918.03125 1710.648438 1200.050781 C 1710.648438 1482.078125 1482.019531 1710.703125 1200 1710.703125 C 917.976562 1710.703125 689.351562 1482.078125 689.351562 1200.050781 C 689.351562 918.03125 917.976562 689.410156 1200 689.410156 Z M 1200 723.738281 C 1463.058594 723.738281 1676.308594 936.988281 1676.308594 1200.050781 C 1676.308594 1463.117188 1463.058594 1676.367188 1200 1676.367188 C 936.9375 1676.367188 723.6875 1463.117188 723.6875 1200.050781 C 723.6875 936.988281 936.9375 723.738281 1200 723.738281 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgb(94.921875%, 63.084412%, 17.259216%)"
+            fillOpacity="1"
+            d="M 1014.910156 1217 C 1014.769531 1216.949219 1014.621094 1216.910156 1014.480469 1216.871094 C 1013.398438 1216.539062 1012.328125 1216.210938 1011.300781 1215.871094 C 1011.210938 1215.851562 1011.140625 1215.820312 1011.058594 1215.789062 C 1009.148438 1215.179688 1007.328125 1214.550781 1005.578125 1213.910156 C 1005.300781 1213.808594 1005.011719 1213.710938 1004.730469 1213.609375 C 1003.921875 1213.308594 1003.128906 1213.011719 1002.359375 1212.699219 C 1001.980469 1212.550781 1001.609375 1212.398438 1001.238281 1212.25 C 1000.578125 1211.980469 999.910156 1211.71875 999.277344 1211.449219 C 999.277344 1211.441406 999.277344 1211.429688 999.277344 1211.421875 C 999.277344 1192.140625 1063.589844 1175.851562 1152.648438 1170.109375 L 1152.648438 1218.539062 L 1172.609375 1236.460938 C 1162.980469 1236.21875 1156.101562 1235.921875 1152.648438 1235.75 C 1095.109375 1233.21875 1046.019531 1226.351562 1014.910156 1217 Z M 1423.960938 1198.660156 C 1423.941406 1198.679688 1423.929688 1198.710938 1423.921875 1198.738281 C 1423.570312 1199.28125 1423.171875 1199.820312 1422.730469 1200.359375 C 1422.691406 1200.398438 1422.660156 1200.449219 1422.621094 1200.488281 C 1422.171875 1201.019531 1421.671875 1201.558594 1421.121094 1202.078125 C 1421.070312 1202.128906 1421.03125 1202.171875 1420.988281 1202.210938 C 1420.421875 1202.738281 1419.808594 1203.28125 1419.140625 1203.808594 C 1419.101562 1203.828125 1419.070312 1203.859375 1419.03125 1203.890625 C 1418.339844 1204.429688 1417.601562 1204.96875 1416.800781 1205.511719 L 1416.78125 1205.519531 C 1396.328125 1219.261719 1342 1230.191406 1272.578125 1234.640625 L 1272.578125 1169.058594 C 1340.808594 1172.101562 1397.109375 1181.238281 1425.578125 1193.378906 C 1425.578125 1193.390625 1425.589844 1193.390625 1425.589844 1193.398438 C 1425.589844 1195.179688 1425.03125 1196.929688 1423.960938 1198.660156 Z M 1390.929688 991.460938 L 1390.910156 991.441406 L 1014.339844 991.441406 L 1014.339844 1083.609375 L 1034.410156 1101.628906 L 1152.628906 1101.628906 L 1152.628906 1144.03125 C 1040.230469 1149.191406 955.699219 1171.460938 955.699219 1198.140625 C 955.699219 1202.761719 958.234375 1207.25 963.011719 1211.539062 L 983.085938 1229.558594 C 1004.21875 1248.539062 1069.238281 1263.621094 1152.628906 1269.140625 L 1152.628906 1445.933594 L 1172.699219 1463.957031 L 1272.648438 1463.957031 L 1272.648438 1270.199219 C 1384.800781 1265.039062 1469.191406 1242.800781 1469.191406 1216.140625 C 1469.191406 1211.511719 1466.648438 1207.019531 1461.871094 1202.730469 L 1441.789062 1184.710938 C 1441.550781 1184.488281 1441.269531 1184.269531 1441.011719 1184.050781 C 1440.761719 1183.839844 1440.511719 1183.621094 1440.25 1183.410156 C 1439.511719 1182.808594 1438.738281 1182.21875 1437.921875 1181.628906 C 1437.789062 1181.539062 1437.671875 1181.441406 1437.539062 1181.351562 C 1436.53125 1180.640625 1435.460938 1179.941406 1434.328125 1179.25 C 1434.171875 1179.148438 1434 1179.050781 1433.828125 1178.949219 C 1432.851562 1178.359375 1431.820312 1177.769531 1430.75 1177.179688 C 1430.488281 1177.039062 1430.230469 1176.898438 1429.96875 1176.769531 C 1428.828125 1176.148438 1427.640625 1175.550781 1426.398438 1174.949219 C 1426.289062 1174.890625 1426.171875 1174.839844 1426.058594 1174.78125 C 1423.210938 1173.410156 1420.109375 1172.078125 1416.789062 1170.78125 C 1416.589844 1170.699219 1416.390625 1170.621094 1416.191406 1170.550781 C 1414.628906 1169.941406 1413.03125 1169.339844 1411.378906 1168.761719 C 1411.269531 1168.71875 1411.171875 1168.679688 1411.070312 1168.640625 C 1407.429688 1167.359375 1403.550781 1166.101562 1399.460938 1164.890625 C 1399.378906 1164.859375 1399.289062 1164.839844 1399.199219 1164.808594 C 1397.230469 1164.230469 1395.199219 1163.648438 1393.121094 1163.089844 C 1393.03125 1163.058594 1392.929688 1163.039062 1392.839844 1163.011719 C 1386.328125 1161.238281 1379.339844 1159.570312 1371.910156 1158 C 1371.828125 1157.980469 1371.738281 1157.960938 1371.660156 1157.941406 C 1364.191406 1156.371094 1356.289062 1154.898438 1347.988281 1153.539062 L 1347.839844 1153.511719 C 1325.371094 1149.828125 1300.019531 1146.980469 1272.679688 1145.171875 L 1272.679688 1101.628906 L 1410.988281 1101.628906 L 1410.988281 1009.46875 Z M 1448.828125 1195.449219 C 1448.710938 1194.941406 1448.550781 1194.421875 1448.371094 1193.910156 C 1448.390625 1193.921875 1448.398438 1193.929688 1448.410156 1193.941406 C 1448.578125 1194.441406 1448.71875 1194.941406 1448.828125 1195.449219 "
+        />
+        <path
+            fillRule="evenodd"
+            fill="rgba(202, 68, 255, 1)"
+            fillOpacity="1"
+            d="M 1252.601562 1235.75 C 1249.800781 1235.960938 1235.308594 1236.828125 1203 1236.828125 C 1177.300781 1236.828125 1159.050781 1236.058594 1152.648438 1235.75 C 1053.328125 1231.378906 979.203125 1214.101562 979.203125 1193.398438 C 979.203125 1172.699219 1053.328125 1155.429688 1152.648438 1150.988281 L 1152.648438 1218.539062 C 1159.148438 1219 1177.75 1220.101562 1203.441406 1220.101562 C 1234.28125 1220.101562 1249.730469 1218.820312 1252.511719 1218.558594 L 1252.511719 1151.039062 C 1351.621094 1155.449219 1425.589844 1172.738281 1425.589844 1193.398438 C 1425.589844 1214.050781 1351.640625 1231.339844 1252.511719 1235.730469 Z M 1252.601562 1144.050781 L 1252.601562 1083.609375 L 1390.910156 1083.609375 L 1390.910156 991.441406 L 1014.339844 991.441406 L 1014.339844 1083.609375 L 1152.628906 1083.609375 L 1152.628906 1144.03125 C 1040.230469 1149.191406 955.699219 1171.460938 955.699219 1198.140625 C 955.699219 1224.820312 1040.230469 1247.058594 1152.628906 1252.25 L 1152.628906 1445.933594 L 1252.578125 1445.933594 L 1252.578125 1252.179688 C 1364.71875 1247.011719 1449.109375 1224.769531 1449.109375 1198.121094 C 1449.109375 1171.460938 1364.789062 1149.21875 1252.578125 1144.03125 Z M 1252.601562 1144.050781 L 1252.601562 1144.050781 "
         />
     </svg>
 );
@@ -2053,6 +2116,7 @@ export const Invite = (props: React.SVGProps<SVGSVGElement>) => (
 export { Arrow } from './Arrow';
 export { Invite } from './Invite';
 export { Info } from './Info';
+export { Coin } from './Coin';
 export { Copy } from './Copy';
 
 
@@ -2060,7 +2124,8 @@ export { Copy } from './Copy';
 
 // shared/config/env.ts
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+export const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\config\index.ts =====
 
@@ -2246,8 +2311,11 @@ interface TelegramUser {
     last_name?: string;
     username?: string;
     language_code?: string;
+    photo_url?: string; // Добавлено, если используется
+    // allows_write_to_pm?: boolean; // Добавлено, если используется
 }
 
+// Объявляем глобальный тип для Telegram WebApp
 declare global {
     interface Window {
         Telegram?: {
@@ -2255,27 +2323,96 @@ declare global {
                 initDataUnsafe: {
                     user?: TelegramUser;
                 };
+                initData?: string; // Для проверки в других частях приложения, если нужно
+                disableVerticalSwipes?: () => void;
                 ready: () => void;
+                // Другие методы и свойства WebApp, если используются
             };
         };
     }
 }
 
 export const useTelegramWebApp = () => {
+    console.log('>>> useTelegramWebApp hook is running <<<');
     const [tgUser, setTgUser] = useState<TelegramUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    console.log('>>> useTelegramWebApp state initialized <<<');
 
     useEffect(() => {
+        console.log('>>> useTelegramWebApp useEffect is running <<<');
+        // Проверяем, локальная ли разработка
+        const isLocalhost =
+            typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+        if (isLocalhost) {
+            console.log('LOCALHOST detected in useTelegramWebApp');
+
+            // Используем фиксированный ID для локальной разработки
+            // Убедитесь, что этот ID соответствует пользователю в вашей БД
+            // и совпадает с ID, используемым в NEXT_PUBLIC_MOCK_INIT_DATA на бэкенде
+            const MOCK_TELEGRAM_USER_ID = 912131238; // Ваш ID
+
+            const mockUser: TelegramUser = {
+                id: MOCK_TELEGRAM_USER_ID,
+                first_name: 'Александр', // Имя из вашего initData
+                last_name: '', // Фамилия из вашего initData
+                username: 'v3r3tnxv', // Username из вашего initData
+                language_code: 'ru', // Язык из вашего initData
+                // Добавьте другие поля, если они используются в вашем приложении
+                // photo_url: 'https://t.me/i/userpic/320/....svg' // Из вашего initData
+            };
+
+            console.log('Setting mock tgUser:', mockUser);
+            setTgUser(mockUser);
+            setIsLoading(false);
+            console.log('>>> useTelegramWebApp mock data set, isLoading=false <<<');
+            return;
+        }
+
+        // Логика для production (внутри Telegram Web App)
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-            const user = window.Telegram.WebApp.initDataUnsafe.user || null;
+            console.log('Telegram WebApp object found');
+
+            // Отключаем вертикальные свайпы для Telegram Mini App (если поддерживается)
+            try {
+                if (window.Telegram?.WebApp?.disableVerticalSwipes) {
+                    console.log('Attempting to disable vertical swipes');
+                    window.Telegram.WebApp.disableVerticalSwipes();
+                } else {
+                    console.log(
+                        'disableVerticalSwipes not available or not supported in this version'
+                    );
+                }
+            } catch (e) {
+                console.warn('Could not disable vertical swipes:', e);
+            }
+
+            // Получаем данные пользователя из Telegram Web App
+            const user = window.Telegram.WebApp.initDataUnsafe?.user || null;
+            console.log('User data from Telegram WebApp:', user);
             setTgUser(user);
             setIsLoading(false);
-            window.Telegram.WebApp.ready();
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
+            console.log('>>> useTelegramWebApp production data set, isLoading=false <<<');
 
+            // Сообщаем Telegram, что приложение готово
+            try {
+                window.Telegram.WebApp.ready();
+                console.log('Telegram WebApp ready() called');
+            } catch (e) {
+                console.warn('Could not call Telegram WebApp.ready():', e);
+            }
+        } else {
+            console.warn(
+                'Telegram WebApp is not available and not localhost. Setting tgUser to null.'
+            );
+            setTgUser(null);
+            setIsLoading(false);
+            console.log('>>> useTelegramWebApp no data available, isLoading=false <<<');
+        }
+    }, []); // Пустой массив зависимостей - запускается только при монтировании
+
+    console.log('>>> useTelegramWebApp returning values <<<', { tgUser, isLoading });
     return { tgUser, isLoading };
 };
 
@@ -2750,6 +2887,7 @@ export { Balance } from './ui/Balance';
 import CountUp from 'react-countup';
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Coin } from '@/shared/assets/icons';
 import styles from './Balance.module.scss';
 
 export const Balance = () => {
@@ -2783,7 +2921,7 @@ export const Balance = () => {
                     prefix=""
                     suffix=" "
                 />
-                <span>RUB</span>
+                <span>₽</span>
             </div>
             <div className={styles.balanceUSDT}>
                 <CountUp
@@ -2796,11 +2934,42 @@ export const Balance = () => {
                     suffix=" "
                     className={styles.value}
                 />
-                <span>USDT</span>
+                <Coin width={40} height={40} />
             </div>
         </div>
     );
 };
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\by-machine-link\BuyMachineLink.tsx =====
+
+// @/widgets/machine-card/ui/BuyMoreCard.tsx
+import Image from 'next/image';
+import Link from 'next/link';
+import styles from './BuyMachineLink.module.scss';
+
+export const BuyMachineLink = () => {
+    return (
+        <Link className={styles.shopLink} href="/shop">
+            <div className={styles.imageWrapper}>
+                <Image
+                    src="/images/mascot.webp"
+                    width={100}
+                    height={100}
+                    alt="Робот"
+                    className={styles.mascotImage}
+                    priority
+                />
+            </div>
+            <span className={styles.label}>Купить майнинг-машину</span>
+        </Link>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\by-machine-link\index.ts =====
+
+export { BuyMachineLink } from './BuyMachineLink';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\header\index.ts =====
@@ -2904,48 +3073,6 @@ export interface MachineInfoModalProps {
 }
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\BuyMachineLink.tsx =====
-
-// @/widgets/machine-card/ui/BuyMoreCard.tsx
-import Image from 'next/image';
-import Link from 'next/link';
-import styles from './BuyMachineLink.module.scss';
-
-export const BuyMachineLink = () => {
-    return (
-        <Link className={styles.shopLink} href="/shop">
-            <div className={styles.imageWrapper}>
-                <Image
-                    src="/images/mascot.png"
-                    width={100}
-                    height={100}
-                    alt="Робот"
-                    className={styles.mascotImage}
-                />
-            </div>
-            <span className={styles.label}>Купить майнинг-машину</span>
-        </Link>
-    );
-};
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\BuyMoreCard.tsx =====
-
-// @/widgets/machine-card/ui/BuyMoreCard.tsx
-import Link from 'next/link';
-import styles from './BuyMoreCard.module.scss';
-
-export const BuyMoreCard = () => {
-    return (
-        <Link href="/shop" className={styles.buyMoreCard}>
-            <div className={styles.plate} />
-            <span className={styles.add}>+</span>
-            <span className={styles.label}>Купить ещё</span>
-        </Link>
-    );
-};
-
-
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\MachineCard.tsx =====
 
 'use client';
@@ -2957,8 +3084,9 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
+import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { InfoButton, ProgressBar } from '@/shared/ui';
+import { InfoButton } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
@@ -2969,27 +3097,34 @@ export const MachineCard = memo(
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
-        const [progress, setProgress] = useState<number>(0);
         const [lastUpdated, setLastUpdated] = useState<number | null>(null);
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
+        const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
         const isPurchased = currentStatus !== 'not_purchased';
 
-        // Синхронизируем локальный статус с пропсами
+        const totalActivations = machineData?.car?.lifespan ?? 0;
+        const [remainingUses, setRemainingUses] = useState<number>(
+            machineData?.state_car?.remaining_uses ?? 0
+        );
+
+        // Синхронизируем локальный статус и remainingUses с пропсами при их изменении
         useEffect(() => {
             setCurrentStatus(status);
-        }, [status]);
+            // Обновляем локальное состояние remainingUses при изменении пропса
+            setRemainingUses(machineData?.state_car?.remaining_uses ?? 0);
+        }, [status, machineData?.state_car?.remaining_uses]);
 
         // --- Рассчитываем доход за активацию ---
         const earnings = Number(machineData?.car?.daily_replenishment || 0);
 
-        // --- Получаем время работы ---
-        const getWorkTime = (): number => {
+        // --- Получаем время работы (мемоизировано) ---
+        const getWorkTime = useCallback((): number => {
             const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
             return isNaN(workTime) ? 30 : workTime;
-        };
+        }, []); // useCallback нужен, чтобы getWorkTime не пересоздавалась и не вызывала лишние эффекты
 
         // --- Обновляем lastUpdated при изменении machineData ---
         useEffect(() => {
@@ -3007,54 +3142,83 @@ export const MachineCard = memo(
             };
         }, []);
 
-        // --- Таймер для обновления прогресса ---
+        // --- Таймер для обновления отображения оставшегося времени ---
         useEffect(() => {
+            // Очищаем предыдущий интервал при каждом запуске эффекта
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+
+            // Проверки для запуска таймера
             if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
-                return;
+                // Если статус не 'in_progress', сбрасываем отображение таймера
+                setTimeLeftFormatted('24:00:00');
+                return; // Не запускаем интервал
             }
 
             const startTime = lastUpdated;
-            const workTime = getWorkTime();
+            const workTime = getWorkTime(); // Используем мемоизированную функцию
             const endTime = startTime + workTime;
 
-            const updateProgress = () => {
+            const updateTimerDisplay = () => {
                 const now = Math.floor(Date.now() / 1000);
-                const remaining = Math.max(0, endTime - now);
-                const elapsed = workTime - remaining;
-                const progressPercent = Math.min(100, Math.max(0, (elapsed / workTime) * 100));
+                const remainingSeconds = Math.max(0, endTime - now);
 
-                setProgress(progressPercent);
-
-                if (progressPercent >= 100) {
+                if (remainingSeconds <= 0) {
+                    // Время вышло
+                    setTimeLeftFormatted('00:00:00');
+                    // Останавливаем интервал внутри этой же функции
+                    if (intervalRef.current) {
+                        clearInterval(intervalRef.current);
+                        intervalRef.current = null;
+                    }
+                    // Автоматически меняем статус на 'waiting_for_reward'
                     setCurrentStatus('waiting_for_reward');
+                    // Обновляем статус в контексте
                     if (machineData.car.id) {
                         updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
                     }
-                    return false; // Останавливаем интервал
+                    // Отправляем событие (опционально, если другие части приложения на него подписаны)
+                    // window.dispatchEvent(...) можно добавить, если нужно
+                    return; // Выходим, интервал уже остановлен
                 }
-                return true; // Продолжаем интервал
+
+                // Форматируем оставшееся время в HH:MM:SS
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes
+                    .toString()
+                    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                setTimeLeftFormatted(formattedTime);
+                // Интервал продолжает работать
             };
 
-            // Первый запуск
-            updateProgress();
+            // Первый запуск немедленно
+            updateTimerDisplay();
 
-            // Запускаем таймер
-            const interval = setInterval(() => {
-                if (!updateProgress()) {
-                    clearInterval(interval);
-                }
-            }, 1000);
+            // Запускаем интервал обновления таймера
+            const interval = setInterval(updateTimerDisplay, 1000); // Обновляем каждую секунду
 
             intervalRef.current = interval;
 
-            const intervalId = intervalRef.current;
-
+            // Функция очистки для useEffect: останавливаем интервал, если эффект перезапускается или компонент размонтируется
             return () => {
-                if (intervalId) {
-                    clearInterval(intervalId);
+                if (intervalRef.current === interval) {
+                    clearInterval(interval);
+                    intervalRef.current = null;
                 }
             };
-        }, [currentStatus, lastUpdated, machineData?.car?.id, updateMachineStatusLocally]);
+        }, [
+            currentStatus,
+            lastUpdated,
+            machineData?.car?.id,
+            updateMachineStatusLocally,
+            getWorkTime,
+        ]); // Зависимости: только те, которые влияют на необходимость перезапуска таймера
 
         // --- Обработчики событий ---
         useEffect(() => {
@@ -3194,19 +3358,6 @@ export const MachineCard = memo(
                     if (onAction) {
                         onAction('activated', machineData.car.id);
                     }
-
-                    // --- Обновляем баланс пользователя ---
-                    // Примечание: Обычно активация не меняет баланс напрямую,
-                    // но если в будущем будет, раскомментируй:
-                    /*
-                    try {
-                        await refreshUserBalance();
-                        console.log("Баланс пользователя обновлён после активации машины.");
-                    } catch (balanceError) {
-                        console.error("Ошибка обновления баланса после активации машины:", balanceError);
-                    }
-                    */
-                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка активации:', err);
@@ -3251,6 +3402,7 @@ export const MachineCard = memo(
                             balanceError
                         );
                         // Ошибка обновления баланса не должна блокировать основную операцию
+                        // (ошибка в оригинальном коде была поймана, но не обработана)
                     }
                     // --- Конец обновления баланса ---
                 }
@@ -3270,17 +3422,26 @@ export const MachineCard = memo(
 
             switch (currentStatus) {
                 case 'awaiting':
-                    return `+${earnings} USDT за 23 ч.`;
+                    return (
+                        <>
+                            +{earnings} <Coin width={20} height={20} />
+                        </>
+                    );
                 case 'in_progress':
-                    return 'Работаем...';
+                    // Возвращаем отформатированное время вместо ProgressBar
+                    return <span className={styles.timer}>{timeLeftFormatted}</span>;
                 case 'waiting_for_reward':
-                    return `${earnings} USDT`;
+                    return (
+                        <>
+                            {earnings} <Coin width={20} height={20} />
+                        </>
+                    );
                 case 'completed':
                     return 'Завершена';
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings]);
+        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]); // Добавлена зависимость timeLeftFormatted
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
@@ -3290,7 +3451,7 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return isProcessing ? 'Активация...' : 'Активировать';
                 case 'in_progress':
-                    return <ProgressBar progress={progress} className={styles.progressBar} />;
+                    return 'Работаем...';
                 case 'waiting_for_reward':
                     return isProcessing ? 'Получение...' : 'Забрать';
                 case 'completed':
@@ -3298,7 +3459,7 @@ export const MachineCard = memo(
                 default:
                     return 'Куплена';
             }
-        }, [isPurchased, currentStatus, isProcessing, progress]);
+        }, [isPurchased, currentStatus, isProcessing]);
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {
@@ -3326,14 +3487,33 @@ export const MachineCard = memo(
                     className={clsx(styles.card)}
                     onClick={actionHandler}
                     type="button"
-                    aria-label={`Майнинг-машина за ${price} USDT`}
+                    aria-label={`${machineData!.car.name}`}
                     disabled={isProcessing}
                 >
-                    <InfoButton
-                        className={styles.infoButton}
-                        onClick={() => setIsModalOpen(true)}
-                    />
-                    <div className={styles.plate} />
+                    <div className={styles.info}>
+                        {isPurchased ? (
+                            // Если машина куплена, отображаем оставшиеся активации
+                            <span
+                                className={styles.activationsDisplay}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                {remainingUses} / {totalActivations}
+                            </span>
+                        ) : (
+                            // Если не куплена, отображаем кнопку с иконкой Info
+                            <InfoButton
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsModalOpen(true);
+                                }}
+                            />
+                        )}
+                    </div>
+
+                    <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
 
                     <Image
                         className={clsx(styles.image, { [styles.purchased]: isPurchased })}
@@ -3375,6 +3555,7 @@ MachineCard.displayName = 'MachineCard';
 
 // @/widgets/machine-card/ui/MachineInfoModal.tsx
 import Image from 'next/image';
+import { Coin } from '@/shared/assets/icons';
 import { Modal } from '@/shared/ui';
 import { MachineInfoModalProps } from '../model';
 import styles from './MachineInfoModal.module.scss';
@@ -3386,33 +3567,38 @@ export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalP
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
             <div className={styles.machineInfo}>
-                <h2 className={styles.title}>
-                    {machine.car.name || `Майнинг-машина #${machine.car.id}`}
-                </h2>
+                <h2 className={styles.title}>{machine.car.name}</h2>
 
-                <div className={styles.imageContainer}>
-                    <Image
-                        src={`/images/${machine.car.image}`}
-                        width={200}
-                        height={200}
-                        alt="Майнинг-машина"
-                    />
-                </div>
+                <Image
+                    src={`/images/${machine.car.image}`}
+                    width={200}
+                    height={200}
+                    alt="Майнинг-машина"
+                />
 
                 <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                        <span className={styles.label}>Цена:</span>
-                        <span className={styles.value}>{machine.car.price} USDT</span>
+                        <p className={styles.label}>Цена:</p>
+                        <p className={styles.value}>
+                            {machine.car.price} <Coin width={20} height={20} />
+                        </p>
                     </div>
 
                     <div className={styles.infoItem}>
-                        <span className={styles.label}>Активации (срок службы):</span>
-                        <span className={styles.value}>{machine.car.lifespan} дней</span>
+                        <p className={styles.label}>Заряды:</p>
+                        <p className={styles.value}>{machine.car.lifespan}</p>
                     </div>
 
                     <div className={styles.infoItem}>
-                        <span className={styles.label}>Доход за 1 активацию:</span>
-                        <span className={styles.value}>+{earnings} USDT</span>
+                        <p className={styles.label}>Время работы 1 заряда:</p>
+                        <p className={styles.value}>24 часа</p>
+                    </div>
+
+                    <div className={styles.infoItem}>
+                        <p className={styles.label}>Доход за 1 заряд:</p>
+                        <p className={styles.value}>
+                            +{earnings} <Coin width={20} height={20} />
+                        </p>
                     </div>
                 </div>
             </div>
@@ -3423,8 +3609,6 @@ export const MachineInfoModal = ({ isOpen, onClose, machine }: MachineInfoModalP
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-card\ui\index.ts =====
 
-export { BuyMachineLink } from './BuyMachineLink';
-export { BuyMoreCard } from './BuyMoreCard';
 export { MachineCard } from './MachineCard';
 export { MachineInfoModal } from './MachineInfoModal';
 export {} from './';
@@ -3443,6 +3627,7 @@ export { ReferralBalance } from './ui/ReferralBalance';
 import CountUp from 'react-countup';
 import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { Coin } from '@/shared/assets/icons';
 import styles from './ReferralBalance.module.scss';
 
 export const ReferralBalance = () => {
@@ -3476,9 +3661,9 @@ export const ReferralBalance = () => {
                     separator=" "
                     decimal="."
                     prefix=""
-                    suffix=""
+                    suffix=" "
                 />
-                <span>RUB</span>
+                <span>₽</span>
             </div>
             <div className={styles.balanceUSDT}>
                 <CountUp
@@ -3491,7 +3676,7 @@ export const ReferralBalance = () => {
                     suffix=" "
                     className={styles.value}
                 />
-                <span>USDT</span>
+                <Coin width={40} height={40} />
             </div>
         </div>
     );
@@ -3570,6 +3755,7 @@ export type MachineCardProps = {
 // @/widgets/referral-card/ui/ReferralCard.tsx
 import Image from 'next/image';
 import { UserAttributes } from '@/entities/user/model/types';
+import { Coin } from '@/shared/assets/icons';
 import styles from './ReferralCard.module.scss';
 
 // Пропсы для карточки реферала
@@ -3578,24 +3764,41 @@ interface ReferralCardProps {
 }
 
 export const ReferralCard = async ({ referral }: ReferralCardProps) => {
-    // Простой способ получить "прибыль" реферала - можно адаптировать под вашу логику
-    // Например, использовать referral.ref_balance или другое поле
-    const profit = referral.ref_balance || 0;
+    // Получаем значение ref_balance, которое может быть number, string, null или undefined
+    const refBalanceValue = referral.ref_balance;
 
+    // Преобразуем значение в число
+    let numericProfit: number;
+    if (typeof refBalanceValue === 'number') {
+        numericProfit = refBalanceValue;
+    } else if (typeof refBalanceValue === 'string') {
+        // Пробуем преобразовать строку в число
+        numericProfit = parseFloat(refBalanceValue);
+        // Если parseFloat вернул NaN, заменяем на 0
+        if (isNaN(numericProfit)) {
+            numericProfit = 0;
+        }
+    } else {
+        // Если null, undefined или другой тип, используем 0
+        numericProfit = 0;
+    }
+
+    // Форматируем число до 2 знаков после запятой
+    const profit = numericProfit.toFixed(2);
+    
     return (
         <div className={styles.card}>
-            {/* TODO: Заменить на аватар реферала, если он есть */}
             <Image
                 className={styles.avatar}
-                src={`/images/machine1.png`} // Заглушка
+                src={`/images/mascot.webp`}
                 width={100}
                 height={100}
                 alt={`Аватар ${referral.username}`}
             />
-            <span className={styles.username}>
-                {referral.username || `Пользователь ${referral.telegram_id}`}
+            <span className={styles.username}>{referral.username}</span>
+            <span className={styles.profit}>
+                +{profit} <Coin width={20} height={20} />
             </span>
-            <span className={styles.profit}>+{profit} USDT</span>
         </div>
     );
 };
@@ -3720,17 +3923,29 @@ export const User = () => {
 ├── package-lock.json
 ├── package.json
 ├── public
+    ├── icons
     └── images
     │   ├── machine1.png
+    │   ├── machine1.webp
     │   ├── machine2.png
+    │   ├── machine2.webp
     │   ├── machine3.png
+    │   ├── machine3.webp
     │   ├── machine4.png
+    │   ├── machine4.webp
     │   ├── machine5.png
+    │   ├── machine5.webp
     │   ├── machine6.png
+    │   ├── machine6.webp
     │   ├── machine7.png
+    │   ├── machine7.webp
     │   ├── machine8.png
+    │   ├── machine8.webp
     │   ├── mascot.png
-    │   └── splash-screen.png
+    │   ├── mascot.webp
+    │   ├── splash-screen.jpg
+    │   ├── splash-screen.webp
+    │   └── splash-screen.wp2
 ├── README.md
 ├── src
     ├── app
@@ -3848,6 +4063,7 @@ export const User = () => {
     │   ├── assets
     │   │   └── icons
     │   │   │   ├── Arrow.tsx
+    │   │   │   ├── Coin.tsx
     │   │   │   ├── Copy.tsx
     │   │   │   ├── index.ts
     │   │   │   ├── Info.tsx
@@ -3915,6 +4131,10 @@ export const User = () => {
     │       └── ui
     │       │   ├── Balance.module.scss
     │       │   └── Balance.tsx
+    │   ├── by-machine-link
+    │       ├── BuyMachineLink.module.scss
+    │       ├── BuyMachineLink.tsx
+    │       └── index.ts
     │   ├── header
     │       ├── index.ts
     │       ├── model
@@ -3929,10 +4149,6 @@ export const User = () => {
     │       │   ├── machines.ts
     │       │   └── types.ts
     │       └── ui
-    │       │   ├── BuyMachineLink.module.scss
-    │       │   ├── BuyMachineLink.tsx
-    │       │   ├── BuyMoreCard.module.scss
-    │       │   ├── BuyMoreCard.tsx
     │       │   ├── index.ts
     │       │   ├── MachineCard.module.scss
     │       │   ├── MachineCard.tsx
