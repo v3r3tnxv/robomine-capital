@@ -1,15 +1,9 @@
-// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
 'use client';
 
+// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import styles from './MaintenanceScreen.module.scss';
-
-// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
-
-// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
-
-// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
 
 export const MaintenanceScreen: React.FC = () => {
     // Список сообщений о процессе технических работ, тематических для майнинга
@@ -62,10 +56,13 @@ export const MaintenanceScreen: React.FC = () => {
     return (
         <div className={styles.maintenanceScreen}>
             <div className={styles.content}>
+                <div className={styles.glassFilter}></div>
+                <div className={styles.glassOverlay}></div>
+                <div className={styles.glassSpecular}></div>
                 {/* Анимированный робот-механик */}
                 <div className={styles.robotContainer}>
                     <Image
-                        src="/images/mascot.webp" // Используй подходящее изображение
+                        src="/images/mascot.webp"
                         alt="Робот-механик"
                         width={120}
                         height={120}
@@ -88,11 +85,6 @@ export const MaintenanceScreen: React.FC = () => {
                 {/* Динамическое сообщение о процессе */}
                 <div className={styles.messageContainer}>
                     <p className={styles.message}>{maintenanceMessages[currentMessageIndex]}</p>
-                    <div className={styles.typingIndicator}>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
                 </div>
             </div>
 
@@ -112,6 +104,26 @@ export const MaintenanceScreen: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            <svg>
+                <filter id="lg-dist" x="0%" y="0%" width="100%" height="100%">
+                    <feTurbulence
+                        type="fractalNoise"
+                        baseFrequency="0.008 0.008"
+                        numOctaves="2"
+                        seed="92"
+                        result="noise"
+                    />
+                    <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
+                    <feDisplacementMap
+                        in="SourceGraphic"
+                        in2="blurred"
+                        scale="70"
+                        xChannelSelector="R"
+                        yChannelSelector="G"
+                    />
+                </filter>
+            </svg>
         </div>
     );
 };

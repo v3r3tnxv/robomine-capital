@@ -2,6 +2,15 @@
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
 
+:root {
+    --lg-bg-color: rgba(255, 255, 255, 0.25);
+    --lg-highlight: rgba(255, 255, 255, 0.75);
+    --lg-text: #ffffff;
+    --lg-hover-glow: rgba(255, 255, 255, 0.4);
+    --lg-red: #fb4268;
+    --lg-grey: #5b5b5b;
+}
+
 .maintenanceScreen {
     position: fixed;
     top: 0;
@@ -12,140 +21,162 @@
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    font-family:
-        var(--font-lato),
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        Roboto,
-        sans-serif;
     overflow: hidden;
-    color: white;
-}
+    background: url('https://images.unsplash.com/photo-1551384963-cccb0b7ed94b?q=80&w=3247&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+    animation: bg-move 5s ease-in-out infinite alternate;
 
-.content {
-    text-align: center;
-    padding: 2.5rem;
-    border-radius: 24px;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    max-width: 95%;
-    width: 550px;
-    position: relative;
-    z-index: 2;
-}
+    @keyframes bg-move {
+        from {
+            background-position: center center;
+        }
+        to {
+            background-position: center top;
+        }
+    }
+    .content {
+        position: relative;
+        z-index: 2;
+        width: 70%;
+        padding: 2rem;
+        text-align: center;
+        border-radius: 24px;
+        overflow: hidden;
+        background: transparent;
+        box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
 
-.robotContainer {
-    position: relative;
-    margin-bottom: 2rem;
-    display: inline-block;
-}
+        .glassFilter {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            -webkit-backdrop-filter: blur(0px);
+            backdrop-filter: blur(0px);
+            filter: url(#lg-dist);
+            isolation: isolate;
+        }
 
-.robot {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
-    animation: floatAndPulse 4s ease-in-out infinite;
-}
+        .glassOverlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: var(--lg-bg-color);
+        }
 
-.processIcons {
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 100%;
-    height: 100%;
+        .glassSpecular {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            border-radius: inherit;
+            overflow: hidden;
+            box-shadow:
+                inset 1px 1px 0 var(--lg-highlight),
+                inset 0 0 5px var(--lg-highlight);
+        }
 
-    span {
+        .robotContainer {
+            position: relative;
+            margin-bottom: 2rem;
+            display: inline-block;
+
+            .robot {
+                width: 120px;
+                height: 120px;
+                object-fit: contain;
+                filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+                animation: floatAndPulse 4s ease-in-out infinite;
+            }
+
+            .processIcons {
+                position: absolute;
+                top: -20px;
+                right: -20px;
+                width: 100%;
+                height: 100%;
+
+                span {
+                    position: absolute;
+                    font-size: 1.5rem;
+                    opacity: 0;
+                    animation: orbit 8s infinite linear;
+                }
+
+                .icon1 {
+                    top: -10px;
+                    left: -10px;
+                    animation-delay: 0s;
+                }
+                .icon2 {
+                    top: 30px;
+                    right: -15px;
+                    animation-delay: 2s;
+                }
+                .icon3 {
+                    bottom: -15px;
+                    left: 20px;
+                    animation-delay: 4s;
+                }
+            }
+        }
+
+        .title {
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
+            -webkit-background-clip: text;
+            background-clip: text;
+
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+            .highlight {
+                position: relative;
+                &::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -8px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 80%;
+                    height: 3px;
+                    background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
+                    border-radius: 3px;
+                }
+            }
+
+            .messageContainer {
+                margin-bottom: 2rem;
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+
+                .message {
+                    font-size: 1.2rem;
+                    margin-bottom: 0.5rem;
+                    opacity: 0.95;
+                    color: #e6f7ff;
+                    transition: opacity 0.5s ease;
+                }
+            }
+        }
+    }
+
+    // Анимированный фон
+    .animatedBackground {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 1;
+    }
+
+    .floatingElement {
         position: absolute;
         font-size: 1.5rem;
-        opacity: 0;
-        animation: orbit 8s infinite linear;
-    }
-
-    .icon1 {
-        top: -10px;
-        left: -10px;
-        animation-delay: 0s;
-    }
-    .icon2 {
-        top: 30px;
-        right: -15px;
-        animation-delay: 2s;
-    }
-    .icon3 {
-        bottom: -15px;
-        left: 20px;
-        animation-delay: 4s;
-    }
-}
-
-.title {
-    font-size: 2.2rem;
-    margin-bottom: 1.5rem;
-    font-weight: 700;
-    background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
-    -webkit-background-clip: text;
-    background-clip: text;
-
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.highlight {
-    position: relative;
-    &::after {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        height: 3px;
-        background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
-        border-radius: 3px;
-    }
-}
-
-.messageContainer {
-    margin-bottom: 2rem;
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.message {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    opacity: 0.95;
-    line-height: 1.6;
-    color: #e6f7ff;
-    transition: opacity 0.5s ease;
-}
-
-.typingIndicator {
-    display: flex;
-    gap: 4px;
-
-    span {
-        width: 8px;
-        height: 8px;
-        background-color: $font-neon-orange;
-        border-radius: 50%;
-        display: inline-block;
-        animation: typing 1.4s infinite ease-in-out;
-
-        &:nth-child(1) {
-            animation-delay: 0s;
-        }
-        &:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        &:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+        opacity: 0.2;
+        animation: floatUp linear infinite;
     }
 }
 
@@ -188,24 +219,6 @@
     }
 }
 
-// Анимированный фон
-.animatedBackground {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 1;
-}
-
-.floatingElement {
-    position: absolute;
-    font-size: 1.5rem;
-    opacity: 0.1;
-    animation: floatUp linear infinite;
-}
-
 @keyframes floatUp {
     0% {
         transform: translateY(100vh) rotate(0deg);
@@ -214,31 +227,5 @@
     100% {
         transform: translateY(-100px) rotate(360deg);
         opacity: 0;
-    }
-}
-
-// Адаптивность
-@media (max-width: 600px) {
-    .content {
-        padding: 1.5rem;
-        width: 95%;
-    }
-
-    .title {
-        font-size: 1.8rem;
-    }
-
-    .message {
-        font-size: 1rem;
-    }
-
-    .robot {
-        width: 100px;
-        height: 100px;
-    }
-
-    .infoPanel {
-        flex-direction: column;
-        gap: 0.8rem;
     }
 }

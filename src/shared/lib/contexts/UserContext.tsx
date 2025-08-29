@@ -30,7 +30,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
     const fetchUserData = useCallback(async () => {
-        // <-- useCallback для fetchUserData
         if (!tgUser?.id) return;
         try {
             setIsLoading(true);
@@ -49,11 +48,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }, [tgUser?.id]); // Зависит от tgUser.id
 
     const refreshUserBalance = useCallback(async () => {
-        // <-- useCallback
         if (!user) return;
         try {
             const updatedUser = await getMe();
-            setUser(updatedUser); // Или точечное обновление, если нужно
+            setUser(updatedUser);
         } catch (err) {
             console.error('Ошибка обновления баланса:', err);
         }

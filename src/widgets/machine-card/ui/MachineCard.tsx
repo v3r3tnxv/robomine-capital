@@ -197,7 +197,7 @@ export const MachineCard = memo(
                 }
             } catch (err) {
                 console.error('Ошибка при покупке машины:', err);
-                let errorMessage = 'Произошла ошибка при покупке. Пожалуйста, попробуйте позже.';
+                let errorMessage = 'Недостаточно средств на балансе.';
                 if (err instanceof Error) {
                     if (err.message.includes('Insufficient funds')) {
                         errorMessage = 'Недостаточно средств на балансе.';

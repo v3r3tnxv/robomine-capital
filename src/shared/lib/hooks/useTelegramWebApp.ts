@@ -69,6 +69,21 @@ export const useTelegramWebApp = () => {
             setTgUser(user);
             setIsLoading(false);
 
+            // обработка ref_id
+            try {
+                // Получаем start параметр из initData
+                const initData = window.Telegram.WebApp.initData || '';
+                const initDataParams = new URLSearchParams(initData);
+                const startParam = initDataParams.get('start');
+
+                if (startParam) {
+                    localStorage.setItem('referrer_id', startParam);
+                    console.log('Saved referrer_id from start param:', startParam);
+                }
+            } catch (e) {
+                console.warn('Error parsing start parameter:', e);
+            }
+
             // Раскрываем приложение на весь экран
             try {
                 window.Telegram.WebApp.disableVerticalSwipes();
