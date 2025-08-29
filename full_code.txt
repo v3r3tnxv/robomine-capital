@@ -21,6 +21,8 @@ export default nextConfig;
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\deposit\page.tsx =====
 
+'use client';
+
 // @/app/deposit/page.tsx
 import { DepositForm } from '@/features/deposit';
 import { BackButton } from '@/shared/ui';
@@ -32,9 +34,11 @@ export default function DepositPage() {
         <div className={styles.depositPage}>
             <BackButton />
             <h1 className={styles.title}>Пополнение баланса</h1>
+
             <Header />
+
             <div className={styles.formContainer}>
-                <span>Сумма для пополнения</span>
+                <span>Сумма пополнения</span>
                 <DepositForm />
             </div>
         </div>
@@ -136,24 +140,43 @@ export default function NotFound() {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\page.tsx =====
 
+'use client';
+
 // app/page.tsx
-import { MachineList } from '@/features/mining/ui/MachineList';
+import { useMachines } from '@/shared/lib/contexts';
 import { ActionButtons } from '@/widgets/action-buttons';
 import { BuyMachineLink } from '@/widgets/by-machine-link';
-import { Header } from '@/widgets/header/ui/Header';
+import { Header } from '@/widgets/header';
+import { MachineList } from '@/widgets/machine-list';
 import styles from './Home.module.scss';
 
 export default function HomePage() {
+    const { machines, loading, error } = useMachines();
+
+    if (loading) {
+        return null;
+    }
+
+    if (error) {
+        return <div className={styles.homePage}>Ошибка загрузки данных.</div>;
+    }
+
+    const hasPurchasedMachines = machines.some(
+        (machine) => (machine.state_car?.status ?? 'not_purchased') !== 'not_purchased'
+    );
+
     return (
         <div className={styles.homePage}>
             <Header />
             <ActionButtons />
 
-            <div className={styles.machinesContainer}>
-                <MachineList filterType="purchased" showBuyMoreCard={true} />
-            </div>
-
-            <BuyMachineLink />
+            {hasPurchasedMachines ? (
+                <div className={styles.machinesContainer}>
+                    <MachineList filterType="purchased" showBuyMoreCard={true} />
+                </div>
+            ) : (
+                <BuyMachineLink />
+            )}
         </div>
     );
 }
@@ -164,9 +187,9 @@ export default function HomePage() {
 'use client';
 
 // src/app/referral/page.tsx
-import { useEffect, useState } from 'react';
-import { UserReferralData, getUserReferrals } from '@/entities/user';
-import { useUser } from '@/entities/user/model/UserContext';
+import { useState } from 'react';
+import { useReferrals } from '@/shared/lib/contexts';
+import { useUser } from '@/shared/lib/contexts/UserContext';
 import { BackButton, Button } from '@/shared/ui';
 import { ReferralBalance } from '@/widgets/referral-balance';
 import { ReferralLink } from '@/widgets/referral-link';
@@ -175,32 +198,10 @@ import styles from './Referral.module.scss';
 
 export default function ReferralPage() {
     const { user } = useUser();
-    const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // Загружаем данные рефералов только один раз, когда пользователь доступен
-    useEffect(() => {
-        if (user && !referralsData && loading === true && error === null) {
-            const fetchData = async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    const referralsDataResult = await getUserReferrals();
-                    setReferralsData(referralsDataResult);
-                } catch {
-                    setError('Не удалось загрузить данные рефералов.');
-                } finally {
-                    setLoading(false); // Завершаем загрузку
-                }
-            };
-            fetchData();
-        }
-    }, [user, referralsData, loading, error]);
+    const { referralsData } = useReferrals();
 
     const handleInvite = () => {
         if (!user?.telegram_id) {
-            // Можно показать уведомление пользователю
             return;
         }
 
@@ -232,8 +233,8 @@ export default function ReferralPage() {
 ===== C:\Users\USER\Projects\robomine-capital\src\app\shop\page.tsx =====
 
 // @/app/shop/page.tsx
-import { MachineList } from '@/features/mining';
 import { BackButton } from '@/shared/ui';
+import { MachineList } from '@/widgets/machine-list';
 import styles from './Shop.module.scss';
 
 export default function ShopPage() {
@@ -248,6 +249,8 @@ export default function ShopPage() {
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\app\withdraw\page.tsx =====
+
+'use client';
 
 // @/app/withdraw/page.tsx
 import { WithdrawForm } from '@/features/withdraw';
@@ -264,7 +267,7 @@ export default function WithdrawPage() {
             <Header />
 
             <div className={styles.formContainer}>
-                <span>Сумма для вывода</span>
+                <span>Сумма вывода</span>
                 <WithdrawForm />
             </div>
         </div>
@@ -636,124 +639,6 @@ export * from './model';
 export * from './ui';
 
 
-===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\UserContext.tsx =====
-
-'use client';
-
-// src/entities/user/model/UserContext.tsx (фрагмент)
-import React, {
-    ReactNode,
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-} from 'react';
-import { getMe } from '@/entities/user/api/user.api';
-import { UserAttributes } from '@/entities/user/model/types';
-import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
-
-interface UserContextType {
-    user: UserAttributes | null;
-    isLoading: boolean;
-    error: string | null;
-    refreshUser: () => Promise<void>;
-    refreshUserBalance: () => Promise<void>;
-    updateUserLocally: (updates: Partial<UserAttributes>) => void;
-}
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-export const UserProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<UserAttributes | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
-
-    const fetchUserData = useCallback(async () => {
-        // <-- useCallback для fetchUserData
-        if (!tgUser?.id) return;
-        try {
-            setIsLoading(true);
-            setError(null);
-            const userData = await getMe();
-            setUser(userData);
-            if (typeof window !== 'undefined') {
-                window.telegramUser = userData;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки данных пользователя:', err);
-            setError('Не удалось загрузить данные пользователя');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [tgUser?.id]); // Зависит от tgUser.id
-
-    const refreshUserBalance = useCallback(async () => {
-        // <-- useCallback
-        if (!user) return;
-        try {
-            const updatedUser = await getMe();
-            setUser(updatedUser); // Или точечное обновление, если нужно
-        } catch (err) {
-            console.error('Ошибка обновления баланса:', err);
-        }
-    }, [user]); // Зависит от user
-
-    const refreshUser = useCallback(async () => {
-        // <-- useCallback
-        await fetchUserData();
-    }, [fetchUserData]); // Зависит от fetchUserData
-
-    const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
-        // <-- useCallback
-        setUser((prevUser) => {
-            if (!prevUser) return null;
-            return { ...prevUser, ...updates };
-        });
-    }, []); // Не зависит от внешних переменных, кроме setUser
-
-    useEffect(() => {
-        if (!isTgLoading && tgUser?.id) {
-            fetchUserData();
-        } else if (!isTgLoading && !tgUser?.id) {
-            setIsLoading(false);
-        }
-    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
-
-    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
-    const contextValue = React.useMemo(
-        () => ({
-            // <-- useMemo для value
-            user,
-            isLoading,
-            error,
-            refreshUser,
-            refreshUserBalance,
-            updateUserLocally,
-        }),
-        [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
-    );
-    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
-
-    return (
-        <UserContext.Provider value={contextValue}>
-            {' '}
-            {/* <-- Передаем мемоизированное значение */}
-            {children}
-        </UserContext.Provider>
-    );
-};
-
-export const useUser = (): UserContextType => {
-    const context = useContext(UserContext);
-    if (context === undefined) {
-        throw new Error('useUser must be used within a UserProvider');
-    }
-    return context;
-};
-
-
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\index.ts =====
 
 export type {
@@ -765,7 +650,7 @@ export type {
     UserReferralData,
 } from './types';
 
-export { UserProvider, useUser } from './UserContext';
+export { UserProvider, useUser } from '../../../shared/lib/contexts/UserContext';
 export { useUserInit } from './useUserInit';
 export {} from './';
 
@@ -1095,59 +980,73 @@ export type TransferResult = WithdrawalAttributes;
 export {} from '.';
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\features\claim-animation\index.ts =====
+
+export * from './ui';
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\features\claim-animation\ui\ClaimAnimation.tsx =====
 
-// 'use client';
+'use client';
 
-// // src/features/claim-animation/ui/ClaimAnimation.tsx
-// import { useEffect, useState } from 'react';
-// import moleCoin from '@/assets/icons/mole-coin.webp';
-// import tonCoin from '@/assets/icons/ton-coin.webp';
-// import './ClaimAnimation.scss';
+// src/features/claim-animation/ui/ClaimAnimation.tsx
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { Coin } from '@/shared/assets/icons';
+import styles from './ClaimAnimation.module.scss';
 
-// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
+export const ClaimAnimation = () => {
+    const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
 
-// export const ClaimAnimation = () => {
-//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
-//     const [coinType, setcoinType] = useState<string[]>([]);
+    useEffect(() => {
+        // Небольшая задержка для уверенности, что DOM готов для анимации
+        const timer = setTimeout(() => {
+            setShouldAnimateCoins(true);
+        }, 10);
 
-//     useEffect(() => {
-//         setcoinType([
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//         ]);
-//         setShouldAnimateCoins(true);
-//     }, []);
+        return () => clearTimeout(timer);
+    }, []);
 
-//     return (
-//         <div className="ClaimAnimation">
-//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
-//             <img
-//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[0]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[1]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[2]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[3]}
-//                 alt="coin"
-//             />
-//         </div>
-//     );
-// };
+    return (
+        <div className={styles.claimAnimation}>
+            <Coin className={clsx(styles.coin, styles.coinCentral)} width={50} height={50} />
+
+            <div
+                className={clsx(styles.coin, styles.coinTopLeft, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinTopRight, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinBottomRight, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinBottomLeft, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\features\claim-animation\ui\index.ts =====
+
+export { ClaimAnimation } from './ClaimAnimation';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\features\currency-converter\index.ts =====
@@ -1243,9 +1142,13 @@ export interface ConvertCurrencyParams {
 
 'use client';
 
-// src/features/currency-converter/model/hooks.ts
+// src/features/currency-converter/model/useCurrencyConverter.tsx
 import { useEffect, useState } from 'react';
 import { CurrencyRates } from './types';
+
+const CACHE_KEY = 'currencyConverterRates';
+// Установите желаемое время кэширования (например, 15 минут = 15 * 60 * 1000 миллисекунд)
+const CACHE_DURATION_MS = 15 * 60 * 1000;
 
 export const useCurrencyConverter = () => {
     const [rates, setRates] = useState<CurrencyRates | null>(null);
@@ -1253,10 +1156,35 @@ export const useCurrencyConverter = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchRates = async () => {
             setLoading(true);
             setError(null);
+
             try {
+                // 1. Попытка получить данные из localStorage
+                if (typeof window !== 'undefined') {
+                    const cachedDataString = localStorage.getItem(CACHE_KEY);
+                    if (cachedDataString) {
+                        const cachedData = JSON.parse(cachedDataString);
+                        const now = Date.now();
+                        // Проверяем, не истекло ли время кэша
+                        if (now - cachedData.timestamp < CACHE_DURATION_MS) {
+                            console.log('Использованы кэшированные курсы валют');
+                            if (isMounted) {
+                                setRates(cachedData.rates);
+                                setLoading(false);
+                            }
+                            return; // Используем кэш, запрос не нужен
+                        } else {
+                            console.log('Кэш курсов валют устарел');
+                        }
+                    }
+                }
+
+                // 2. Если кэша нет или он устарел, делаем запрос к API
+                console.log('Запрос курсов валют к API...');
                 const response = await fetch(
                     'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub'
                 );
@@ -1273,25 +1201,45 @@ export const useCurrencyConverter = () => {
                         RUB: 1,
                         USDT: 1 / usdtToRubRate,
                     };
-                    setRates(fetchedRates);
+
+                    // 3. Сохраняем полученные данные в localStorage с меткой времени
+                    if (typeof window !== 'undefined') {
+                        const cachePayload = {
+                            rates: fetchedRates,
+                            timestamp: Date.now(),
+                        };
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+                        console.log('Курсы валют сохранены в localStorage');
+                    }
+
+                    if (isMounted) {
+                        setRates(fetchedRates);
+                    }
                 } else {
                     throw new Error('Не удалось получить корректный курс USDT/RUB.');
                 }
             } catch (err) {
-                if (err instanceof Error) {
-                    console.error('Ошибка в useCurrencyConverter:', err);
-                    setError(err.message || 'Ошибка загрузки курса USDT/RUB.');
-                } else {
-                    console.error('Неизвестная ошибка:', err);
-                    setError('Неизвестная ошибка при загрузке курса.');
+                console.error('Ошибка в useCurrencyConverter:', err);
+                if (isMounted) {
+                    if (err instanceof Error) {
+                        setError(err.message || 'Ошибка загрузки курса USDT/RUB.');
+                    } else {
+                        setError('Неизвестная ошибка при загрузке курса.');
+                    }
                 }
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchRates();
-    }, []);
+
+        return () => {
+            isMounted = false;
+        };
+    }, []); // Пустой массив зависимостей - запуск только при монтировании
 
     return { rates, loading, error };
 };
@@ -1501,159 +1449,6 @@ export const DepositForm = () => {
         </form>
     );
 };
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\index.ts =====
-
-// export * from './model';
-export * from './ui';
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\model\index.ts =====
-
-export type { MachineListProps } from './types';
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\model\types.ts =====
-
-import { MachineWithState } from '@/entities/machine';
-
-export interface MachineListProps {
-    machines?: MachineWithState[];
-    filterType: 'purchased' | 'not_purchased' | 'all';
-    showBuyMoreCard: boolean;
-}
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\ClaimAnimation.tsx =====
-
-// import { useEffect, useState } from 'react';
-// import moleCoin from '@/assets/icons/mole-coin.webp';
-// import tonCoin from '@/assets/icons/ton-coin.webp';
-// import './ClaimAnimation.scss';
-
-// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
-
-// export const ClaimAnimation = () => {
-//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
-//     const [coinType, setcoinType] = useState<string[]>([]);
-
-//     useEffect(() => {
-//         setcoinType([
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//         ]);
-//         setShouldAnimateCoins(true);
-//     }, []);
-
-//     return (
-//         <div className="ClaimAnimation">
-//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
-//             <img
-//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[0]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[1]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[2]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[3]}
-//                 alt="coin"
-//             />
-//         </div>
-//     );
-// };
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\MachineList.tsx =====
-
-'use client';
-
-// @/features/mining/ui/MachineList.tsx
-import React from 'react';
-import Link from 'next/link';
-import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { MachineCard } from '@/widgets/machine-card';
-import { MachineListProps } from '../model';
-import styles from './MachineList.module.scss';
-
-export const MachineList = ({
-    machines: propMachines,
-    filterType = 'all',
-    showBuyMoreCard = false,
-}: MachineListProps) => {
-    // Используем контекст если machines не переданы
-    const { machines: contextMachines } = useMachines();
-
-    // Используем переданные машины или машины из контекста
-    const machinesToUse = propMachines || contextMachines;
-
-    // Фильтрация по типу
-    const filteredMachines = machinesToUse.filter(({ state_car }) => {
-        const status = state_car?.status ?? 'not_purchased';
-        switch (filterType) {
-            case 'purchased':
-                return status !== 'not_purchased';
-            case 'not_purchased':
-                return status === 'not_purchased';
-            case 'all':
-            default:
-                return true;
-        }
-    });
-
-    const shouldShowBuyMore = showBuyMoreCard && filterType === 'purchased';
-
-    return (
-        <div className={styles.machineList}>
-            {shouldShowBuyMore && (
-                <Link href="/shop" className={styles.buyMoreCard}>
-                    <div className={styles.plate} />
-                    <span className={styles.add}>+</span>
-                    <span className={styles.label}>Купить ещё</span>
-                </Link>
-            )}
-
-            {filteredMachines.map((machineWithState) => {
-                const { car, state_car } = machineWithState;
-                const status = state_car?.status ?? 'not_purchased';
-                const isPurchased = status !== 'not_purchased';
-
-                return (
-                    <MachineCard
-                        key={car.id}
-                        image={car.image}
-                        price={car.price}
-                        status={status}
-                        isPurchased={isPurchased}
-                        machineData={machineWithState}
-                    />
-                );
-            })}
-        </div>
-    );
-};
-
-
-===== C:\Users\USER\Projects\robomine-capital\src\features\mining\ui\index.ts =====
-
-export { MachineList } from './MachineList';
-export {} from './';
-export {} from './';
-export {} from './';
-export {} from './';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\features\timer\model\useTimer.ts =====
@@ -1896,7 +1691,6 @@ api.interceptors.request.use(
             } else {
                 // Нормальный режим: пытаемся получить и отправить настоящий initData из Telegram Web App
                 try {
-                    // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
                     const initData = window.Telegram?.WebApp?.initData;
                     if (initData) {
                         config.headers['X-Telegram-Init-Data'] = initData;
@@ -2171,6 +1965,8 @@ interface MachineContextType {
         machineId: number,
         updates: Partial<NonNullable<MachineWithState['state_car']>>
     ) => void;
+    // Новый метод для обновления remaining_uses
+    updateMachineRemainingUses: (machineId: number, newRemainingUses: number) => void;
 }
 
 const MachineContext = createContext<MachineContextType | undefined>(undefined);
@@ -2254,6 +2050,28 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
         []
     );
 
+    // Новый метод для обновления remaining_uses
+    const updateMachineRemainingUses = useCallback(
+        (machineId: number, newRemainingUses: number) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) => {
+                    // Проверяем, что state_car существует, прежде чем обновлять
+                    if (machine.car.id === machineId && machine.state_car) {
+                        return {
+                            ...machine,
+                            state_car: {
+                                ...machine.state_car,
+                                remaining_uses: newRemainingUses,
+                            },
+                        };
+                    }
+                    return machine;
+                })
+            );
+        },
+        []
+    );
+
     useEffect(() => {
         refreshMachines();
     }, [refreshMachines]);
@@ -2269,7 +2087,7 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
             updateMachineLocally,
             updateMachineStatusLocally,
             updateMachineStateCarLocally,
-            // ... другие функции ...
+            updateMachineRemainingUses,
         }),
         [
             machines,
@@ -2278,7 +2096,8 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
             refreshMachines,
             updateMachineLocally,
             updateMachineStatusLocally,
-            updateMachineStateCarLocally /* ... другие зависимости ... */,
+            updateMachineStateCarLocally,
+            updateMachineRemainingUses,
         ]
     );
     // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
@@ -2300,6 +2119,220 @@ export const useMachines = (): MachineContextType => {
 };
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\contexts\ReferralContext.tsx =====
+
+'use client';
+
+// src/shared/lib/contexts/ReferralContext.tsx
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { UserReferralData, getUserReferrals } from '@/entities/user';
+import { useUser } from '@/shared/lib/contexts';
+
+// 1. Определяем интерфейс контекста
+interface ReferralContextType {
+    referralsData: UserReferralData | null;
+    isLoading: boolean;
+    error: string | null;
+    refreshReferrals: () => Promise<void>;
+}
+
+// 2. Создаем контекст
+const ReferralContext = createContext<ReferralContextType | undefined>(undefined);
+
+// 3. Создаем провайдер
+export const ReferralProvider = ({ children }: { children: ReactNode }) => {
+    // 4. Состояния для данных, загрузки и ошибок
+    const [referralsData, setReferralsData] = useState<UserReferralData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // 5. Получаем пользователя из UserContext, чтобы знать, когда начинать загрузку
+    const { user } = useUser();
+
+    // 6. Функция для загрузки данных рефералов
+    const fetchReferralsData = useCallback(async () => {
+        if (!user) {
+            // Если пользователя нет, сбрасываем данные и состояние
+            setReferralsData(null);
+            setIsLoading(false);
+            setError(null);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setError(null);
+            const data = await getUserReferrals();
+            setReferralsData(data);
+        } catch {
+            setError('Не удалось загрузить данные рефералов');
+            // Сбрасываем данные в случае ошибки
+            setReferralsData(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]); // Зависимость от user
+
+    // 7. Функция для обновления данных
+    const refreshReferrals = useCallback(async () => {
+        await fetchReferralsData();
+    }, [fetchReferralsData]);
+
+    // 8. Эффект для загрузки данных при монтировании и изменении пользователя
+    useEffect(() => {
+        fetchReferralsData();
+    }, [fetchReferralsData]);
+
+    // 9. Мемоизация значения контекста для оптимизации
+    const contextValue = React.useMemo(
+        () => ({
+            referralsData,
+            isLoading,
+            error,
+            refreshReferrals,
+        }),
+        [referralsData, isLoading, error, refreshReferrals]
+    );
+
+    // 10. Предоставляем значение контекста дочерним компонентам
+    return <ReferralContext.Provider value={contextValue}>{children}</ReferralContext.Provider>;
+};
+
+// 11. Создаем хук для удобного использования контекста
+export const useReferrals = (): ReferralContextType => {
+    const context = useContext(ReferralContext);
+    if (context === undefined) {
+        throw new Error('useReferrals must be used within a ReferralProvider');
+    }
+    return context;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\contexts\UserContext.tsx =====
+
+'use client';
+
+// src/entities/user/model/UserContext.tsx (фрагмент)
+import React, {
+    ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from 'react';
+import { UserAttributes, getMe } from '@/entities/user';
+import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+interface UserContextType {
+    user: UserAttributes | null;
+    isLoading: boolean;
+    error: string | null;
+    refreshUser: () => Promise<void>;
+    refreshUserBalance: () => Promise<void>;
+    updateUserLocally: (updates: Partial<UserAttributes>) => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+    const [user, setUser] = useState<UserAttributes | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+
+    const fetchUserData = useCallback(async () => {
+        // <-- useCallback для fetchUserData
+        if (!tgUser?.id) return;
+        try {
+            setIsLoading(true);
+            setError(null);
+            const userData = await getMe();
+            setUser(userData);
+            if (typeof window !== 'undefined') {
+                window.telegramUser = userData;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки данных пользователя:', err);
+            setError('Не удалось загрузить данные пользователя');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [tgUser?.id]); // Зависит от tgUser.id
+
+    const refreshUserBalance = useCallback(async () => {
+        // <-- useCallback
+        if (!user) return;
+        try {
+            const updatedUser = await getMe();
+            setUser(updatedUser); // Или точечное обновление, если нужно
+        } catch (err) {
+            console.error('Ошибка обновления баланса:', err);
+        }
+    }, [user]); // Зависит от user
+
+    const refreshUser = useCallback(async () => {
+        // <-- useCallback
+        await fetchUserData();
+    }, [fetchUserData]); // Зависит от fetchUserData
+
+    const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
+        // <-- useCallback
+        setUser((prevUser) => {
+            if (!prevUser) return null;
+            return { ...prevUser, ...updates };
+        });
+    }, []); // Не зависит от внешних переменных, кроме setUser
+
+    useEffect(() => {
+        if (!isTgLoading && tgUser?.id) {
+            fetchUserData();
+        } else if (!isTgLoading && !tgUser?.id) {
+            setIsLoading(false);
+        }
+    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
+
+    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
+    const contextValue = React.useMemo(
+        () => ({
+            // <-- useMemo для value
+            user,
+            isLoading,
+            error,
+            refreshUser,
+            refreshUserBalance,
+            updateUserLocally,
+        }),
+        [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
+    );
+    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
+
+    return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
+};
+
+export const useUser = (): UserContextType => {
+    const context = useContext(UserContext);
+    if (context === undefined) {
+        throw new Error('useUser must be used within a UserProvider');
+    }
+    return context;
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\contexts\index.ts =====
+
+export { MachineProvider, useMachines } from './MachineContext';
+export { UserProvider, useUser } from './UserContext';
+export { ReferralProvider, useReferrals } from './ReferralContext';
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\hooks\useTelegramWebApp.ts =====
 
 // shared/lib/hooks/useTelegramWebApp.ts
@@ -2311,8 +2344,7 @@ interface TelegramUser {
     last_name?: string;
     username?: string;
     language_code?: string;
-    photo_url?: string; // Добавлено, если используется
-    // allows_write_to_pm?: boolean; // Добавлено, если используется
+    photo_url?: string;
 }
 
 // Объявляем глобальный тип для Telegram WebApp
@@ -2326,20 +2358,18 @@ declare global {
                 initData?: string; // Для проверки в других частях приложения, если нужно
                 disableVerticalSwipes?: () => void;
                 ready: () => void;
-                // Другие методы и свойства WebApp, если используются
+                expand: () => void;
+                platform?: string;
             };
         };
     }
 }
 
 export const useTelegramWebApp = () => {
-    console.log('>>> useTelegramWebApp hook is running <<<');
     const [tgUser, setTgUser] = useState<TelegramUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    console.log('>>> useTelegramWebApp state initialized <<<');
 
     useEffect(() => {
-        console.log('>>> useTelegramWebApp useEffect is running <<<');
         // Проверяем, локальная ли разработка
         const isLocalhost =
             typeof window !== 'undefined' &&
@@ -2366,53 +2396,28 @@ export const useTelegramWebApp = () => {
             console.log('Setting mock tgUser:', mockUser);
             setTgUser(mockUser);
             setIsLoading(false);
-            console.log('>>> useTelegramWebApp mock data set, isLoading=false <<<');
             return;
         }
 
         // Логика для production (внутри Telegram Web App)
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-            console.log('Telegram WebApp object found');
-
-            // Отключаем вертикальные свайпы для Telegram Mini App (если поддерживается)
-            try {
-                if (window.Telegram?.WebApp?.disableVerticalSwipes) {
-                    console.log('Attempting to disable vertical swipes');
-                    window.Telegram.WebApp.disableVerticalSwipes();
-                } else {
-                    console.log(
-                        'disableVerticalSwipes not available or not supported in this version'
-                    );
-                }
-            } catch (e) {
-                console.warn('Could not disable vertical swipes:', e);
-            }
-
             // Получаем данные пользователя из Telegram Web App
             const user = window.Telegram.WebApp.initDataUnsafe?.user || null;
-            console.log('User data from Telegram WebApp:', user);
             setTgUser(user);
             setIsLoading(false);
-            console.log('>>> useTelegramWebApp production data set, isLoading=false <<<');
 
             // Сообщаем Telegram, что приложение готово
             try {
                 window.Telegram.WebApp.ready();
-                console.log('Telegram WebApp ready() called');
             } catch (e) {
-                console.warn('Could not call Telegram WebApp.ready():', e);
+                console.warn(e);
             }
         } else {
-            console.warn(
-                'Telegram WebApp is not available and not localhost. Setting tgUser to null.'
-            );
             setTgUser(null);
             setIsLoading(false);
-            console.log('>>> useTelegramWebApp no data available, isLoading=false <<<');
         }
     }, []); // Пустой массив зависимостей - запускается только при монтировании
 
-    console.log('>>> useTelegramWebApp returning values <<<', { tgUser, isLoading });
     return { tgUser, isLoading };
 };
 
@@ -2430,9 +2435,9 @@ export * from './';
 // app/appProviders.tsx
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { UserProvider } from '@/entities/user';
 // import { SplashScreen } from '@/shared/ui';
-import { MachineProvider } from '../contexts/MachineContext';
+import { MachineProvider, UserProvider } from '../contexts';
+import { ReferralProvider } from '../contexts/ReferralContext';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -2466,7 +2471,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
             <UserProvider>
-                <MachineProvider>{children}</MachineProvider>
+                <ReferralProvider>
+                    <MachineProvider>{children}</MachineProvider>
+                </ReferralProvider>
             </UserProvider>
         </QueryClientProvider>
     );
@@ -2885,9 +2892,9 @@ export { Balance } from './ui/Balance';
 
 // src/widgets/balance/ui/Balance.tsx
 import CountUp from 'react-countup';
-import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Coin } from '@/shared/assets/icons';
+import { useUser } from '@/shared/lib/contexts/UserContext';
 import styles from './Balance.module.scss';
 
 export const Balance = () => {
@@ -3084,6 +3091,7 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
+import { ClaimAnimation } from '@/features/claim-animation';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { InfoButton } from '@/shared/ui';
@@ -3093,7 +3101,7 @@ import { MachineInfoModal } from './MachineInfoModal';
 
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
-        const { updateMachineStatusLocally } = useMachines();
+        const { updateMachineStatusLocally, updateMachineRemainingUses } = useMachines();
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
@@ -3102,6 +3110,8 @@ export const MachineCard = memo(
         const [actionError, setActionError] = useState<string | null>(null);
         const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
+        const [isCollectingReward, setIsCollectingReward] = useState(false);
+        const [showClaimAnimation, setShowClaimAnimation] = useState(false);
 
         const isPurchased = currentStatus !== 'not_purchased';
 
@@ -3158,7 +3168,7 @@ export const MachineCard = memo(
             }
 
             const startTime = lastUpdated;
-            const workTime = getWorkTime(); // Используем мемоизированную функцию
+            const workTime = getWorkTime();
             const endTime = startTime + workTime;
 
             const updateTimerDisplay = () => {
@@ -3179,9 +3189,7 @@ export const MachineCard = memo(
                     if (machineData.car.id) {
                         updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
                     }
-                    // Отправляем событие (опционально, если другие части приложения на него подписаны)
-                    // window.dispatchEvent(...) можно добавить, если нужно
-                    return; // Выходим, интервал уже остановлен
+                    return;
                 }
 
                 // Форматируем оставшееся время в HH:MM:SS
@@ -3194,7 +3202,6 @@ export const MachineCard = memo(
                     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
                 setTimeLeftFormatted(formattedTime);
-                // Интервал продолжает работать
             };
 
             // Первый запуск немедленно
@@ -3221,38 +3228,28 @@ export const MachineCard = memo(
         ]); // Зависимости: только те, которые влияют на необходимость перезапуска таймера
 
         // --- Обработчики событий ---
-        useEffect(() => {
-            const handleMachinePurchased = (event: CustomEvent) => {
+        const handleMachinePurchased = useCallback(
+            (event: CustomEvent) => {
                 if (event.detail.machineId === machineData?.car?.id) {
                     setCurrentStatus('awaiting');
                 }
-            };
+            },
+            [machineData?.car?.id]
+        );
 
-            const handleMachineActivated = (event: CustomEvent) => {
+        const handleMachineActivated = useCallback(
+            (event: CustomEvent) => {
                 if (event.detail.machineId === machineData?.car?.id) {
                     setCurrentStatus('in_progress');
                     setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
                 }
-            };
+            },
+            [machineData?.car?.id]
+        );
 
-            const handleMachineTransitioned = (event: CustomEvent) => {
-                if (event.detail.machineId === machineData?.car?.id) {
-                    // Определяем следующий статус
-                    const nextState =
-                        machineData?.state_car?.remaining_uses &&
-                        machineData.state_car.remaining_uses > 1
-                            ? 'awaiting'
-                            : 'completed';
-                    setCurrentStatus(nextState);
-                }
-            };
-
+        useEffect(() => {
             window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
             window.addEventListener('machineActivated', handleMachineActivated as EventListener);
-            window.addEventListener(
-                'machineTransitioned',
-                handleMachineTransitioned as EventListener
-            );
 
             return () => {
                 window.removeEventListener(
@@ -3263,12 +3260,8 @@ export const MachineCard = memo(
                     'machineActivated',
                     handleMachineActivated as EventListener
                 );
-                window.removeEventListener(
-                    'machineTransitioned',
-                    handleMachineTransitioned as EventListener
-                );
             };
-        }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
+        }, [handleMachinePurchased, handleMachineActivated]);
 
         // --- Обработчик покупки ---
         const handleBuy = async () => {
@@ -3327,7 +3320,15 @@ export const MachineCard = memo(
         };
 
         // --- Обработчик активации ---
+        // --- Обработчик активации ---
         const handleActivate = async () => {
+            // Проверяем правильный статус
+            if (currentStatus !== 'awaiting') {
+                console.warn('Попытка активации в неправильном статусе:', currentStatus);
+                setIsProcessing(false);
+                return;
+            }
+
             if (isProcessing || !machineData?.car?.id) return;
 
             setIsProcessing(true);
@@ -3339,21 +3340,18 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Машина ${machineData.car.id} активирована.`);
 
-                    // Локальное обновление без перезагрузки
+                    // обновляем remainingUses в контексте И локально
+                    const newRemainingUses = Math.max(0, remainingUses - 1);
+                    updateMachineRemainingUses(machineData.car.id, newRemainingUses);
+                    setRemainingUses(newRemainingUses);
+
+                    // Обновляем статус
                     const newStatus = 'in_progress';
                     setCurrentStatus(newStatus);
                     updateMachineStatusLocally(machineData.car.id, newStatus);
 
                     const lastUpdated = Math.floor(Date.now() / 1000);
-                    setLastUpdated(lastUpdated); // ← Это важно! Добавлено
-                    window.dispatchEvent(
-                        new CustomEvent('machineActivated', {
-                            detail: {
-                                machineId: machineData.car.id,
-                                lastUpdated,
-                            },
-                        })
-                    );
+                    setLastUpdated(lastUpdated);
 
                     if (onAction) {
                         onAction('activated', machineData.car.id);
@@ -3369,10 +3367,19 @@ export const MachineCard = memo(
 
         // --- Обработчик получения награды ---
         const handleCollectReward = async () => {
+            // Проверяем правильный статус
+            if (currentStatus !== 'waiting_for_reward') {
+                console.warn('Попытка получить награду в неправильном статусе:', currentStatus);
+                setIsProcessing(false);
+                return;
+            }
+
             if (isProcessing || !machineData?.state_car?.id) return;
 
             setIsProcessing(true);
             setActionError(null);
+            setIsCollectingReward(true);
+            setShowClaimAnimation(true);
 
             try {
                 const result = await transitionMachine({
@@ -3382,34 +3389,27 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Награда получена для машины ${machineData.car.id}.`);
 
-                    // Определяем следующий статус
-                    const nextState =
-                        machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                    // Используем ТЕКУЩЕЕ значение remainingUses (без уменьшения)
+                    const nextState = remainingUses > 0 ? 'awaiting' : 'completed';
                     setCurrentStatus(nextState);
                     updateMachineStatusLocally(machineData.car.id, nextState);
 
-                    if (onAction) {
-                        onAction('transitioned', machineData.car.id);
-                    }
-
-                    // --- Обновляем баланс пользователя ---
+                    // Обновляем баланс пользователя
                     try {
                         await refreshUserBalance();
                         console.log('Баланс пользователя обновлён после получения награды.');
                     } catch (balanceError) {
-                        console.error(
-                            'Ошибка обновления баланса после получения награды:',
-                            balanceError
-                        );
-                        // Ошибка обновления баланса не должна блокировать основную операцию
-                        // (ошибка в оригинальном коде была поймана, но не обработана)
+                        console.error('Ошибка обновления баланса:', balanceError);
                     }
-                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка получения награды:', err);
                 setActionError('Ошибка получения награды');
             } finally {
+                setTimeout(() => {
+                    setShowClaimAnimation(false);
+                    setIsCollectingReward(false);
+                }, 1000);
                 setIsProcessing(false);
             }
         };
@@ -3483,57 +3483,61 @@ export const MachineCard = memo(
 
         return (
             <>
-                <button
-                    className={clsx(styles.card)}
-                    onClick={actionHandler}
-                    type="button"
-                    aria-label={`${machineData!.car.name}`}
-                    disabled={isProcessing}
-                >
-                    <div className={styles.info}>
-                        {isPurchased ? (
-                            // Если машина куплена, отображаем оставшиеся активации
-                            <span
-                                className={styles.activationsDisplay}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsModalOpen(true);
-                                }}
-                            >
-                                {remainingUses} / {totalActivations}
-                            </span>
-                        ) : (
-                            // Если не куплена, отображаем кнопку с иконкой Info
-                            <InfoButton
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsModalOpen(true);
-                                }}
-                            />
+                <div className={styles.cardWrapper}>
+                    <button
+                        className={clsx(styles.card)}
+                        onClick={actionHandler}
+                        type="button"
+                        aria-label={`${machineData!.car.name}`}
+                        disabled={isProcessing}
+                    >
+                        <div className={styles.info}>
+                            {isPurchased ? (
+                                // Если машина куплена, отображаем оставшиеся активации
+                                <span
+                                    className={styles.activationsDisplay}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsModalOpen(true);
+                                    }}
+                                >
+                                    {remainingUses} / {totalActivations}
+                                </span>
+                            ) : (
+                                // Если не куплена, отображаем кнопку с иконкой Info
+                                <InfoButton
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsModalOpen(true);
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
+
+                        <Image
+                            className={clsx(styles.image, { [styles.purchased]: isPurchased })}
+                            src={`/images/${image}`}
+                            width={100}
+                            height={100}
+                            alt="Майнинг-машина"
+                        />
+
+                        {getDisplayText() && (
+                            <span className={styles.displayText}>{getDisplayText()}</span>
                         )}
-                    </div>
 
-                    <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
+                        {getStatusText() && (
+                            <span className={styles.statusText}>{getStatusText()}</span>
+                        )}
 
-                    <Image
-                        className={clsx(styles.image, { [styles.purchased]: isPurchased })}
-                        src={`/images/${image}`}
-                        width={100}
-                        height={100}
-                        alt="Майнинг-машина"
-                    />
+                        {/* --- Отображаем ошибки --- */}
+                        {actionError && <div className={styles.buyError}>{actionError}</div>}
+                    </button>
 
-                    {getDisplayText() && (
-                        <span className={styles.displayText}>{getDisplayText()}</span>
-                    )}
-
-                    {getStatusText() && (
-                        <span className={styles.statusText}>{getStatusText()}</span>
-                    )}
-
-                    {/* --- Отображаем ошибки --- */}
-                    {actionError && <div className={styles.buyError}>{actionError}</div>}
-                </button>
+                    {showClaimAnimation && <ClaimAnimation />}
+                </div>
 
                 {machineData && (
                     <MachineInfoModal
@@ -3614,6 +3618,159 @@ export { MachineInfoModal } from './MachineInfoModal';
 export {} from './';
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\index.ts =====
+
+// export * from './model';
+export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\model\index.ts =====
+
+export type { MachineListProps } from './types';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\model\types.ts =====
+
+import { MachineWithState } from '@/entities/machine';
+
+export interface MachineListProps {
+    machines?: MachineWithState[];
+    filterType: 'purchased' | 'not_purchased' | 'all';
+    showBuyMoreCard: boolean;
+}
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\ui\ClaimAnimation.tsx =====
+
+// import { useEffect, useState } from 'react';
+// import moleCoin from '@/assets/icons/mole-coin.webp';
+// import tonCoin from '@/assets/icons/ton-coin.webp';
+// import './ClaimAnimation.scss';
+
+// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
+
+// export const ClaimAnimation = () => {
+//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
+//     const [coinType, setcoinType] = useState<string[]>([]);
+
+//     useEffect(() => {
+//         setcoinType([
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//             getRandomCoin(),
+//         ]);
+//         setShouldAnimateCoins(true);
+//     }, []);
+
+//     return (
+//         <div className="ClaimAnimation">
+//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
+//             <img
+//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[0]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[1]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[2]}
+//                 alt="coin"
+//             />
+//             <img
+//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
+//                 src={coinType[3]}
+//                 alt="coin"
+//             />
+//         </div>
+//     );
+// };
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\ui\MachineList.tsx =====
+
+'use client';
+
+// @/features/mining/ui/MachineList.tsx
+import React from 'react';
+import Link from 'next/link';
+import { useMachines } from '@/shared/lib/contexts/MachineContext';
+import { MachineCard } from '@/widgets/machine-card';
+import { MachineListProps } from '../model';
+import styles from './MachineList.module.scss';
+
+export const MachineList = ({
+    machines: propMachines,
+    filterType = 'all',
+    showBuyMoreCard = false,
+}: MachineListProps) => {
+    // Используем контекст если machines не переданы
+    const { machines: contextMachines } = useMachines();
+
+    // Используем переданные машины или машины из контекста
+    const machinesToUse = propMachines || contextMachines;
+
+    // Фильтрация по типу
+    const filteredMachines = machinesToUse.filter(({ state_car }) => {
+        const status = state_car?.status ?? 'not_purchased';
+        switch (filterType) {
+            case 'purchased':
+                return status !== 'not_purchased';
+            case 'not_purchased':
+                return status === 'not_purchased';
+            case 'all':
+            default:
+                return true;
+        }
+    });
+
+    const shouldShowBuyMore = showBuyMoreCard && filterType === 'purchased';
+
+    return (
+        <div className={styles.machineList}>
+            {shouldShowBuyMore && (
+                <Link href="/shop" className={styles.buyMoreCard}>
+                    <div className={styles.plate} />
+                    <span className={styles.add}>+</span>
+                    <span className={styles.label}>Купить ещё</span>
+                </Link>
+            )}
+
+            {filteredMachines.map((machineWithState) => {
+                const { car, state_car } = machineWithState;
+                const status = state_car?.status ?? 'not_purchased';
+                const isPurchased = status !== 'not_purchased';
+
+                return (
+                    <MachineCard
+                        key={car.id}
+                        image={car.image}
+                        price={car.price}
+                        status={status}
+                        isPurchased={isPurchased}
+                        machineData={machineWithState}
+                    />
+                );
+            })}
+        </div>
+    );
+};
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\widgets\machine-list\ui\index.ts =====
+
+export { MachineList } from './MachineList';
+export {} from './';
+export {} from './';
+export {} from './';
+export {} from './';
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-balance\index.ts =====
 
 export { ReferralBalance } from './ui/ReferralBalance';
@@ -3625,9 +3782,9 @@ export { ReferralBalance } from './ui/ReferralBalance';
 
 // src/widgets/balance/ui/Balance.tsx
 import CountUp from 'react-countup';
-import { useUser } from '@/entities/user/model/UserContext';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Coin } from '@/shared/assets/icons';
+import { useUser } from '@/shared/lib/contexts/UserContext';
 import styles from './ReferralBalance.module.scss';
 
 export const ReferralBalance = () => {
@@ -3763,7 +3920,7 @@ interface ReferralCardProps {
     referral: Omit<UserAttributes, 'ban_until' | 'created_at' | 'updated_at'>;
 }
 
-export const ReferralCard = async ({ referral }: ReferralCardProps) => {
+export const ReferralCard = ({ referral }: ReferralCardProps) => {
     // Получаем значение ref_balance, которое может быть number, string, null или undefined
     const refBalanceValue = referral.ref_balance;
 
@@ -3785,7 +3942,7 @@ export const ReferralCard = async ({ referral }: ReferralCardProps) => {
 
     // Форматируем число до 2 знаков после запятой
     const profit = numericProfit.toFixed(2);
-    
+
     return (
         <div className={styles.card}>
             <Image
@@ -3857,6 +4014,8 @@ export { ReferralList } from './ui/ReferralList';
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\widgets\referral-list\ui\ReferralList.tsx =====
+
+'use client';
 
 // @/features/referral/ui/ReferralList.tsx
 import { UserAttributes } from '@/entities/user';
@@ -3998,7 +4157,6 @@ export const User = () => {
     │   │   ├── model
     │   │   │   ├── index.ts
     │   │   │   ├── types.ts
-    │   │   │   ├── UserContext.tsx
     │   │   │   └── useUserInit.ts
     │   │   └── ui
     │   │   │   └── index.ts
@@ -4015,9 +4173,11 @@ export const User = () => {
     ├── features
     │   ├── auth
     │   ├── claim-animation
+    │   │   ├── index.ts
     │   │   └── ui
     │   │   │   ├── ClaimAnimation.module.scss
-    │   │   │   └── ClaimAnimation.tsx
+    │   │   │   ├── ClaimAnimation.tsx
+    │   │   │   └── index.ts
     │   ├── currency-converter
     │   │   ├── index.ts
     │   │   ├── model
@@ -4033,16 +4193,6 @@ export const User = () => {
     │   │   └── ui
     │   │   │   ├── DepositForm.module.scss
     │   │   │   └── DepositForm.tsx
-    │   ├── mining
-    │   │   ├── index.ts
-    │   │   ├── model
-    │   │   │   ├── index.ts
-    │   │   │   └── types.ts
-    │   │   └── ui
-    │   │   │   ├── ClaimAnimation.tsx
-    │   │   │   ├── index.ts
-    │   │   │   ├── MachineList.module.scss
-    │   │   │   └── MachineList.tsx
     │   ├── timer
     │   │   ├── model
     │   │   │   └── useTimer.ts
@@ -4073,7 +4223,10 @@ export const User = () => {
     │   │   └── index.ts
     │   ├── lib
     │   │   ├── contexts
-    │   │   │   └── MachineContext.tsx
+    │   │   │   ├── index.ts
+    │   │   │   ├── MachineContext.tsx
+    │   │   │   ├── ReferralContext.tsx
+    │   │   │   └── UserContext.tsx
     │   │   ├── hooks
     │   │   │   └── useTelegramWebApp.ts
     │   │   ├── index.ts
@@ -4154,6 +4307,16 @@ export const User = () => {
     │       │   ├── MachineCard.tsx
     │       │   ├── MachineInfoModal.module.scss
     │       │   └── MachineInfoModal.tsx
+    │   ├── machine-list
+    │       ├── index.ts
+    │       ├── model
+    │       │   ├── index.ts
+    │       │   └── types.ts
+    │       └── ui
+    │       │   ├── ClaimAnimation.tsx
+    │       │   ├── index.ts
+    │       │   ├── MachineList.module.scss
+    │       │   └── MachineList.tsx
     │   ├── referral
     │       ├── model
     │       └── ui

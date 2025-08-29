@@ -1,51 +1,55 @@
-// 'use client';
+'use client';
 
-// // src/features/claim-animation/ui/ClaimAnimation.tsx
-// import { useEffect, useState } from 'react';
-// import moleCoin from '@/assets/icons/mole-coin.webp';
-// import tonCoin from '@/assets/icons/ton-coin.webp';
-// import './ClaimAnimation.scss';
+// src/features/claim-animation/ui/ClaimAnimation.tsx
+import { useEffect, useState } from 'react';
+import clsx from 'clsx';
+import { Coin } from '@/shared/assets/icons';
+import styles from './ClaimAnimation.module.scss';
 
-// const getRandomCoin = () => (Math.random() > 0.5 ? tonCoin : moleCoin);
+export const ClaimAnimation = () => {
+    const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
 
-// export const ClaimAnimation = () => {
-//     const [shouldAnimateCoins, setShouldAnimateCoins] = useState(false);
-//     const [coinType, setcoinType] = useState<string[]>([]);
+    useEffect(() => {
+        // Небольшая задержка для уверенности, что DOM готов для анимации
+        const timer = setTimeout(() => {
+            setShouldAnimateCoins(true);
+        }, 10);
 
-//     useEffect(() => {
-//         setcoinType([
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//             getRandomCoin(),
-//         ]);
-//         setShouldAnimateCoins(true);
-//     }, []);
+        return () => clearTimeout(timer);
+    }, []);
 
-//     return (
-//         <div className="ClaimAnimation">
-//             <img className={`Coin Coin_Central`} src={tonCoin} alt="coin" />
-//             <img
-//                 className={`Coin Coin_TopLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[0]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_TopRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[1]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomRight ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[2]}
-//                 alt="coin"
-//             />
-//             <img
-//                 className={`Coin Coin_BottomLeft ${shouldAnimateCoins ? 'animate' : ''}`}
-//                 src={coinType[3]}
-//                 alt="coin"
-//             />
-//         </div>
-//     );
-// };
+    return (
+        <div className={styles.claimAnimation}>
+            <Coin className={clsx(styles.coin, styles.coinCentral)} width={50} height={50} />
+
+            <div
+                className={clsx(styles.coin, styles.coinTopLeft, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinTopRight, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinBottomRight, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+            <div
+                className={clsx(styles.coin, styles.coinBottomLeft, {
+                    [styles.animate]: shouldAnimateCoins,
+                })}
+            >
+                <Coin width={50} height={50} />
+            </div>
+        </div>
+    );
+};

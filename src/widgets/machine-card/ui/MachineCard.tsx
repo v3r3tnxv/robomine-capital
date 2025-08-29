@@ -7,6 +7,7 @@ import Image from 'next/image';
 import clsx from 'clsx';
 import { activateMachine, purchaseMachine, transitionMachine } from '@/entities/machine';
 import { useUser } from '@/entities/user';
+import { ClaimAnimation } from '@/features/claim-animation';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
 import { InfoButton } from '@/shared/ui';
@@ -16,7 +17,7 @@ import { MachineInfoModal } from './MachineInfoModal';
 
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
-        const { updateMachineStatusLocally } = useMachines();
+        const { updateMachineStatusLocally, updateMachineRemainingUses } = useMachines();
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
@@ -25,6 +26,8 @@ export const MachineCard = memo(
         const [actionError, setActionError] = useState<string | null>(null);
         const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
+        const [isCollectingReward, setIsCollectingReward] = useState(false);
+        const [showClaimAnimation, setShowClaimAnimation] = useState(false);
 
         const isPurchased = currentStatus !== 'not_purchased';
 
@@ -81,7 +84,7 @@ export const MachineCard = memo(
             }
 
             const startTime = lastUpdated;
-            const workTime = getWorkTime(); // Используем мемоизированную функцию
+            const workTime = getWorkTime();
             const endTime = startTime + workTime;
 
             const updateTimerDisplay = () => {
@@ -102,9 +105,7 @@ export const MachineCard = memo(
                     if (machineData.car.id) {
                         updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
                     }
-                    // Отправляем событие (опционально, если другие части приложения на него подписаны)
-                    // window.dispatchEvent(...) можно добавить, если нужно
-                    return; // Выходим, интервал уже остановлен
+                    return;
                 }
 
                 // Форматируем оставшееся время в HH:MM:SS
@@ -117,7 +118,6 @@ export const MachineCard = memo(
                     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
                 setTimeLeftFormatted(formattedTime);
-                // Интервал продолжает работать
             };
 
             // Первый запуск немедленно
@@ -144,38 +144,28 @@ export const MachineCard = memo(
         ]); // Зависимости: только те, которые влияют на необходимость перезапуска таймера
 
         // --- Обработчики событий ---
-        useEffect(() => {
-            const handleMachinePurchased = (event: CustomEvent) => {
+        const handleMachinePurchased = useCallback(
+            (event: CustomEvent) => {
                 if (event.detail.machineId === machineData?.car?.id) {
                     setCurrentStatus('awaiting');
                 }
-            };
+            },
+            [machineData?.car?.id]
+        );
 
-            const handleMachineActivated = (event: CustomEvent) => {
+        const handleMachineActivated = useCallback(
+            (event: CustomEvent) => {
                 if (event.detail.machineId === machineData?.car?.id) {
                     setCurrentStatus('in_progress');
                     setLastUpdated(event.detail.lastUpdated || Math.floor(Date.now() / 1000));
                 }
-            };
+            },
+            [machineData?.car?.id]
+        );
 
-            const handleMachineTransitioned = (event: CustomEvent) => {
-                if (event.detail.machineId === machineData?.car?.id) {
-                    // Определяем следующий статус
-                    const nextState =
-                        machineData?.state_car?.remaining_uses &&
-                        machineData.state_car.remaining_uses > 1
-                            ? 'awaiting'
-                            : 'completed';
-                    setCurrentStatus(nextState);
-                }
-            };
-
+        useEffect(() => {
             window.addEventListener('machinePurchased', handleMachinePurchased as EventListener);
             window.addEventListener('machineActivated', handleMachineActivated as EventListener);
-            window.addEventListener(
-                'machineTransitioned',
-                handleMachineTransitioned as EventListener
-            );
 
             return () => {
                 window.removeEventListener(
@@ -186,12 +176,8 @@ export const MachineCard = memo(
                     'machineActivated',
                     handleMachineActivated as EventListener
                 );
-                window.removeEventListener(
-                    'machineTransitioned',
-                    handleMachineTransitioned as EventListener
-                );
             };
-        }, [machineData?.car?.id, machineData?.state_car?.remaining_uses]);
+        }, [handleMachinePurchased, handleMachineActivated]);
 
         // --- Обработчик покупки ---
         const handleBuy = async () => {
@@ -250,7 +236,15 @@ export const MachineCard = memo(
         };
 
         // --- Обработчик активации ---
+        // --- Обработчик активации ---
         const handleActivate = async () => {
+            // Проверяем правильный статус
+            if (currentStatus !== 'awaiting') {
+                console.warn('Попытка активации в неправильном статусе:', currentStatus);
+                setIsProcessing(false);
+                return;
+            }
+
             if (isProcessing || !machineData?.car?.id) return;
 
             setIsProcessing(true);
@@ -262,21 +256,18 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Машина ${machineData.car.id} активирована.`);
 
-                    // Локальное обновление без перезагрузки
+                    // обновляем remainingUses в контексте И локально
+                    const newRemainingUses = Math.max(0, remainingUses - 1);
+                    updateMachineRemainingUses(machineData.car.id, newRemainingUses);
+                    setRemainingUses(newRemainingUses);
+
+                    // Обновляем статус
                     const newStatus = 'in_progress';
                     setCurrentStatus(newStatus);
                     updateMachineStatusLocally(machineData.car.id, newStatus);
 
                     const lastUpdated = Math.floor(Date.now() / 1000);
-                    setLastUpdated(lastUpdated); // ← Это важно! Добавлено
-                    window.dispatchEvent(
-                        new CustomEvent('machineActivated', {
-                            detail: {
-                                machineId: machineData.car.id,
-                                lastUpdated,
-                            },
-                        })
-                    );
+                    setLastUpdated(lastUpdated);
 
                     if (onAction) {
                         onAction('activated', machineData.car.id);
@@ -292,10 +283,19 @@ export const MachineCard = memo(
 
         // --- Обработчик получения награды ---
         const handleCollectReward = async () => {
+            // Проверяем правильный статус
+            if (currentStatus !== 'waiting_for_reward') {
+                console.warn('Попытка получить награду в неправильном статусе:', currentStatus);
+                setIsProcessing(false);
+                return;
+            }
+
             if (isProcessing || !machineData?.state_car?.id) return;
 
             setIsProcessing(true);
             setActionError(null);
+            setIsCollectingReward(true);
+            setShowClaimAnimation(true);
 
             try {
                 const result = await transitionMachine({
@@ -305,34 +305,27 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Награда получена для машины ${machineData.car.id}.`);
 
-                    // Определяем следующий статус
-                    const nextState =
-                        machineData.state_car.remaining_uses > 1 ? 'awaiting' : 'completed';
+                    // Используем ТЕКУЩЕЕ значение remainingUses (без уменьшения)
+                    const nextState = remainingUses > 0 ? 'awaiting' : 'completed';
                     setCurrentStatus(nextState);
                     updateMachineStatusLocally(machineData.car.id, nextState);
 
-                    if (onAction) {
-                        onAction('transitioned', machineData.car.id);
-                    }
-
-                    // --- Обновляем баланс пользователя ---
+                    // Обновляем баланс пользователя
                     try {
                         await refreshUserBalance();
                         console.log('Баланс пользователя обновлён после получения награды.');
                     } catch (balanceError) {
-                        console.error(
-                            'Ошибка обновления баланса после получения награды:',
-                            balanceError
-                        );
-                        // Ошибка обновления баланса не должна блокировать основную операцию
-                        // (ошибка в оригинальном коде была поймана, но не обработана)
+                        console.error('Ошибка обновления баланса:', balanceError);
                     }
-                    // --- Конец обновления баланса ---
                 }
             } catch (err) {
                 console.error('Ошибка получения награды:', err);
                 setActionError('Ошибка получения награды');
             } finally {
+                setTimeout(() => {
+                    setShowClaimAnimation(false);
+                    setIsCollectingReward(false);
+                }, 1000);
                 setIsProcessing(false);
             }
         };
@@ -406,57 +399,61 @@ export const MachineCard = memo(
 
         return (
             <>
-                <button
-                    className={clsx(styles.card)}
-                    onClick={actionHandler}
-                    type="button"
-                    aria-label={`${machineData!.car.name}`}
-                    disabled={isProcessing}
-                >
-                    <div className={styles.info}>
-                        {isPurchased ? (
-                            // Если машина куплена, отображаем оставшиеся активации
-                            <span
-                                className={styles.activationsDisplay}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsModalOpen(true);
-                                }}
-                            >
-                                {remainingUses} / {totalActivations}
-                            </span>
-                        ) : (
-                            // Если не куплена, отображаем кнопку с иконкой Info
-                            <InfoButton
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsModalOpen(true);
-                                }}
-                            />
+                <div className={styles.cardWrapper}>
+                    <button
+                        className={clsx(styles.card)}
+                        onClick={actionHandler}
+                        type="button"
+                        aria-label={`${machineData!.car.name}`}
+                        disabled={isProcessing}
+                    >
+                        <div className={styles.info}>
+                            {isPurchased ? (
+                                // Если машина куплена, отображаем оставшиеся активации
+                                <span
+                                    className={styles.activationsDisplay}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsModalOpen(true);
+                                    }}
+                                >
+                                    {remainingUses} / {totalActivations}
+                                </span>
+                            ) : (
+                                // Если не куплена, отображаем кнопку с иконкой Info
+                                <InfoButton
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsModalOpen(true);
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
+
+                        <Image
+                            className={clsx(styles.image, { [styles.purchased]: isPurchased })}
+                            src={`/images/${image}`}
+                            width={100}
+                            height={100}
+                            alt="Майнинг-машина"
+                        />
+
+                        {getDisplayText() && (
+                            <span className={styles.displayText}>{getDisplayText()}</span>
                         )}
-                    </div>
 
-                    <div className={clsx(styles.plate, styles[`${currentStatus}`])} />
+                        {getStatusText() && (
+                            <span className={styles.statusText}>{getStatusText()}</span>
+                        )}
 
-                    <Image
-                        className={clsx(styles.image, { [styles.purchased]: isPurchased })}
-                        src={`/images/${image}`}
-                        width={100}
-                        height={100}
-                        alt="Майнинг-машина"
-                    />
+                        {/* --- Отображаем ошибки --- */}
+                        {actionError && <div className={styles.buyError}>{actionError}</div>}
+                    </button>
 
-                    {getDisplayText() && (
-                        <span className={styles.displayText}>{getDisplayText()}</span>
-                    )}
-
-                    {getStatusText() && (
-                        <span className={styles.statusText}>{getStatusText()}</span>
-                    )}
-
-                    {/* --- Отображаем ошибки --- */}
-                    {actionError && <div className={styles.buyError}>{actionError}</div>}
-                </button>
+                    {showClaimAnimation && <ClaimAnimation />}
+                </div>
 
                 {machineData && (
                     <MachineInfoModal

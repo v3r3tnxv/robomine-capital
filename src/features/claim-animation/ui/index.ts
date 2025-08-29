@@ -1,0 +1,1 @@
+export { ClaimAnimation } from './ClaimAnimation';

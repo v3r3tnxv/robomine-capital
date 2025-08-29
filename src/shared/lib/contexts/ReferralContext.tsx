@@ -46,12 +46,9 @@ export const ReferralProvider = ({ children }: { children: ReactNode }) => {
         try {
             setIsLoading(true);
             setError(null);
-            console.log('ReferralContext: Запрос данных рефералов...');
             const data = await getUserReferrals();
-            console.log('ReferralContext: Данные рефералов получены:', data);
             setReferralsData(data);
-        } catch (err) {
-            console.error('ReferralContext: Ошибка загрузки данных рефералов:', err);
+        } catch {
             setError('Не удалось загрузить данные рефералов');
             // Сбрасываем данные в случае ошибки
             setReferralsData(null);

@@ -24,7 +24,6 @@ api.interceptors.request.use(
             } else {
                 // Нормальный режим: пытаемся получить и отправить настоящий initData из Telegram Web App
                 try {
-                    // @ts-expect-error - свойство initData существует в Telegram WebApp, но отсутствует в типах
                     const initData = window.Telegram?.WebApp?.initData;
                     if (initData) {
                         config.headers['X-Telegram-Init-Data'] = initData;

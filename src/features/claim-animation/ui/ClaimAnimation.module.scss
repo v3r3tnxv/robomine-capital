@@ -1,0 +1,180 @@
+.claimAnimation {
+    position: absolute;
+    z-index: 100;
+    display: grid;
+    place-self: center;
+    overflow: hidden;
+    width: 40%;
+    animation: flycoins 3s ease-in-out forwards;
+    pointer-events: none;
+
+    aspect-ratio: 1 / 1;
+
+    .coin {
+        position: absolute;
+        width: 48px;
+        opacity: 0; /* Начальная прозрачность */
+
+        aspect-ratio: 1 / 1;
+    }
+
+    .coinCentral {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 1;
+        width: 50px;
+        opacity: 1;
+        transform: translate(-50%, -50%);
+        animation: flycoin_Central 2.5s ease-in-out forwards;
+
+        aspect-ratio: 1 / 1;
+    }
+
+    .coinTopLeft.animate {
+        top: 4px;
+        left: 4px;
+        width: 40px;
+        animation: flycoin_TopLeft 1.5s ease-in-out forwards; /* Анимация влета */
+        animation-delay: 0s; /* Задержка анимации */
+    }
+
+    .coinTopRight.animate {
+        top: 0;
+        right: 0;
+        animation: flycoin_TopRight 1.5s ease-in-out forwards; /* Анимация влета */
+        animation-delay: 0.2s; /* Задержка анимации */
+    }
+
+    .coinBottomRight.animate {
+        right: 4px;
+        bottom: 4px;
+        width: 40px;
+        animation: flycoin_BottomRight 1.5s ease-in-out forwards; /* Анимация влета */
+        animation-delay: 0.6s; /* Задержка анимации */
+    }
+
+    .coinBottomLeft.animate {
+        bottom: 0;
+        left: 0;
+        animation: flycoin_BottomLeft 1.5s ease-in-out forwards; /* Анимация влета */
+        animation-delay: 0.4s; /* Задержка анимации */
+    }
+}
+
+/* Анимация центральной монеты */
+@keyframes flycoins {
+    0% {
+        opacity: 0.5;
+        transform: translate(calc(0%), calc(0%));
+    }
+    50% {
+        opacity: 0.8;
+        transform: translate(calc(0%), calc(-20%));
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(0%), calc(-100%));
+    }
+}
+
+/* Анимация центральной монеты */
+@keyframes flycoin_Central {
+    0% {
+        opacity: 0;
+        filter: brightness(1.2);
+
+        scale: (0.6);
+    }
+    33% {
+        opacity: 1;
+        filter: brightness(1);
+
+        scale: (0.8);
+    }
+    66% {
+        opacity: 1;
+        filter: brightness(1.2);
+
+        scale: (1);
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Анимация влета монет */
+@keyframes flycoin_TopLeft {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) translate(0, 0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(0.8) translate(0, 0);
+    }
+    99% {
+        opacity: 1;
+        transform: scale(1) translate(calc(20%), calc(20%));
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Анимация влета монет */
+@keyframes flycoin_TopRight {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) translate(0, 0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(0.8) translate(0, 0);
+    }
+    99% {
+        opacity: 1;
+        transform: scale(1) translate(calc(-20%), calc(20%));
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Анимация влета монет */
+@keyframes flycoin_BottomRight {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) translate(0, 0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(0.8) translate(0, 0);
+    }
+    99% {
+        opacity: 1;
+        transform: scale(1) translate(calc(-20%), calc(-20%));
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Анимация влета монет */
+@keyframes flycoin_BottomLeft {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) translate(0, 0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(0.8) translate(0, 0);
+    }
+    99% {
+        opacity: 1;
+        transform: scale(1) translate(calc(20%), calc(-20%));
+    }
+    100% {
+        opacity: 0;
+    }
+}

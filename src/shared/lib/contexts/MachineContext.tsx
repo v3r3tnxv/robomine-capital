@@ -35,6 +35,8 @@ interface MachineContextType {
         machineId: number,
         updates: Partial<NonNullable<MachineWithState['state_car']>>
     ) => void;
+    // Новый метод для обновления remaining_uses
+    updateMachineRemainingUses: (machineId: number, newRemainingUses: number) => void;
 }
 
 const MachineContext = createContext<MachineContextType | undefined>(undefined);
@@ -118,6 +120,28 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
         []
     );
 
+    // Новый метод для обновления remaining_uses
+    const updateMachineRemainingUses = useCallback(
+        (machineId: number, newRemainingUses: number) => {
+            setMachines((prevMachines) =>
+                prevMachines.map((machine) => {
+                    // Проверяем, что state_car существует, прежде чем обновлять
+                    if (machine.car.id === machineId && machine.state_car) {
+                        return {
+                            ...machine,
+                            state_car: {
+                                ...machine.state_car,
+                                remaining_uses: newRemainingUses,
+                            },
+                        };
+                    }
+                    return machine;
+                })
+            );
+        },
+        []
+    );
+
     useEffect(() => {
         refreshMachines();
     }, [refreshMachines]);
@@ -133,7 +157,7 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
             updateMachineLocally,
             updateMachineStatusLocally,
             updateMachineStateCarLocally,
-            // ... другие функции ...
+            updateMachineRemainingUses,
         }),
         [
             machines,
@@ -142,7 +166,8 @@ export const MachineProvider = ({ children }: { children: ReactNode }) => {
             refreshMachines,
             updateMachineLocally,
             updateMachineStatusLocally,
-            updateMachineStateCarLocally /* ... другие зависимости ... */,
+            updateMachineStateCarLocally,
+            updateMachineRemainingUses,
         ]
     );
     // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
