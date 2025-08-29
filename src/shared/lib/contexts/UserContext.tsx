@@ -1,6 +1,6 @@
 'use client';
 
-// src/entities/user/model/UserContext.tsx (фрагмент)
+// src/entities/user/model/UserContext.tsx
 import React, {
     ReactNode,
     createContext,
@@ -9,8 +9,16 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { UserAttributes, getMe } from '@/entities/user';
+import { AxiosError } from 'axios';
+import { CreateUserDto, UserAttributes, createUser, getMe } from '@/entities/user';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+// Расширяем интерфейс Window для глобальной переменной
+declare global {
+    interface Window {
+        telegramUser?: UserAttributes;
+    }
+}
 
 interface UserContextType {
     user: UserAttributes | null;
@@ -31,10 +39,34 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchUserData = useCallback(async () => {
         if (!tgUser?.id) return;
+
         try {
             setIsLoading(true);
             setError(null);
-            const userData = await getMe();
+
+            // Пытаемся получить данные пользователя
+            let userData: UserAttributes;
+            try {
+                userData = await getMe();
+            } catch (getMeError) {
+                // Проверяем, является ли ошибка AxiosError с response
+                if (getMeError instanceof AxiosError) {
+                    // Если пользователь не найден (404), создаем его
+                    if (getMeError.response?.status === 404) {
+                        const userDataForCreation: CreateUserDto = {
+                            telegram_id: tgUser.id,
+                            username: tgUser.username || '',
+                        };
+
+                        userData = await createUser(userDataForCreation);
+                    } else {
+                        throw getMeError; // Другая ошибка - пробрасываем дальше
+                    }
+                } else {
+                    throw getMeError; // Не Axios ошибка - пробрасываем дальше
+                }
+            }
+
             setUser(userData);
             if (typeof window !== 'undefined') {
                 window.telegramUser = userData;
@@ -45,7 +77,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [tgUser?.id]); // Зависит от tgUser.id
+    }, [tgUser]); // Зависит от tgUser
 
     const refreshUserBalance = useCallback(async () => {
         if (!user) return;
@@ -55,20 +87,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
             console.error('Ошибка обновления баланса:', err);
         }
-    }, [user]); // Зависит от user
+    }, [user]);
 
     const refreshUser = useCallback(async () => {
-        // <-- useCallback
         await fetchUserData();
-    }, [fetchUserData]); // Зависит от fetchUserData
+    }, [fetchUserData]);
 
     const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
-        // <-- useCallback
         setUser((prevUser) => {
             if (!prevUser) return null;
             return { ...prevUser, ...updates };
         });
-    }, []); // Не зависит от внешних переменных, кроме setUser
+    }, []);
 
     useEffect(() => {
         if (!isTgLoading && tgUser?.id) {
@@ -76,12 +106,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } else if (!isTgLoading && !tgUser?.id) {
             setIsLoading(false);
         }
-    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
+    }, [tgUser, isTgLoading, fetchUserData]);
 
-    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
     const contextValue = React.useMemo(
         () => ({
-            // <-- useMemo для value
             user,
             isLoading,
             error,
@@ -91,7 +119,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }),
         [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
     );
-    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
 
     return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };

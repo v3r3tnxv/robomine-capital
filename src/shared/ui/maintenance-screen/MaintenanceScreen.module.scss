@@ -2,14 +2,9 @@
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
 
-:root {
-    --lg-bg-color: rgba(255, 255, 255, 0.25);
-    --lg-highlight: rgba(255, 255, 255, 0.75);
-    --lg-text: #ffffff;
-    --lg-hover-glow: rgba(255, 255, 255, 0.4);
-    --lg-red: #fb4268;
-    --lg-grey: #5b5b5b;
-}
+$maintenance-bg-color: rgba(255, 255, 255, 0.25);
+$maintenance-highlight: rgba(255, 255, 255, 0.75);
+$maintenance-hover-glow: rgba(255, 255, 255, 0.4);
 
 .maintenanceScreen {
     position: fixed;
@@ -59,7 +54,7 @@
             position: absolute;
             inset: 0;
             z-index: 1;
-            background: var(--lg-bg-color);
+            background: $maintenance-bg-color;
         }
 
         .glassSpecular {
@@ -69,8 +64,8 @@
             border-radius: inherit;
             overflow: hidden;
             box-shadow:
-                inset 1px 1px 0 var(--lg-highlight),
-                inset 0 0 5px var(--lg-highlight);
+                inset 1px 1px 0 $maintenance-highlight,
+                inset 0 0 5px $maintenance-highlight;
         }
 
         .robotContainer {

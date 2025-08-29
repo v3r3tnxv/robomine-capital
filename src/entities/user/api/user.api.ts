@@ -45,22 +45,7 @@ export const createUser = async (userData: CreateUserDto): Promise<UserAttribute
  * Получить данные текущего пользователя
  */
 export const getMe = async (): Promise<UserAttributes> => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const startParam = urlParams.get('start');
-    const storedReferrerId = localStorage.getItem('referrer_id');
-
-    // Приоритет: 1. URL параметр, 2. localStorage, 3. null
-    const referrerId = startParam || storedReferrerId;
-
-    // Если есть referrerId, сохраняем его в localStorage
-    if (referrerId) {
-        localStorage.setItem('referrer_id', referrerId);
-    }
-
-    // 👇 ЕЩЕ ПРОЩЕ: формируем URL напрямую
-    const response = await api.get<UserAttributes>(
-        referrerId ? `/users/getMe?ref_id=${referrerId}` : '/users/getMe'
-    );
+    const response = await api.get<UserAttributes>('/users/getMe');
     return response.data;
 };
 
