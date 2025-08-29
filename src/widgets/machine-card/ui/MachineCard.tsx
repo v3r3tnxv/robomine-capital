@@ -18,7 +18,7 @@ import { MachineInfoModal } from './MachineInfoModal';
 
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
-        const { updateMachineStatusLocally, updateMachineRemainingUses } = useMachines();
+        const { updateMachineStatusLocally, updateMachineRemainingUses, machines } = useMachines(); // Добавили machines
         const { timers, startTimer, stopTimer, getTimer, isTimerActive } = useTimers();
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +61,25 @@ export const MachineCard = memo(
             }
         }, [machineData?.state_car?.last_updated]);
 
+        // --- Синхронизация с контекстом машин ---
+        useEffect(() => {
+            // Находим обновленные данные о машине в контексте
+            const updatedMachine = machines.find((m) => m.car.id === machineData?.car?.id);
+
+            if (updatedMachine && updatedMachine.state_car) {
+                // Обновляем remainingUses если данные в контексте отличаются
+                if (updatedMachine.state_car.remaining_uses !== remainingUses) {
+                    setRemainingUses(updatedMachine.state_car.remaining_uses);
+                }
+
+                // Обновляем статус если данные в контексте отличаются
+                const contextStatus = updatedMachine.state_car.status ?? 'not_purchased';
+                if (contextStatus !== currentStatus) {
+                    setCurrentStatus(contextStatus);
+                }
+            }
+        }, [machines, machineData?.car?.id, remainingUses, currentStatus]);
+
         // --- Управление таймером ---
         useEffect(() => {
             const machineId = machineData?.car?.id;
@@ -99,9 +118,12 @@ export const MachineCard = memo(
             (event: CustomEvent) => {
                 if (event.detail.machineId === machineData?.car?.id) {
                     setCurrentStatus('awaiting');
+                    // Устанавливаем правильное количество remainingUses после покупки
+                    const totalLifespan = machineData?.car?.lifespan || 0;
+                    setRemainingUses(totalLifespan);
                 }
             },
-            [machineData?.car?.id]
+            [machineData?.car?.id, machineData?.car?.lifespan]
         );
 
         const handleMachineActivated = useCallback(
@@ -145,6 +167,11 @@ export const MachineCard = memo(
 
                     setCurrentStatus('awaiting');
                     updateMachineStatusLocally(machineData.car.id, 'awaiting');
+
+                    // Устанавливаем правильное количество remainingUses
+                    const totalLifespan = machineData.car.lifespan;
+                    updateMachineRemainingUses(machineData.car.id, totalLifespan);
+                    setRemainingUses(totalLifespan);
 
                     window.dispatchEvent(
                         new CustomEvent('machinePurchased', {

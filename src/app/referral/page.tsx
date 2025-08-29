@@ -1,7 +1,6 @@
 'use client';
 
 // src/app/referral/page.tsx
-import { useState } from 'react';
 import { useReferrals } from '@/shared/lib/contexts';
 import { useUser } from '@/shared/lib/contexts/UserContext';
 import { BackButton, Button } from '@/shared/ui';
