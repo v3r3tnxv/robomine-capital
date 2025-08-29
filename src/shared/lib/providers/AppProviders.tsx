@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { SplashScreen } from '@/shared/ui';
 import { MachineProvider, UserProvider } from '../contexts';
 import { ReferralProvider } from '../contexts/ReferralContext';
+import { TimerProvider } from '../contexts/TimerContext';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -40,7 +41,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
             <UserProvider>
                 <ReferralProvider>
-                    <MachineProvider>{children}</MachineProvider>
+                    <MachineProvider>
+                        <TimerProvider>{children}</TimerProvider>
+                    </MachineProvider>
                 </ReferralProvider>
             </UserProvider>
         </QueryClientProvider>

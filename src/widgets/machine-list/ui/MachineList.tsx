@@ -33,6 +33,11 @@ export const MachineList = ({
         }
     });
 
+    // Сортировка от самой дешевой к самой дорогой
+    const sortedMachines = [...filteredMachines].sort((a, b) => {
+        return a.car.price - b.car.price;
+    });
+
     const shouldShowBuyMore = showBuyMoreCard && filterType === 'purchased';
 
     return (
@@ -45,7 +50,7 @@ export const MachineList = ({
                 </Link>
             )}
 
-            {filteredMachines.map((machineWithState) => {
+            {sortedMachines.map((machineWithState) => {
                 const { car, state_car } = machineWithState;
                 const status = state_car?.status ?? 'not_purchased';
                 const isPurchased = status !== 'not_purchased';

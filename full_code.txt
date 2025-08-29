@@ -76,6 +76,7 @@ import { Lato } from 'next/font/google';
 import '@/shared/styles/global.scss';
 import { AppProviders } from '../shared/lib/providers';
 import styles from './layout.module.scss';
+import { MaintenanceScreen } from '@/shared/ui/maintenance-screen/MaintenanceScreen';
 
 // Подключаем шрифт Lato
 const latoSans = Lato({
@@ -99,6 +100,22 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+
+    const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
+    if (isMaintenance) {
+        return (
+            <html lang="ru" suppressHydrationWarning>
+                <head>
+                    <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+                </head>
+                <body className={`${styles.layout} ${latoSans.variable}`}>
+                    <MaintenanceScreen />
+                </body>
+            </html>
+        );
+    }
+    
     return (
         <html lang="ru" suppressHydrationWarning>
             <head>
@@ -417,6 +434,69 @@ export const transitionMachine = async (
 export * from './api';
 export * from './model';
 export * from './ui';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\lib\status.ts =====
+
+// entities/machine/lib/status.ts
+import { MachineToUserAttributes } from '../model/types';
+
+export const getMachineStatus = (status: MachineToUserAttributes['status']) => {
+    switch (status) {
+        case 'not_purchased':
+            return {
+                isPurchased: false,
+                displayStatus: 'not_purchased' as const,
+            };
+        case 'awaiting':
+            return {
+                isPurchased: true,
+                displayStatus: 'awaiting' as const,
+            };
+        case 'in_progress':
+            return {
+                isPurchased: true,
+                displayStatus: 'in_progress' as const,
+            };
+        case 'waiting_for_reward':
+            return {
+                isPurchased: true,
+                displayStatus: 'waiting_for_reward' as const,
+            };
+        case 'completed':
+            return {
+                isPurchased: true,
+                displayStatus: 'completed' as const,
+            };
+        default:
+            return {
+                isPurchased: false,
+                displayStatus: 'not_purchased' as const,
+            };
+    }
+};
+
+export const getMachineActionText = (
+    isPurchased: boolean,
+    status: MachineToUserAttributes['status'],
+    isProcessing: boolean,
+    isCollectingReward: boolean
+) => {
+    if (!isPurchased) return 'Купить';
+
+    switch (status) {
+        case 'awaiting':
+            return 'Активировать';
+        case 'in_progress':
+            return isProcessing ? 'Активация...' : 'Активировано';
+        case 'waiting_for_reward':
+            return isCollectingReward ? 'Получение...' : 'Забрать';
+        case 'completed':
+            return 'Купить';
+        default:
+            return 'Куплена';
+    }
+};
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\machine\model\index.ts =====
@@ -2406,11 +2486,12 @@ export const useTelegramWebApp = () => {
             setTgUser(user);
             setIsLoading(false);
 
-            // Сообщаем Telegram, что приложение готово
+            // Раскрываем приложение на весь экран
             try {
+                window.Telegram.WebApp.expand();
                 window.Telegram.WebApp.ready();
             } catch (e) {
-                console.warn(e);
+                console.warn('Error expanding Telegram WebApp:', e);
             }
         } else {
             setTgUser(null);
@@ -2692,6 +2773,127 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     variant?: 'default' | 'balance'; // Добавляем вариант
     currency?: string; // Валюта для баланса
 }
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\maintenance-screen\MaintenanceScreen.tsx =====
+
+// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import styles from './MaintenanceScreen.module.scss';
+
+// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
+
+// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
+
+// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
+
+export const MaintenanceScreen: React.FC = () => {
+    // Список сообщений о процессе технических работ, тематических для майнинга
+    const maintenanceMessages = [
+        'Проверяем работоспособность майнинг-ферм...',
+        'Обновляем прошивку оборудования...',
+        'Запускаем диагностику ASIC чипов...',
+        'Оптимизируем алгоритмы майнинга...',
+        'Настраиваем охлаждение систем...',
+        'Заряжаем майнинг-машины...',
+        'Синхронизируем с блокчейном...',
+        'Проверяем подключение к пулам...',
+        'Калибруем энергопотребление...',
+        'Загружаем последние обновления...',
+        'Готовим роботов-операторов...',
+        'Подготавливаем награды для пользователей...',
+        'Финальная проверка систем...',
+    ];
+
+    const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const [isCompleted, setIsCompleted] = useState(false);
+
+    // Циклическая смена сообщений
+    useEffect(() => {
+        const messageInterval = setInterval(() => {
+            setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % maintenanceMessages.length);
+        }, 3000); // Меняем сообщение каждые 3 секунды
+
+        return () => clearInterval(messageInterval);
+    }, [maintenanceMessages.length]);
+
+    // Анимация прогресс-бара (имитация работы)
+    useEffect(() => {
+        const progressInterval = setInterval(() => {
+            setProgress((prev) => {
+                const newProgress = prev + Math.random() * 5; // Случайный прирост
+                if (newProgress >= 100) {
+                    setIsCompleted(true);
+                    clearInterval(progressInterval);
+                    return 100;
+                }
+                return newProgress;
+            });
+        }, 500);
+
+        return () => clearInterval(progressInterval);
+    }, []);
+
+    return (
+        <div className={styles.maintenanceScreen}>
+            <div className={styles.content}>
+                {/* Анимированный робот-механик */}
+                <div className={styles.robotContainer}>
+                    <Image
+                        src="/images/mascot.webp" // Используй подходящее изображение
+                        alt="Робот-механик"
+                        width={120}
+                        height={120}
+                        className={styles.robot}
+                        priority
+                    />
+                    {/* Иконки процесса вокруг робота */}
+                    <div className={styles.processIcons}>
+                        <span className={styles.icon1}>⚙️</span>
+                        <span className={styles.icon2}>⚡</span>
+                        <span className={styles.icon3}>🛠️</span>
+                    </div>
+                </div>
+
+                {/* Заголовок */}
+                <h1 className={styles.title}>
+                    <span className={styles.highlight}>Технические работы</span>
+                </h1>
+
+                {/* Динамическое сообщение о процессе */}
+                <div className={styles.messageContainer}>
+                    <p className={styles.message}>{maintenanceMessages[currentMessageIndex]}</p>
+                    <div className={styles.typingIndicator}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Анимированный фон */}
+            <div className={styles.animatedBackground}>
+                {[...Array(20)].map((_, i) => (
+                    <div
+                        key={i}
+                        className={styles.floatingElement}
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            animationDelay: `${Math.random() * 5}s`,
+                            animationDuration: `${15 + Math.random() * 10}s`,
+                        }}
+                    >
+                        {['⛏️', '⚡', '💻', '🔧', '⚙️'][Math.floor(Math.random() * 5)]}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\modal\Modal.tsx =====
@@ -3094,7 +3296,7 @@ import { useUser } from '@/entities/user';
 import { ClaimAnimation } from '@/features/claim-animation';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { InfoButton } from '@/shared/ui';
+import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
@@ -3109,6 +3311,7 @@ export const MachineCard = memo(
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
         const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
+        const [progress, setProgress] = useState<number>(0); // Добавляем состояние для прогресса
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
         const [isCollectingReward, setIsCollectingReward] = useState(false);
         const [showClaimAnimation, setShowClaimAnimation] = useState(false);
@@ -3152,7 +3355,7 @@ export const MachineCard = memo(
             };
         }, []);
 
-        // --- Таймер для обновления отображения оставшегося времени ---
+        // --- Таймер для обновления отображения оставшегося времени и прогресса ---
         useEffect(() => {
             // Очищаем предыдущий интервал при каждом запуске эффекта
             if (intervalRef.current) {
@@ -3162,8 +3365,9 @@ export const MachineCard = memo(
 
             // Проверки для запуска таймера
             if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
-                // Если статус не 'in_progress', сбрасываем отображение таймера
+                // Если статус не 'in_progress', сбрасываем отображение таймера и прогресс
                 setTimeLeftFormatted('24:00:00');
+                setProgress(0);
                 return; // Не запускаем интервал
             }
 
@@ -3174,10 +3378,16 @@ export const MachineCard = memo(
             const updateTimerDisplay = () => {
                 const now = Math.floor(Date.now() / 1000);
                 const remainingSeconds = Math.max(0, endTime - now);
+                const elapsedSeconds = Math.max(0, now - startTime);
+
+                // Рассчитываем прогресс в процентах
+                const progressPercent = Math.min(100, (elapsedSeconds / workTime) * 100);
+                setProgress(progressPercent);
 
                 if (remainingSeconds <= 0) {
                     // Время вышло
                     setTimeLeftFormatted('00:00:00');
+                    setProgress(100);
                     // Останавливаем интервал внутри этой же функции
                     if (intervalRef.current) {
                         clearInterval(intervalRef.current);
@@ -3320,7 +3530,6 @@ export const MachineCard = memo(
         };
 
         // --- Обработчик активации ---
-        // --- Обработчик активации ---
         const handleActivate = async () => {
             // Проверяем правильный статус
             if (currentStatus !== 'awaiting') {
@@ -3441,7 +3650,7 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]); // Добавлена зависимость timeLeftFormatted
+        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]);
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
@@ -3451,7 +3660,8 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return isProcessing ? 'Активация...' : 'Активировать';
                 case 'in_progress':
-                    return 'Работаем...';
+                    // Теперь возвращаем ProgressBar с актуальным прогрессом
+                    return <ProgressBar progress={progress} />;
                 case 'waiting_for_reward':
                     return isProcessing ? 'Получение...' : 'Забрать';
                 case 'completed':
@@ -3459,7 +3669,7 @@ export const MachineCard = memo(
                 default:
                     return 'Куплена';
             }
-        }, [isPurchased, currentStatus, isProcessing]);
+        }, [isPurchased, currentStatus, isProcessing, progress]); // Добавлена зависимость progress
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {
@@ -4073,7 +4283,6 @@ export const User = () => {
 ├── .env.local
 ├── .eslintrc.js
 ├── .prettierrc
-├── colect-
 ├── collect-code.js
 ├── eslint.config.mjs
 ├── full_code.txt
@@ -4084,6 +4293,8 @@ export const User = () => {
 ├── public
     ├── icons
     └── images
+    │   ├── machine0.png
+    │   ├── machine0.webp
     │   ├── machine1.png
     │   ├── machine1.webp
     │   ├── machine2.png
@@ -4144,6 +4355,8 @@ export const User = () => {
     │   │   │   ├── index.ts
     │   │   │   └── machine.api.ts
     │   │   ├── index.ts
+    │   │   ├── lib
+    │   │   │   └── status.ts
     │   │   ├── model
     │   │   │   ├── index.ts
     │   │   │   └── types.ts
@@ -4193,6 +4406,9 @@ export const User = () => {
     │   │   └── ui
     │   │   │   ├── DepositForm.module.scss
     │   │   │   └── DepositForm.tsx
+    │   ├── purchase-machine
+    │   │   ├── model
+    │   │   └── ui
     │   ├── timer
     │   │   ├── model
     │   │   │   └── useTimer.ts
@@ -4259,6 +4475,9 @@ export const User = () => {
     │   │       ├── Input.module.scss
     │   │       ├── Input.tsx
     │   │       └── types.ts
+    │   │   ├── maintenance-screen
+    │   │       ├── MaintenanceScreen.module.scss
+    │   │       └── MaintenanceScreen.tsx
     │   │   ├── modal
     │   │       ├── index.ts
     │   │       ├── Modal.module.scss

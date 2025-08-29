@@ -1,7 +1,7 @@
 'use client';
 
 // @/widgets/machine-card/ui/MachineCard.tsx
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { memo } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
@@ -10,6 +10,7 @@ import { useUser } from '@/entities/user';
 import { ClaimAnimation } from '@/features/claim-animation';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
+import { useTimers } from '@/shared/lib/contexts/TimerContext';
 import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
@@ -18,15 +19,13 @@ import { MachineInfoModal } from './MachineInfoModal';
 export const MachineCard = memo(
     ({ status, price, image, machineData, onAction }: MachineCardProps) => {
         const { updateMachineStatusLocally, updateMachineRemainingUses } = useMachines();
+        const { timers, startTimer, stopTimer, getTimer, isTimerActive } = useTimers();
         const { refreshUserBalance } = useUser();
         const [isModalOpen, setIsModalOpen] = useState(false);
         const [currentStatus, setCurrentStatus] = useState(status);
         const [lastUpdated, setLastUpdated] = useState<number | null>(null);
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
-        const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
-        const [progress, setProgress] = useState<number>(0); // Добавляем состояние для прогресса
-        const intervalRef = useRef<NodeJS.Timeout | null>(null);
         const [isCollectingReward, setIsCollectingReward] = useState(false);
         const [showClaimAnimation, setShowClaimAnimation] = useState(false);
 
@@ -37,10 +36,12 @@ export const MachineCard = memo(
             machineData?.state_car?.remaining_uses ?? 0
         );
 
+        // Получаем данные таймера для этой машины
+        const timerData = getTimer(machineData?.car?.id || 0);
+
         // Синхронизируем локальный статус и remainingUses с пропсами при их изменении
         useEffect(() => {
             setCurrentStatus(status);
-            // Обновляем локальное состояние remainingUses при изменении пропса
             setRemainingUses(machineData?.state_car?.remaining_uses ?? 0);
         }, [status, machineData?.state_car?.remaining_uses]);
 
@@ -51,7 +52,7 @@ export const MachineCard = memo(
         const getWorkTime = useCallback((): number => {
             const workTime = Number(process.env.NEXT_PUBLIC_CAR_WORK_TIME);
             return isNaN(workTime) ? 30 : workTime;
-        }, []); // useCallback нужен, чтобы getWorkTime не пересоздавалась и не вызывала лишние эффекты
+        }, []);
 
         // --- Обновляем lastUpdated при изменении machineData ---
         useEffect(() => {
@@ -60,96 +61,38 @@ export const MachineCard = memo(
             }
         }, [machineData?.state_car?.last_updated]);
 
-        // Очищаем интервал при размонтировании
+        // --- Управление таймером ---
         useEffect(() => {
-            return () => {
-                if (intervalRef.current) {
-                    clearInterval(intervalRef.current);
-                }
-            };
-        }, []);
+            const machineId = machineData?.car?.id;
+            if (!machineId || !lastUpdated) return;
 
-        // --- Таймер для обновления отображения оставшегося времени и прогресса ---
-        useEffect(() => {
-            // Очищаем предыдущий интервал при каждом запуске эффекта
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
+            if (currentStatus === 'in_progress') {
+                // Запускаем таймер только если он еще не активен
+                if (!isTimerActive(machineId)) {
+                    startTimer(machineId, lastUpdated, getWorkTime());
+                }
+            } else {
+                // Останавливаем таймер для других статусов
+                if (currentStatus !== 'waiting_for_reward') {
+                    stopTimer(machineId);
+                }
             }
 
-            // Проверки для запуска таймера
-            if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
-                // Если статус не 'in_progress', сбрасываем отображение таймера и прогресс
-                setTimeLeftFormatted('24:00:00');
-                setProgress(0);
-                return; // Не запускаем интервал
-            }
-
-            const startTime = lastUpdated;
-            const workTime = getWorkTime();
-            const endTime = startTime + workTime;
-
-            const updateTimerDisplay = () => {
-                const now = Math.floor(Date.now() / 1000);
-                const remainingSeconds = Math.max(0, endTime - now);
-                const elapsedSeconds = Math.max(0, now - startTime);
-
-                // Рассчитываем прогресс в процентах
-                const progressPercent = Math.min(100, (elapsedSeconds / workTime) * 100);
-                setProgress(progressPercent);
-
-                if (remainingSeconds <= 0) {
-                    // Время вышло
-                    setTimeLeftFormatted('00:00:00');
-                    setProgress(100);
-                    // Останавливаем интервал внутри этой же функции
-                    if (intervalRef.current) {
-                        clearInterval(intervalRef.current);
-                        intervalRef.current = null;
-                    }
-                    // Автоматически меняем статус на 'waiting_for_reward'
-                    setCurrentStatus('waiting_for_reward');
-                    // Обновляем статус в контексте
-                    if (machineData.car.id) {
-                        updateMachineStatusLocally(machineData.car.id, 'waiting_for_reward');
-                    }
-                    return;
-                }
-
-                // Форматируем оставшееся время в HH:MM:SS
-                const hours = Math.floor(remainingSeconds / 3600);
-                const minutes = Math.floor((remainingSeconds % 3600) / 60);
-                const seconds = remainingSeconds % 60;
-
-                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes
-                    .toString()
-                    .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-                setTimeLeftFormatted(formattedTime);
-            };
-
-            // Первый запуск немедленно
-            updateTimerDisplay();
-
-            // Запускаем интервал обновления таймера
-            const interval = setInterval(updateTimerDisplay, 1000); // Обновляем каждую секунду
-
-            intervalRef.current = interval;
-
-            // Функция очистки для useEffect: останавливаем интервал, если эффект перезапускается или компонент размонтируется
             return () => {
-                if (intervalRef.current === interval) {
-                    clearInterval(interval);
-                    intervalRef.current = null;
+                // Не останавливаем таймер при размонтировании для статуса in_progress
+                if (currentStatus !== 'in_progress') {
+                    stopTimer(machineId);
                 }
             };
         }, [
             currentStatus,
             lastUpdated,
             machineData?.car?.id,
-            updateMachineStatusLocally,
+            startTimer,
+            stopTimer,
             getWorkTime,
-        ]); // Зависимости: только те, которые влияют на необходимость перезапуска таймера
+            isTimerActive,
+        ]);
 
         // --- Обработчики событий ---
         const handleMachinePurchased = useCallback(
@@ -200,7 +143,6 @@ export const MachineCard = memo(
                 if (success) {
                     console.log(`Машина ${machineData.car.id} успешно куплена.`);
 
-                    // Локальное обновление без перезагрузки
                     setCurrentStatus('awaiting');
                     updateMachineStatusLocally(machineData.car.id, 'awaiting');
 
@@ -214,7 +156,6 @@ export const MachineCard = memo(
                         onAction('purchased', machineData.car.id);
                     }
 
-                    // --- Обновляем баланс пользователя ---
                     try {
                         await refreshUserBalance();
                         console.log('Баланс пользователя обновлён после покупки машины.');
@@ -223,9 +164,7 @@ export const MachineCard = memo(
                             'Ошибка обновления баланса после покупки машины:',
                             balanceError
                         );
-                        // Ошибка обновления баланса не должна блокировать основную операцию
                     }
-                    // --- Конец обновления баланса ---
                 } else {
                     throw new Error('Сервер сообщил о неудаче операции.');
                 }
@@ -245,7 +184,6 @@ export const MachineCard = memo(
 
         // --- Обработчик активации ---
         const handleActivate = async () => {
-            // Проверяем правильный статус
             if (currentStatus !== 'awaiting') {
                 console.warn('Попытка активации в неправильном статусе:', currentStatus);
                 setIsProcessing(false);
@@ -263,12 +201,10 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Машина ${machineData.car.id} активирована.`);
 
-                    // обновляем remainingUses в контексте И локально
                     const newRemainingUses = Math.max(0, remainingUses - 1);
                     updateMachineRemainingUses(machineData.car.id, newRemainingUses);
                     setRemainingUses(newRemainingUses);
 
-                    // Обновляем статус
                     const newStatus = 'in_progress';
                     setCurrentStatus(newStatus);
                     updateMachineStatusLocally(machineData.car.id, newStatus);
@@ -290,7 +226,6 @@ export const MachineCard = memo(
 
         // --- Обработчик получения награды ---
         const handleCollectReward = async () => {
-            // Проверяем правильный статус
             if (currentStatus !== 'waiting_for_reward') {
                 console.warn('Попытка получить награду в неправильном статусе:', currentStatus);
                 setIsProcessing(false);
@@ -312,12 +247,10 @@ export const MachineCard = memo(
                 if (result) {
                     console.log(`Награда получена для машины ${machineData.car.id}.`);
 
-                    // Используем ТЕКУЩЕЕ значение remainingUses (без уменьшения)
                     const nextState = remainingUses > 0 ? 'awaiting' : 'completed';
                     setCurrentStatus(nextState);
                     updateMachineStatusLocally(machineData.car.id, nextState);
 
-                    // Обновляем баланс пользователя
                     try {
                         await refreshUserBalance();
                         console.log('Баланс пользователя обновлён после получения награды.');
@@ -351,8 +284,12 @@ export const MachineCard = memo(
                         </>
                     );
                 case 'in_progress':
-                    // Возвращаем отформатированное время вместо ProgressBar
-                    return <span className={styles.timer}>{timeLeftFormatted}</span>;
+                    // Используем данные из контекста таймеров
+                    return (
+                        <span className={styles.timer}>
+                            {timerData?.timeLeftFormatted || '24:00:00'}
+                        </span>
+                    );
                 case 'waiting_for_reward':
                     return (
                         <>
@@ -364,26 +301,26 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]);
+        }, [isPurchased, currentStatus, price, earnings, timerData?.timeLeftFormatted]);
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
-            if (!isPurchased) return isProcessing ? 'Покупка...' : 'Купить';
+            if (!isPurchased) return 'Купить';
 
             switch (currentStatus) {
                 case 'awaiting':
-                    return isProcessing ? 'Активация...' : 'Активировать';
+                    return 'Активировать';
                 case 'in_progress':
-                    // Теперь возвращаем ProgressBar с актуальным прогрессом
-                    return <ProgressBar progress={progress} />;
+                    // Используем прогресс из контекста таймеров
+                    return <ProgressBar progress={timerData?.progress || 0} />;
                 case 'waiting_for_reward':
-                    return isProcessing ? 'Получение...' : 'Забрать';
+                    return 'Забрать';
                 case 'completed':
                     return 'Купить';
                 default:
                     return 'Куплена';
             }
-        }, [isPurchased, currentStatus, isProcessing, progress]); // Добавлена зависимость progress
+        }, [isPurchased, currentStatus, timerData?.progress]);
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {
@@ -417,7 +354,6 @@ export const MachineCard = memo(
                     >
                         <div className={styles.info}>
                             {isPurchased ? (
-                                // Если машина куплена, отображаем оставшиеся активации
                                 <span
                                     className={styles.activationsDisplay}
                                     onClick={(e) => {
@@ -428,7 +364,6 @@ export const MachineCard = memo(
                                     {remainingUses} / {totalActivations}
                                 </span>
                             ) : (
-                                // Если не куплена, отображаем кнопку с иконкой Info
                                 <InfoButton
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -456,7 +391,6 @@ export const MachineCard = memo(
                             <span className={styles.statusText}>{getStatusText()}</span>
                         )}
 
-                        {/* --- Отображаем ошибки --- */}
                         {actionError && <div className={styles.buyError}>{actionError}</div>}
                     </button>
 

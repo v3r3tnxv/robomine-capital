@@ -19,7 +19,7 @@ declare global {
                     user?: TelegramUser;
                 };
                 initData?: string; // Для проверки в других частях приложения, если нужно
-                disableVerticalSwipes?: () => void;
+                disableVerticalSwipes: () => void;
                 ready: () => void;
                 expand: () => void;
                 platform?: string;
@@ -69,11 +69,13 @@ export const useTelegramWebApp = () => {
             setTgUser(user);
             setIsLoading(false);
 
-            // Сообщаем Telegram, что приложение готово
+            // Раскрываем приложение на весь экран
             try {
+                window.Telegram.WebApp.disableVerticalSwipes();
+                window.Telegram.WebApp.expand();
                 window.Telegram.WebApp.ready();
             } catch (e) {
-                console.warn(e);
+                console.warn('Error expanding Telegram WebApp:', e);
             }
         } else {
             setTgUser(null);
