@@ -17,6 +17,7 @@ declare global {
             WebApp: {
                 initDataUnsafe: {
                     user?: TelegramUser;
+                    start_param?: string;
                 };
                 initData?: string; // Для проверки в других частях приложения, если нужно
                 disableVerticalSwipes: () => void;

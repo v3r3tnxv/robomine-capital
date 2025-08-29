@@ -40,32 +40,42 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const { getReferralId } = useReferral();
 
     const fetchUserData = useCallback(async () => {
-        if (!tgUser?.id) return;
+        if (!tgUser?.id) {
+            console.log('No tgUser.id found');
+            return;
+        }
 
         try {
             setIsLoading(true);
             setError(null);
+            console.log('Fetching user data for telegram_id:', tgUser.id);
 
             // Пытаемся получить данные пользователя
             let userData: UserAttributes;
             try {
                 userData = await getMe();
+                console.log('User found:', userData);
             } catch (getMeError) {
+                console.log('getMe error:', getMeError);
                 // Проверяем, является ли ошибка AxiosError с response
                 if (getMeError instanceof AxiosError) {
                     // Если пользователь не найден (404), создаем его
                     if (getMeError.response?.status === 404) {
-                        // Получаем referral_id
+                        console.log('User not found, creating new user');
+                        // Получаем ref_id
                         const referralId = getReferralId();
+                        console.log('Referral ID to use:', referralId);
 
                         const userDataForCreation: CreateUserDto = {
                             telegram_id: tgUser.id,
                             username: tgUser.username || `id_${tgUser.id}`,
-                            ...(referralId &&
-                                referralId !== tgUser.id && { referral_id: referralId }),
+                            ...(referralId && referralId !== tgUser.id && { ref_id: referralId }),
                         };
 
+                        console.log('Creating user with data:', userDataForCreation);
+
                         userData = await createUser(userDataForCreation);
+                        console.log('User created:', userData);
                     } else {
                         throw getMeError; // Другая ошибка - пробрасываем дальше
                     }
@@ -108,6 +118,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
+        console.log('UserProvider useEffect triggered', { tgUser, isTgLoading });
         if (!isTgLoading && tgUser?.id) {
             fetchUserData();
         } else if (!isTgLoading && !tgUser?.id) {
