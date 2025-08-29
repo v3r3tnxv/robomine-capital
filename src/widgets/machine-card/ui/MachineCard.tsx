@@ -10,7 +10,7 @@ import { useUser } from '@/entities/user';
 import { ClaimAnimation } from '@/features/claim-animation';
 import { Coin } from '@/shared/assets/icons';
 import { useMachines } from '@/shared/lib/contexts/MachineContext';
-import { InfoButton } from '@/shared/ui';
+import { InfoButton, ProgressBar } from '@/shared/ui';
 import { MachineCardProps } from '../model';
 import styles from './MachineCard.module.scss';
 import { MachineInfoModal } from './MachineInfoModal';
@@ -25,6 +25,7 @@ export const MachineCard = memo(
         const [isProcessing, setIsProcessing] = useState(false);
         const [actionError, setActionError] = useState<string | null>(null);
         const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>('24:00:00');
+        const [progress, setProgress] = useState<number>(0); // Добавляем состояние для прогресса
         const intervalRef = useRef<NodeJS.Timeout | null>(null);
         const [isCollectingReward, setIsCollectingReward] = useState(false);
         const [showClaimAnimation, setShowClaimAnimation] = useState(false);
@@ -68,7 +69,7 @@ export const MachineCard = memo(
             };
         }, []);
 
-        // --- Таймер для обновления отображения оставшегося времени ---
+        // --- Таймер для обновления отображения оставшегося времени и прогресса ---
         useEffect(() => {
             // Очищаем предыдущий интервал при каждом запуске эффекта
             if (intervalRef.current) {
@@ -78,8 +79,9 @@ export const MachineCard = memo(
 
             // Проверки для запуска таймера
             if (currentStatus !== 'in_progress' || !lastUpdated || !machineData?.car?.id) {
-                // Если статус не 'in_progress', сбрасываем отображение таймера
+                // Если статус не 'in_progress', сбрасываем отображение таймера и прогресс
                 setTimeLeftFormatted('24:00:00');
+                setProgress(0);
                 return; // Не запускаем интервал
             }
 
@@ -90,10 +92,16 @@ export const MachineCard = memo(
             const updateTimerDisplay = () => {
                 const now = Math.floor(Date.now() / 1000);
                 const remainingSeconds = Math.max(0, endTime - now);
+                const elapsedSeconds = Math.max(0, now - startTime);
+
+                // Рассчитываем прогресс в процентах
+                const progressPercent = Math.min(100, (elapsedSeconds / workTime) * 100);
+                setProgress(progressPercent);
 
                 if (remainingSeconds <= 0) {
                     // Время вышло
                     setTimeLeftFormatted('00:00:00');
+                    setProgress(100);
                     // Останавливаем интервал внутри этой же функции
                     if (intervalRef.current) {
                         clearInterval(intervalRef.current);
@@ -236,7 +244,6 @@ export const MachineCard = memo(
         };
 
         // --- Обработчик активации ---
-        // --- Обработчик активации ---
         const handleActivate = async () => {
             // Проверяем правильный статус
             if (currentStatus !== 'awaiting') {
@@ -357,7 +364,7 @@ export const MachineCard = memo(
                 default:
                     return `${price} USDT`;
             }
-        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]); // Добавлена зависимость timeLeftFormatted
+        }, [isPurchased, currentStatus, price, earnings, timeLeftFormatted]);
 
         // --- Получить текст для статуса ---
         const getStatusText = useCallback(() => {
@@ -367,7 +374,8 @@ export const MachineCard = memo(
                 case 'awaiting':
                     return isProcessing ? 'Активация...' : 'Активировать';
                 case 'in_progress':
-                    return 'Работаем...';
+                    // Теперь возвращаем ProgressBar с актуальным прогрессом
+                    return <ProgressBar progress={progress} />;
                 case 'waiting_for_reward':
                     return isProcessing ? 'Получение...' : 'Забрать';
                 case 'completed':
@@ -375,7 +383,7 @@ export const MachineCard = memo(
                 default:
                     return 'Куплена';
             }
-        }, [isPurchased, currentStatus, isProcessing]);
+        }, [isPurchased, currentStatus, isProcessing, progress]); // Добавлена зависимость progress
 
         // --- Получить обработчик для события ---
         const getActionHandler = () => {
