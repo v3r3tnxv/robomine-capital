@@ -11,9 +11,10 @@ import React, {
 } from 'react';
 import { AxiosError } from 'axios';
 import { CreateUserDto, UserAttributes, createUser, getMe } from '@/entities/user';
+import { useReferral } from '@/shared/lib/hooks/useReferral';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
-// Расширяем интерфейс Window для глобальной переменной
+// Расширяем интерфейс Window только для нашей переменной
 declare global {
     interface Window {
         telegramUser?: UserAttributes;
@@ -36,6 +37,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+    const { getReferralId } = useReferral();
 
     const fetchUserData = useCallback(async () => {
         if (!tgUser?.id) return;
@@ -53,9 +55,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 if (getMeError instanceof AxiosError) {
                     // Если пользователь не найден (404), создаем его
                     if (getMeError.response?.status === 404) {
+                        // Получаем referral_id
+                        const referralId = getReferralId();
+
                         const userDataForCreation: CreateUserDto = {
                             telegram_id: tgUser.id,
-                            username: tgUser.username || '',
+                            username: tgUser.username || `id_${tgUser.id}`,
+                            ...(referralId &&
+                                referralId !== tgUser.id && { referral_id: referralId }),
                         };
 
                         userData = await createUser(userDataForCreation);
@@ -77,7 +84,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [tgUser]); // Зависит от tgUser
+    }, [tgUser, getReferralId]); // Зависит от tgUser и getReferralId
 
     const refreshUserBalance = useCallback(async () => {
         if (!user) return;
