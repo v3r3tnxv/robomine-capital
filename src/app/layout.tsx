@@ -4,6 +4,7 @@ import { Lato } from 'next/font/google';
 import '@/shared/styles/global.scss';
 import { AppProviders } from '../shared/lib/providers';
 import styles from './layout.module.scss';
+import { MaintenanceScreen } from '@/shared/ui/maintenance-screen/MaintenanceScreen';
 
 // Подключаем шрифт Lato
 const latoSans = Lato({
@@ -27,6 +28,22 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+
+    const isMaintenance = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
+
+    if (isMaintenance) {
+        return (
+            <html lang="ru" suppressHydrationWarning>
+                <head>
+                    <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+                </head>
+                <body className={`${styles.layout} ${latoSans.variable}`}>
+                    <MaintenanceScreen />
+                </body>
+            </html>
+        );
+    }
+    
     return (
         <html lang="ru" suppressHydrationWarning>
             <head>
