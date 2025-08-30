@@ -221,7 +221,7 @@ export default function ReferralPage() {
             return;
         }
 
-        const referralLink = `https://t.me/RoboMine_CapitalBot?start=${user.telegram_id}`;
+        const referralLink = `https://t.me/RoboMine_CapitalBot?startapp=ref_${user.telegram_id}`;
         const message = `Присоединяйся к RoboMine Capital и начни зарабатывать!`;
         const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`;
         window.open(telegramShareUrl, '_blank');
@@ -730,7 +730,6 @@ export type {
 } from './types';
 
 export { UserProvider, useUser } from '../../../shared/lib/contexts/UserContext';
-export { useUserInit } from './useUserInit';
 export {} from './';
 
 
@@ -806,111 +805,111 @@ export interface UserReferralData {
 
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\user\model\useUserInit.ts =====
 
-'use client';
+// 'use client';
 
-// entities/user/model/useUserInit.ts
-import { useEffect, useState } from 'react';
-import { AxiosError } from 'axios';
-import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
-import { CreateUserDto, UserAttributes } from '@/entities/user/model/types';
-import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+// // entities/user/model/useUserInit.ts
+// import { useEffect, useState } from 'react';
+// import { AxiosError } from 'axios';
+// import { checkUserExists, createUser, getMe } from '@/entities/user/api/user.api';
+// import { CreateUserDto, UserAttributes } from '@/entities/user/model/types';
+// import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
 
-// Расширяем интерфейс Window для глобальной переменной
-declare global {
-    interface Window {
-        telegramUser?: UserAttributes;
-    }
-}
+// // Расширяем интерфейс Window для глобальной переменной
+// declare global {
+//     interface Window {
+//         telegramUser?: UserAttributes;
+//     }
+// }
 
-export const useUserInit = () => {
-    const [user, setUser] = useState<UserAttributes | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+// export const useUserInit = () => {
+//     const [user, setUser] = useState<UserAttributes | null>(null);
+//     const [isLoading, setIsLoading] = useState(true);
+//     const [error, setError] = useState<string | null>(null);
+//     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
 
-    useEffect(() => {
-        console.log(
-            'useUserInit useEffect triggered. tgUser:',
-            tgUser,
-            'isTgLoading:',
-            isTgLoading
-        );
+//     useEffect(() => {
+//         console.log(
+//             'useUserInit useEffect triggered. tgUser:',
+//             tgUser,
+//             'isTgLoading:',
+//             isTgLoading
+//         );
 
-        const initializeUser = async () => {
-            try {
-                if (isTgLoading) {
-                    console.log('Telegram WebApp data is still loading (isTgLoading=true)');
-                    return;
-                }
-                if (!tgUser?.id) {
-                    console.warn('tgUser.id NOT found. Cannot initialize user.');
-                    setError('Не удалось получить данные пользователя из Telegram');
-                    setIsLoading(false);
-                    return;
-                }
+//         const initializeUser = async () => {
+//             try {
+//                 if (isTgLoading) {
+//                     console.log('Telegram WebApp data is still loading (isTgLoading=true)');
+//                     return;
+//                 }
+//                 if (!tgUser?.id) {
+//                     console.warn('tgUser.id NOT found. Cannot initialize user.');
+//                     setError('Не удалось получить данные пользователя из Telegram');
+//                     setIsLoading(false);
+//                     return;
+//                 }
 
-                setIsLoading(true);
-                setError(null);
+//                 setIsLoading(true);
+//                 setError(null);
 
-                // Проверяем существование пользователя
-                const exists = await checkUserExists(tgUser.id);
+//                 // Проверяем существование пользователя
+//                 const exists = await checkUserExists(tgUser.id);
 
-                if (!exists) {
-                    // Создаем нового пользователя
-                    const userData: CreateUserDto = {
-                        telegram_id: tgUser.id,
-                        username: tgUser.username || `user_${tgUser.id}`,
-                    };
-                    try {
-                        const newUser = await createUser(userData);
-                        setUser(newUser);
-                        // Сохраняем данные пользователя в глобальную переменную (если нужно)
-                        if (typeof window !== 'undefined') {
-                            window.telegramUser = newUser;
-                        }
-                    } catch (createError: unknown) {
-                        // Обрабатываем 409 Conflict - пользователь уже существует
-                        if (
-                            createError instanceof AxiosError &&
-                            createError.response?.status === 409
-                        ) {
-                            const userData = await getMe();
-                            setUser(userData);
-                            // Сохраняем данные пользователя в глобальную переменную (если нужно)
-                            if (typeof window !== 'undefined') {
-                                window.telegramUser = userData;
-                            }
-                        } else {
-                            // Другая ошибка - пробрасываем её дальше
-                            throw createError;
-                        }
-                    }
-                } else {
-                    // Пользователь существует, получаем данные
-                    const userData = await getMe();
-                    setUser(userData);
-                    // Сохраняем данные пользователя в глобальную переменную (если нужно)
-                    if (typeof window !== 'undefined') {
-                        window.telegramUser = userData;
-                    }
-                }
-            } catch (err: unknown) {
-                console.error('Ошибка инициализации пользователя:', err);
-                if (err instanceof Error) {
-                    setError(`Ошибка инициализации: ${err.message}`);
-                } else {
-                    setError('Неизвестная ошибка инициализации');
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
+//                 if (!exists) {
+//                     // Создаем нового пользователя
+//                     const userData: CreateUserDto = {
+//                         telegram_id: tgUser.id,
+//                         username: tgUser.username || `user_${tgUser.id}`,
+//                     };
+//                     try {
+//                         const newUser = await createUser(userData);
+//                         setUser(newUser);
+//                         // Сохраняем данные пользователя в глобальную переменную (если нужно)
+//                         if (typeof window !== 'undefined') {
+//                             window.telegramUser = newUser;
+//                         }
+//                     } catch (createError: unknown) {
+//                         // Обрабатываем 409 Conflict - пользователь уже существует
+//                         if (
+//                             createError instanceof AxiosError &&
+//                             createError.response?.status === 409
+//                         ) {
+//                             const userData = await getMe();
+//                             setUser(userData);
+//                             // Сохраняем данные пользователя в глобальную переменную (если нужно)
+//                             if (typeof window !== 'undefined') {
+//                                 window.telegramUser = userData;
+//                             }
+//                         } else {
+//                             // Другая ошибка - пробрасываем её дальше
+//                             throw createError;
+//                         }
+//                     }
+//                 } else {
+//                     // Пользователь существует, получаем данные
+//                     const userData = await getMe();
+//                     setUser(userData);
+//                     // Сохраняем данные пользователя в глобальную переменную (если нужно)
+//                     if (typeof window !== 'undefined') {
+//                         window.telegramUser = userData;
+//                     }
+//                 }
+//             } catch (err: unknown) {
+//                 console.error('Ошибка инициализации пользователя:', err);
+//                 if (err instanceof Error) {
+//                     setError(`Ошибка инициализации: ${err.message}`);
+//                 } else {
+//                     setError('Неизвестная ошибка инициализации');
+//                 }
+//             } finally {
+//                 setIsLoading(false);
+//             }
+//         };
 
-        initializeUser();
-    }, [tgUser, isTgLoading]);
+//         initializeUser();
+//     }, [tgUser, isTgLoading]);
 
-    return { user, isLoading, error };
-};
+//     return { user, isLoading, error };
+// };
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\entities\user\ui\index.ts =====
@@ -2453,7 +2452,7 @@ export const useTimers = (): TimerContextType => {
 
 'use client';
 
-// src/entities/user/model/UserContext.tsx (фрагмент)
+// src/entities/user/model/UserContext.tsx
 import React, {
     ReactNode,
     createContext,
@@ -2462,8 +2461,17 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { UserAttributes, getMe } from '@/entities/user';
+import { AxiosError } from 'axios';
+import { CreateUserDto, UserAttributes, createUser, getMe } from '@/entities/user';
+import { useReferral } from '@/shared/lib/hooks/useReferral';
 import { useTelegramWebApp } from '@/shared/lib/hooks/useTelegramWebApp';
+
+// Расширяем интерфейс Window только для нашей переменной
+declare global {
+    interface Window {
+        telegramUser?: UserAttributes;
+    }
+}
 
 interface UserContextType {
     user: UserAttributes | null;
@@ -2481,14 +2489,53 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { tgUser, isLoading: isTgLoading } = useTelegramWebApp();
+    const { getReferralId } = useReferral();
 
     const fetchUserData = useCallback(async () => {
-        // <-- useCallback для fetchUserData
-        if (!tgUser?.id) return;
+        if (!tgUser?.id) {
+            console.log('No tgUser.id found');
+            return;
+        }
+
         try {
             setIsLoading(true);
             setError(null);
-            const userData = await getMe();
+            console.log('Fetching user data for telegram_id:', tgUser.id);
+
+            // Пытаемся получить данные пользователя
+            let userData: UserAttributes;
+            try {
+                userData = await getMe();
+                console.log('User found:', userData);
+            } catch (getMeError) {
+                console.log('getMe error:', getMeError);
+                // Проверяем, является ли ошибка AxiosError с response
+                if (getMeError instanceof AxiosError) {
+                    // Если пользователь не найден (404), создаем его
+                    if (getMeError.response?.status === 404) {
+                        console.log('User not found, creating new user');
+                        // Получаем ref_id
+                        const referralId = getReferralId();
+                        console.log('Referral ID to use:', referralId);
+
+                        const userDataForCreation: CreateUserDto = {
+                            telegram_id: tgUser.id,
+                            username: tgUser.username || `id_${tgUser.id}`,
+                            ...(referralId && referralId !== tgUser.id && { ref_id: referralId }),
+                        };
+
+                        console.log('Creating user with data:', userDataForCreation);
+
+                        userData = await createUser(userDataForCreation);
+                        console.log('User created:', userData);
+                    } else {
+                        throw getMeError; // Другая ошибка - пробрасываем дальше
+                    }
+                } else {
+                    throw getMeError; // Не Axios ошибка - пробрасываем дальше
+                }
+            }
+
             setUser(userData);
             if (typeof window !== 'undefined') {
                 window.telegramUser = userData;
@@ -2499,44 +2546,40 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [tgUser?.id]); // Зависит от tgUser.id
+    }, [tgUser, getReferralId]); // Зависит от tgUser и getReferralId
 
     const refreshUserBalance = useCallback(async () => {
-        // <-- useCallback
         if (!user) return;
         try {
             const updatedUser = await getMe();
-            setUser(updatedUser); // Или точечное обновление, если нужно
+            setUser(updatedUser);
         } catch (err) {
             console.error('Ошибка обновления баланса:', err);
         }
-    }, [user]); // Зависит от user
+    }, [user]);
 
     const refreshUser = useCallback(async () => {
-        // <-- useCallback
         await fetchUserData();
-    }, [fetchUserData]); // Зависит от fetchUserData
+    }, [fetchUserData]);
 
     const updateUserLocally = useCallback((updates: Partial<UserAttributes>) => {
-        // <-- useCallback
         setUser((prevUser) => {
             if (!prevUser) return null;
             return { ...prevUser, ...updates };
         });
-    }, []); // Не зависит от внешних переменных, кроме setUser
+    }, []);
 
     useEffect(() => {
+        console.log('UserProvider useEffect triggered', { tgUser, isTgLoading });
         if (!isTgLoading && tgUser?.id) {
             fetchUserData();
         } else if (!isTgLoading && !tgUser?.id) {
             setIsLoading(false);
         }
-    }, [tgUser, isTgLoading, fetchUserData]); // Добавлен fetchUserData в зависимости
+    }, [tgUser, isTgLoading, fetchUserData]);
 
-    // --- КРИТИЧЕСКИ ВАЖНО: useCallback для всего value ---
     const contextValue = React.useMemo(
         () => ({
-            // <-- useMemo для value
             user,
             isLoading,
             error,
@@ -2546,7 +2589,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }),
         [user, isLoading, error, refreshUser, refreshUserBalance, updateUserLocally]
     );
-    // --- КОНЕЦ КРИТИЧЕСКОЙ ЧАСТИ ---
 
     return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
@@ -2565,6 +2607,84 @@ export const useUser = (): UserContextType => {
 export { MachineProvider, useMachines } from './MachineContext';
 export { UserProvider, useUser } from './UserContext';
 export { ReferralProvider, useReferrals } from './ReferralContext';
+
+
+===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\hooks\useReferral.ts =====
+
+// src/shared/lib/hooks/useReferral.ts
+import { useCallback } from 'react';
+
+// Создаем минимальный тип только для нужных нам полей
+interface MinimalTelegramWebApp {
+    Telegram?: {
+        WebApp?: {
+            initDataUnsafe?: {
+                start_param?: string;
+            };
+        };
+    };
+}
+
+// Вынесем функцию очистки в утилиты или сделаем локально
+const cleanReferralParam = (param: string | null | undefined): number | null => {
+    if (!param) return null;
+    let cleanParam = param;
+    if (param.startsWith('ref')) {
+        cleanParam = param.substring(3);
+    }
+    const id = parseInt(cleanParam, 10);
+    return isNaN(id) ? null : id;
+};
+
+export const useReferral = () => {
+    const getReferralId = useCallback((): number | null => {
+        if (typeof window === 'undefined') {
+            console.log('Window is undefined');
+            return null;
+        }
+
+        try {
+            // 1. Из localStorage (сохраненного в useTelegramWebApp)
+            const storedReferrerId = localStorage.getItem('referrer_id');
+            console.log('Stored referrer_id from localStorage:', storedReferrerId);
+            
+          const localStorageId = cleanReferralParam(storedReferrerId);
+            if (localStorageId !== null) {
+                 console.log('Found referral ID from localStorage (parsed):', localStorageId);
+                 return localStorageId;
+            }
+
+            // 2. Из URL параметров (резервный вариант)
+            const urlParams = new URLSearchParams(window.location.search);
+            const refParam = urlParams.get('ref');
+            console.log('URL ref param (raw):', refParam);
+
+            const urlId = cleanReferralParam(refParam);
+            if (urlId !== null) {
+                 console.log('Found referral ID from URL (parsed):', urlId);
+                 return urlId;
+            }
+
+            // 3. Из start_param Telegram WebApp (если не сохранилось в localStorage)
+            const telegramObj = window as unknown as MinimalTelegramWebApp;
+            const startParam = telegramObj.Telegram?.WebApp?.initDataUnsafe?.start_param;
+            console.log('Telegram start_param (direct, raw):', startParam);
+
+            const startParamId = cleanReferralParam(startParam);
+            if (startParamId !== null) {
+                 console.log('Found referral ID from Telegram start_param (parsed):', startParamId);
+                 return startParamId;
+            }
+        } catch (error) {
+            console.error('Ошибка получения referral_id:', error);
+        }
+
+        console.log('No referral ID found');
+        return null;
+    }, []);
+
+    return { getReferralId };
+};
 
 
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\lib\hooks\useTelegramWebApp.ts =====
@@ -2588,6 +2708,7 @@ declare global {
             WebApp: {
                 initDataUnsafe: {
                     user?: TelegramUser;
+                    start_param?: string;
                 };
                 initData?: string; // Для проверки в других частях приложения, если нужно
                 disableVerticalSwipes: () => void;
@@ -2639,6 +2760,21 @@ export const useTelegramWebApp = () => {
             const user = window.Telegram.WebApp.initDataUnsafe?.user || null;
             setTgUser(user);
             setIsLoading(false);
+
+            // обработка ref_id
+            try {
+                // Получаем start параметр из initData
+                const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+
+                if (startParam) {
+                    localStorage.setItem('referrer_id', startParam);
+                    console.log('Saved referrer_id from start param:', startParam);
+                } else {
+                    console.log('No start_param found in initDataUnsafe');
+                }
+            } catch (e) {
+                console.warn('Error parsing start parameter:', e);
+            }
 
             // Раскрываем приложение на весь экран
             try {
@@ -2933,19 +3069,52 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 
+===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\maintenance-screen\AnimatedBackground.tsx =====
+
+'use client';
+
+// src/shared/ui/MaintenanceScreen/AnimatedBackground.tsx
+import React, { memo } from 'react';
+import styles from './MaintenanceScreen.module.scss';
+
+export const AnimatedBackground = memo(() => {
+    return (
+        <div className={styles.animatedBackground}>
+            {[...Array(20)].map((_, i) => (
+                <div
+                    key={i} // key={i} по-прежнему нужен для React при рендеринге списков
+                    className={styles.floatingElement}
+                    style={{
+                        top: -38,
+                        left: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 5}s`,
+                        animationDuration: `${10 + Math.random() * 10}s`,
+                    }}
+                >
+                    {/* Исправлена ошибка: Math.floor(Math.random() * 5), а не 15, так как в массиве 5 элементов (индексы 0-4) */}
+                    {['⛏️', '⚡', '💻', '🔧', '⚙️'][Math.floor(Math.random() * 5)]}
+                </div>
+            ))}
+        </div>
+    );
+});
+
+AnimatedBackground.displayName = 'AnimatedBackground';
+
+
 ===== C:\Users\USER\Projects\robomine-capital\src\shared\ui\maintenance-screen\MaintenanceScreen.tsx =====
 
 'use client';
 
-// src/shared/ui/MaintenanceScreen/MaintenanceScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { AnimatedBackground } from './AnimatedBackground';
 import styles from './MaintenanceScreen.module.scss';
 
 export const MaintenanceScreen: React.FC = () => {
     // Список сообщений о процессе технических работ, тематических для майнинга
     const maintenanceMessages = [
-        'Проверяем работоспособность майнинг-ферм...',
+        'Проверяем майнинг-фермы...',
         'Обновляем прошивку оборудования...',
         'Запускаем диагностику ASIC чипов...',
         'Оптимизируем алгоритмы майнинга...',
@@ -2956,46 +3125,145 @@ export const MaintenanceScreen: React.FC = () => {
         'Калибруем энергопотребление...',
         'Загружаем последние обновления...',
         'Готовим роботов-операторов...',
-        'Подготавливаем награды для пользователей...',
-        'Финальная проверка систем...',
+        'Подготавливаем награды...',
+        'Тестируем стабильность сети...',
+        'Проверяем температуру GPU...',
+        'Оптимизируем энергоэффективность...',
+        'Проверяем целостность данных...',
+        'Настраиваем вентиляцию серверов...',
+        'Проверяем напряжение питания...',
+        'Калибруем вентиляторы...',
+        'Оптимизируем конфигурацию майнеров...',
+        'Проверяем работу блокчейн-нод...',
+        'Анализируем эффективность алгоритмов...',
+        'Тестируем отказоустойчивость систем...',
+        'Проверяем уровень шума оборудования...',
+        'Обновляем драйверы видеокарт...',
+        'Настраиваем автоматический перезапуск...',
+        'Проверяем мониторинг систем...',
+        'Оптимизируем распределение нагрузки...',
+        'Наносим термопасту...',
+        'Проверяем работу ASIC контроллеров...',
+        'Анализируем статистику майнинга...',
+        'Тестируем резервные системы...',
+        'Проверяем работу охлаждающих жидкостей...',
+        'Обновляем микрокод процессоров...',
+        'Настраиваем систему уведомлений...',
+        'Проверяем работу сетевых коммутаторов...',
+        'Оптимизируем использование памяти...',
+        'Калибруем датчики температуры...',
+        'Проверяем работу блоков питания...',
+        'Анализируем эффективность охлаждения...',
+        'Тестируем системы резервного копирования...',
+        'Проверяем работу шахт майнинга...',
+        'Обновляем протоколы безопасности...',
+        'Настраиваем систему автоматической диагностики...',
+        'Проверяем работу систем мониторинга...',
+        'Оптимизируем параметры overclocking...',
+        'Калибруем системы энергоснабжения...',
+        'Проверяем работу систем вентиляции...',
+        'Анализируем производительность пулов...',
     ];
 
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-    const [progress, setProgress] = useState(0);
-    const [isCompleted, setIsCompleted] = useState(false);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const contentRef = useRef<HTMLDivElement>(null);
+    const usedIndices = useRef<Set<number>>(new Set());
 
-    // Циклическая смена сообщений
+    // Функция для получения случайного индекса, отличного от текущего
+    const getRandomIndex = useCallback((currentIndex: number, maxLength: number): number => {
+        if (maxLength <= 1) return 0;
+
+        // Если все сообщения уже были показаны, сбрасываем
+        if (usedIndices.current.size >= maxLength) {
+            usedIndices.current.clear();
+        }
+
+        let newIndex;
+        do {
+            newIndex = Math.floor(Math.random() * maxLength);
+        } while (newIndex === currentIndex && maxLength > 1);
+
+        usedIndices.current.add(newIndex);
+        return newIndex;
+    }, []);
+
+    // Циклическая смена сообщений (рандомная)
     useEffect(() => {
         const messageInterval = setInterval(() => {
-            setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % maintenanceMessages.length);
-        }, 3000); // Меняем сообщение каждые 3 секунды
+            setCurrentMessageIndex((prevIndex) =>
+                getRandomIndex(prevIndex, maintenanceMessages.length)
+            );
+        }, 3000);
 
         return () => clearInterval(messageInterval);
-    }, [maintenanceMessages.length]);
+    }, [maintenanceMessages.length, getRandomIndex]);
 
-    // Анимация прогресс-бара (имитация работы)
-    useEffect(() => {
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                const newProgress = prev + Math.random() * 5; // Случайный прирост
-                if (newProgress >= 100) {
-                    setIsCompleted(true);
-                    clearInterval(progressInterval);
-                    return 100;
-                }
-                return newProgress;
+    // Обработчики drag and drop с useCallback для правильных зависимостей
+    const handleMouseMove = useCallback(
+        (e: MouseEvent) => {
+            if (!isDragging) return;
+
+            setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y,
             });
-        }, 500);
+        },
+        [isDragging, dragStart]
+    );
 
-        return () => clearInterval(progressInterval);
-    }, []);
+    const handleMouseUp = useCallback(() => {
+        if (isDragging) {
+            setIsDragging(false);
+            // Плавный возврат в исходное положение
+            setPosition({ x: 0, y: 0 });
+        }
+    }, [isDragging]);
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y,
+        });
+    };
+
+    // Добавляем глобальные обработчики событий
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+        }
+    }, [isDragging, handleMouseMove, handleMouseUp]);
 
     return (
         <div className={styles.maintenanceScreen}>
-            <div className={styles.content}>
+            {/* Анимированный фон */}
+            <AnimatedBackground />
+
+            <div
+                className={styles.content}
+                ref={contentRef}
+                style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    transition: isDragging
+                        ? 'none'
+                        : 'transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                }}
+                onMouseDown={handleMouseDown}
+            >
                 <div className={styles.glassFilter}></div>
                 <div className={styles.glassOverlay}></div>
                 <div className={styles.glassSpecular}></div>
+
                 {/* Анимированный робот-механик */}
                 <div className={styles.robotContainer}>
                     <Image
@@ -3020,29 +3288,10 @@ export const MaintenanceScreen: React.FC = () => {
                 </h1>
 
                 {/* Динамическое сообщение о процессе */}
-                <div className={styles.messageContainer}>
-                    <p className={styles.message}>{maintenanceMessages[currentMessageIndex]}</p>
-                </div>
+                <p className={styles.message}>{maintenanceMessages[currentMessageIndex]}</p>
             </div>
 
-            {/* Анимированный фон */}
-            <div className={styles.animatedBackground}>
-                {[...Array(20)].map((_, i) => (
-                    <div
-                        key={i}
-                        className={styles.floatingElement}
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
-                            animationDuration: `${15 + Math.random() * 10}s`,
-                        }}
-                    >
-                        {['⛏️', '⚡', '💻', '🔧', '⚙️'][Math.floor(Math.random() * 5)]}
-                    </div>
-                ))}
-            </div>
-
-            <svg>
+            <svg className={styles.svg}>
                 <filter id="lg-dist" x="0%" y="0%" width="100%" height="100%">
                     <feTurbulence
                         type="fractalNoise"
@@ -3653,7 +3902,7 @@ export const MachineCard = memo(
                 }
             } catch (err) {
                 console.error('Ошибка при покупке машины:', err);
-                let errorMessage = 'Произошла ошибка при покупке. Пожалуйста, попробуйте позже.';
+                let errorMessage = 'Недостаточно средств на балансе.';
                 if (err instanceof Error) {
                     if (err.message.includes('Insufficient funds')) {
                         errorMessage = 'Недостаточно средств на балансе.';
@@ -4319,7 +4568,7 @@ interface ReferralLinkProps {
 }
 
 export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
-    const referralLink = `https://t.me/RoboMine_CapitalBot?start=${telegramId}`;
+    const referralLink = `https://t.me/RoboMine_CapitalBot?startapp=ref_${telegramId}`;
 
     const handleCopy = async () => {
         navigator.clipboard.writeText(referralLink).then(() => {});
@@ -4580,6 +4829,7 @@ export const User = () => {
     │   │   │   ├── TimerContext.tsx
     │   │   │   └── UserContext.tsx
     │   │   ├── hooks
+    │   │   │   ├── useReferral.ts
     │   │   │   └── useTelegramWebApp.ts
     │   │   ├── index.ts
     │   │   └── providers
@@ -4612,6 +4862,7 @@ export const User = () => {
     │   │       ├── Input.tsx
     │   │       └── types.ts
     │   │   ├── maintenance-screen
+    │   │       ├── AnimatedBackground.tsx
     │   │       ├── MaintenanceScreen.module.scss
     │   │       └── MaintenanceScreen.tsx
     │   │   ├── modal

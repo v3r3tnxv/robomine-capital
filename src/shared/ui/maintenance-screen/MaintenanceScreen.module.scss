@@ -2,9 +2,8 @@
 @use '@/shared/styles/mixins' as *;
 @use '@/shared/styles/variables' as *;
 
-$maintenance-bg-color: rgba(255, 255, 255, 0.25);
-$maintenance-highlight: rgba(255, 255, 255, 0.75);
-$maintenance-hover-glow: rgba(255, 255, 255, 0.4);
+$maintenance-bg-color: rgba(255, 255, 255, 0.04);
+$maintenance-highlight: rgba(255, 255, 255, 0.1);
 
 .maintenanceScreen {
     position: fixed;
@@ -12,49 +11,47 @@ $maintenance-hover-glow: rgba(255, 255, 255, 0.4);
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    padding: 2rem;
+    display: grid;
+    justify-items: center;
+    align-content: center;
     z-index: 9999;
     overflow: hidden;
-    background: url('https://images.unsplash.com/photo-1551384963-cccb0b7ed94b?q=80&w=3247&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
-    animation: bg-move 5s ease-in-out infinite alternate;
+    background: transparent;
 
-    @keyframes bg-move {
-        from {
-            background-position: center center;
-        }
-        to {
-            background-position: center top;
-        }
-    }
     .content {
         position: relative;
         z-index: 2;
-        width: 70%;
+        width: 100%;
+        max-width: 432px;
+        max-height: 500px;
         padding: 2rem;
         text-align: center;
         border-radius: 24px;
-        overflow: hidden;
+        cursor: move;
         background: transparent;
         box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+        // @include interactive-behavior;
 
         .glassFilter {
             position: absolute;
             inset: 0;
             z-index: 0;
+            border-radius: inherit;
             -webkit-backdrop-filter: blur(0px);
             backdrop-filter: blur(0px);
             filter: url(#lg-dist);
             isolation: isolate;
+            pointer-events: none;
         }
 
         .glassOverlay {
             position: absolute;
             inset: 0;
+            border-radius: inherit;
             z-index: 1;
             background: $maintenance-bg-color;
+            pointer-events: none;
         }
 
         .glassSpecular {
@@ -66,18 +63,20 @@ $maintenance-hover-glow: rgba(255, 255, 255, 0.4);
             box-shadow:
                 inset 1px 1px 0 $maintenance-highlight,
                 inset 0 0 5px $maintenance-highlight;
+            pointer-events: none;
         }
 
         .robotContainer {
             position: relative;
             margin-bottom: 2rem;
             display: inline-block;
+            pointer-events: none;
 
             .robot {
                 width: 120px;
                 height: 120px;
                 object-fit: contain;
-                filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+                filter: drop-shadow(2px 4px 12px rgba(0, 0, 0, 0.25));
                 animation: floatAndPulse 4s ease-in-out infinite;
             }
 
@@ -114,45 +113,19 @@ $maintenance-hover-glow: rgba(255, 255, 255, 0.4);
         }
 
         .title {
+            position: relative;
             margin-bottom: 1.5rem;
-            font-weight: 700;
+            color: transparent;
             background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
             -webkit-background-clip: text;
             background-clip: text;
+        }
 
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
-            .highlight {
-                position: relative;
-                &::after {
-                    content: '';
-                    position: absolute;
-                    bottom: -8px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 80%;
-                    height: 3px;
-                    background: linear-gradient(90deg, $font-neon-blue, $font-neon-orange);
-                    border-radius: 3px;
-                }
-            }
-
-            .messageContainer {
-                margin-bottom: 2rem;
-                min-height: 80px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-
-                .message {
-                    font-size: 1.2rem;
-                    margin-bottom: 0.5rem;
-                    opacity: 0.95;
-                    color: #e6f7ff;
-                    transition: opacity 0.5s ease;
-                }
-            }
+        .message {
+            position: relative;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            animation: mess 3s cubic-bezier(0, 0, 0.5, 1) infinite;
         }
     }
 
@@ -167,15 +140,29 @@ $maintenance-hover-glow: rgba(255, 255, 255, 0.4);
         z-index: 1;
     }
 
+    .svg {
+        display: none;
+    }
+
     .floatingElement {
         position: absolute;
-        font-size: 1.5rem;
-        opacity: 0.2;
-        animation: floatUp linear infinite;
+        font-size: 2rem;
+        opacity: 0.4;
+        animation: floatUp cubic-bezier(0, 0, 0.5, 1) infinite;
     }
 }
 
 // Анимации
+@keyframes mess {
+    0%,
+    100% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
 @keyframes floatAndPulse {
     0%,
     100% {
@@ -200,17 +187,6 @@ $maintenance-hover-glow: rgba(255, 255, 255, 0.4);
     100% {
         transform: rotate(360deg) translateX(40px) rotate(-360deg);
         opacity: 0;
-    }
-}
-
-@keyframes typing {
-    0%,
-    60%,
-    100% {
-        transform: translateY(0);
-    }
-    30% {
-        transform: translateY(-10px);
     }
 }
 

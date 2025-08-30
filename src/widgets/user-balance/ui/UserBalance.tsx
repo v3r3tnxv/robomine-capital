@@ -1,13 +1,13 @@
 'use client';
 
-// src/widgets/balance/ui/Balance.tsx
+// src/widgets/user-balance/ui/UserBalance.tsx
 import CountUp from 'react-countup';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
 import { Coin } from '@/shared/assets/icons';
 import { useUser } from '@/shared/lib/contexts/UserContext';
-import styles from './Balance.module.scss';
+import styles from './UserBalance.module.scss';
 
-export const Balance = () => {
+export const UserBalance = () => {
     const { user } = useUser();
     const { rates } = useCurrencyConverter();
 

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { TransferResult, transfer } from '@/entities/withdrawal';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { useUser } from '@/shared/lib/contexts';
 import { Button, Input } from '@/shared/ui';
 import styles from './WithdrawForm.module.scss';
 
@@ -14,6 +15,7 @@ export const WithdrawForm = () => {
     const { rates } = useCurrencyConverter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const { refreshUserBalance } = useUser();
 
     // Эффект для конвертации USDT <-> RUB для отображения
     useEffect(() => {
@@ -108,11 +110,20 @@ export const WithdrawForm = () => {
             console.log('Результат вывода:', withdrawalResult);
 
             if (withdrawalResult.status === 'completed') {
+                try {
+                    await refreshUserBalance();
+                    console.log('Баланс пользователя обновлён после успешного вывода.');
+                } catch (refreshError) {
+                    console.error('Ошибка обновления баланса после вывода:', refreshError);
+                    // Можно отобразить пользователю сообщение, если это критично
+                    // setError('Баланс не обновлён, но вывод был успешен. Обновите страницу.');
+                }
+
                 // Очищаем поля ввода
                 setRubAmount('');
                 setUsdtAmount('');
             } else {
-                // Этот случай маловероятен, если auto_approve=true, но оставим на всякий
+                setError('Вывод инициирован, но ожидает подтверждения.');
             }
         } catch (err: unknown) {
             console.error('Ошибка при выводе:', err);

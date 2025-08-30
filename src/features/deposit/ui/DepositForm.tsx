@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { DepositDto, createDepositInvoice } from '@/entities/deposit';
 import { convertCurrency, useCurrencyConverter } from '@/features/currency-converter';
+import { useUser } from '@/shared/lib/contexts';
 import { Button, Input } from '@/shared/ui';
 import styles from './DepositForm.module.scss';
 
@@ -14,6 +15,7 @@ export const DepositForm = () => {
     const { rates } = useCurrencyConverter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const { refreshUserBalance } = useUser();
 
     // Эффект для конвертации USDT <-> RUB для отображения
     useEffect(() => {
@@ -130,6 +132,15 @@ export const DepositForm = () => {
             }
 
             if (payUrl) {
+                try {
+                    await refreshUserBalance();
+                } catch (refreshError) {
+                    console.error(
+                        'Не удалось обновить баланс после создания инвойса:',
+                        refreshError
+                    );
+                    setError('Ошибка получения ссылки на оплату. Обратитесь в поддержку.');
+                }
                 console.log('Перенаправление на:', payUrl);
                 window.location.href = payUrl;
             } else {
