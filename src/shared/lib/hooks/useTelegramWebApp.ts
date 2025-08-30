@@ -73,13 +73,13 @@ export const useTelegramWebApp = () => {
             // обработка ref_id
             try {
                 // Получаем start параметр из initData
-                const initData = window.Telegram.WebApp.initData || '';
-                const initDataParams = new URLSearchParams(initData);
-                const startParam = initDataParams.get('start');
+                const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
 
                 if (startParam) {
                     localStorage.setItem('referrer_id', startParam);
                     console.log('Saved referrer_id from start param:', startParam);
+                } else {
+                    console.log('No start_param found in initDataUnsafe');
                 }
             } catch (e) {
                 console.warn('Error parsing start parameter:', e);

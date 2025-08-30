@@ -8,7 +8,7 @@ interface ReferralLinkProps {
 }
 
 export const ReferralLink = ({ telegramId }: ReferralLinkProps) => {
-    const referralLink = `https://t.me/RoboMine_CapitalBot?start=${telegramId}`;
+    const referralLink = `https://t.me/RoboMine_CapitalBot?startapp=ref_${telegramId}`;
 
     const handleCopy = async () => {
         navigator.clipboard.writeText(referralLink).then(() => {});
